@@ -1,0 +1,39 @@
+.accordion {
+  width: 100%;
+}
+
+.accordion__trigger {
+  display: flex; // stylelint-disable-line plugin/no-unsupported-browser-features
+  justify-content: space-between;
+  width: 100%;
+  padding-right: 0;
+  text-align: left;
+  @include rem(padding-left, 16px);
+  @include rem(height, rhythm(3));
+  @include adjust-leading-to(3);
+}
+
+.accordion__trigger .button__symbol--square {
+  @include rem(width, rhythm(3));
+  @include adjust-font-size-to(ms(3));
+  @include adjust-leading-to(3);
+}
+
+.accordion__panel {
+  display: none;
+  @include rem(padding-right, 16px);
+  @include rem(padding-left, 16px);
+  // stylelint-disable-line no-eol-whitespace
+  &::before,
+  &::after {
+    display: table;
+    content: " ";
+  }
+  &::after { // stylelint-disable-line rule-empty-line-before
+    clear: both;
+  }
+}
+
+.accordion--active .accordion__panel {
+  display: block;
+}

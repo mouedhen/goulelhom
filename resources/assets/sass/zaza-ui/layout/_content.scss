@@ -1,0 +1,7 @@
+.l-content {
+  width: 100%;
+  height: calc(100% - #{rhythm(2)});
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: auto;
+}

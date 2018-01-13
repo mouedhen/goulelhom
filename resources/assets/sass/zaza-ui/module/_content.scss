@@ -1,0 +1,79 @@
+.content {
+  position: relative;
+  background-color: #ddd;
+  transition: width 0.3s;
+}
+
+.content__background {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: map_get(map_get($z, "section"), "background");
+  width: 100%;
+  height: 100%;
+}
+
+.content__foreground {
+  z-index: map_get(map_get(map_get($z, "section"), "foreground"), "foreground");
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  @include padding-leader(4);
+}
+
+.tnetnoc {
+  width: inherit;
+  height: inherit;
+}
+
+.foreground__splash {
+  position: relative;
+  z-index: map_get(map_get(map_get($z, "section"), "foreground"), "splash");
+  width: calc(100% - 32px);
+  height: 100%;
+  margin: 0 auto;
+  background-color: #fff;
+  transition: transform 0.3s;
+  transform: translateY(calc(100% - #{rhythm(2)}));
+  @include padding-leader();
+  @include rem(padding-right, 16px);
+  @include padding-trailer();
+  @include rem(padding-left, 16px);
+}
+
+.foreground__splash--p-0 {
+  padding: 0;
+}
+
+.foreground__splash--2 {
+  @include breakpoint("large") {
+    width: calc(50% - 16px);
+    margin-left: auto;
+    @include rem(margin-right, 16px);
+  }
+}
+
+.splash__button {
+  position: absolute;
+  z-index: map_get(map_get(map_get($z, "section"), "foreground"), "splash") + 1;
+  color: #fff;
+}
+
+.splash__button--up {
+  right: 0;
+  left: 0;
+  margin: auto;
+  background-color: map_get($palette-color, "color-1");
+  @include rem(top, rhythm() / -1);
+}
+
+.splash__button--down {
+  top: 0;
+  right: 0;
+  display: none;
+}
+
+.section__heading {
+  @include margin-leader(0);
+  @include margin-trailer(0);
+}

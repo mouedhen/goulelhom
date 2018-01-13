@@ -1,0 +1,14 @@
+.section {
+  position: relative;
+  z-index: map_get(map_get($z, "section"), "section");
+  display: flex; // stylelint-disable-line plugin/no-unsupported-browser-features
+  flex-direction: column;
+  transition: margin-left 0.3s;
+}
+
+.section .navigation {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: map_get(map_get($z, "section"), "navigation");
+}

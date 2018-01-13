@@ -1,0 +1,62 @@
+.aside {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: map_get($z, "aside");
+  color: #fff;
+  background-color: map_get($palette-color, "color-1");
+  transition: transform 0.3s;
+  transform: translateX(-100%);
+}
+
+.aside .navigation {
+  justify-content: space-between;
+  @include rem(padding-left, 16px);
+}
+
+.aside__description {
+  color: rgba(#fff, 0.6);
+  visibility: hidden;
+  transition: visibility 0.3s;
+  @include padding-leader();
+  @include rem(padding-right, 16px);
+  @include rem(padding-left, 16px);
+}
+
+.aside__accordion {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+}
+
+.aside__accordion .accordion {
+  position: relative;
+  box-shadow: 0 1px 3px rgba(#000, 0.3);
+}
+
+.aside__accordion .accordion__trigger {
+  font-weight: 700;
+  color: rgba(#fff, 1);
+  &:focus { // stylelint-disable-line rule-empty-line-before
+    outline: none; // stylelint-disable-line plugin/no-unsupported-browser-features
+  }
+}
+
+.aside__accordion .accordion__panel {
+  color: rgba(#fff, 0.75);
+}
+
+.aside__accordion .accordion__panel p { // stylelint-disable-line selector-max-type
+  visibility: hidden;
+  transition: visibility 0.3s;
+}
+
+$palette-accordion: (#c62828, #d32f2f, #e53935, #f44336, #ef5350, #e57373 );
+
+@for $i from 1 through length($palette-accordion) {
+  .accordion:nth-of-type(#{$i}) {
+    z-index: (map_get($z, "aside") + (length($palette-accordion) + 1)) - $i;
+    background-color: nth($palette-accordion, $i);
+  }
+}

@@ -1,0 +1,69 @@
+@include establish-baseline();
+/* stylelint-disable selector-max-type */
+body {
+  max-width: none;
+  margin: auto;
+  font-family: sans-serif;
+  @include adjust-font-size-to(ms(0));
+}
+
+@each $tag, $v, $leader, $trailer in $typography {
+  #{$tag} {
+    @include adjust-font-size-to(ms($v));
+    @if type_of($leader) == "number" {
+      @include margin-leader($leader);
+    }
+    @if type_of($trailer) == "number" {
+      @include margin-trailer($trailer);
+    }
+  }
+
+  @if type_of($tag) == "string" {
+    #{$tag} small {
+      @include adjust-font-size-to(ms($v) * 0.6);
+    }
+  }
+}
+
+ul,
+ol {
+  & & {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+}
+
+hr {
+  width: 100%;
+  height: 0;
+  margin: 0;
+  clear: both;
+  border: 0;
+  @include trailing-border();
+}
+
+a,
+b,
+i,
+strong,
+em,
+small,
+code {
+  line-height: 0;
+}
+
+sub,
+sup {
+  position: relative;
+  line-height: 0;
+  vertical-align: baseline;
+}
+
+sup {
+  top: -0.5em;
+}
+
+sub {
+  bottom: -0.25em;
+}
+/* stylelint-enable selector-max-type */

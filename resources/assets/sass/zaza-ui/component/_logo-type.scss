@@ -1,0 +1,11 @@
+.logo {
+  margin: 0;
+  @include adjust-font-size-to(ms(1));
+  @include adjust-leading-to(2);
+}
+
+.type {
+  display: block;
+  text-decoration: none;
+  @include adjust-leading-to(2);
+}

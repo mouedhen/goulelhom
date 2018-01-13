@@ -1,0 +1,55 @@
+// 1# Z Index
+// 2# Aside
+// 3# libsass-compass-vertical-rhythm
+// 4# modularscale-sass
+// 5# Typography
+// 6# Color
+// 7# Grid
+
+// 1# Z Index
+// ----------------
+
+$z: ("modal": ("overlay": 7000), "aside": 6000, "section": ("navigation": 5000, "foreground": ("splash": 4000, "foreground": 3000),"background": 2000,"section": 1000));
+
+// 2# Aside
+// ----------------
+
+$aside--width: 320px;
+$aside--off: (1: 75%);
+
+// 3# libsass-compass-vertical-rhythm
+// ----------------------------------------------------------------
+
+$base-font-size: 16px;
+$base-line-height: 24px;
+$rem-with-px-fallback: false;
+$rhythm-unit: "rem";
+$default-rhythm-border-width: 1px;
+$default-rhythm-border-style: (solid, #000);
+$round-to-nearest-half-line: false;
+$min-line-padding: 2px;
+$grid-background-baseline-color: rgba(#f00, 0.6);
+$grid-background-baseline-height: ($base-line-height / $base-font-size) * 1em;
+$show-baseline-grid-backgrounds: true;
+$show-grid-backgrounds: true;
+
+// 4# modularscale-sass
+// --------------------------------
+
+$modularscale: ("base": $base-font-size, "ratio": 1.3333333333) !global;
+
+// 5# Typography
+// ----------------
+
+$typography: (("h1", 3, 1 2), ("h2", 2, 1, 1), ("h3", 1, 1, null), ("h4", 0, 1, null), ("h5", -1, 1, null), ("h6", -1, 1, null), (("p", "ul", "ol", "pre", "table", "blockquote"), 0, null, 1));
+
+// 6# Color
+// ----------------
+$palette-color: ("color-1": #b71c1c);
+$color-contrast-tolerance: 3.1;
+$color-tonal-offset: 7%;
+
+// 7# Grid
+// ----------------
+
+$grid: ("small": ("column": 4), "medium": ("breakpoint": 480px, "column": 8), "large": ("breakpoint": 840px, "column": 12));

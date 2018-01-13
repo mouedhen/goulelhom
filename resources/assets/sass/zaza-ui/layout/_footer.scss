@@ -1,0 +1,7 @@
+.l-footer {
+  width: 100%;
+  flex-grow: 0;
+  flex-shrink: 0;
+  @include rem(height, rhythm(2));
+  @include rem(flex-basis, rhythm(2));
+}

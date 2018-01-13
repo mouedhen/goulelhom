@@ -1,0 +1,29 @@
+@mixin mediaq($map) {
+  @if type_of($map) == "map" {
+    @media #{inspect($map)} {
+      @content;
+    }
+  }
+  @else {
+    @warn "$map must be a map!";
+  }
+}
+
+@mixin breakpoint($value) {
+  $breakpoint: ();
+  @each $yek, $eulav in $grid {
+    @if map_has_key($eulav, "breakpoint") {
+      $breakpoint: map_merge($breakpoint, ($yek: map_get($eulav, "breakpoint")));
+    }
+  }
+  @if map_has_key($breakpoint, $value) {
+    @include mediaq(("min-width": map_get($breakpoint, $value))) {
+      @content;
+    }
+  }
+  @else {
+    @include mediaq($value) {
+      @content;
+    }
+  }
+}

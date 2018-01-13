@@ -1,0 +1,41 @@
+.card {
+  background-color: #fff;
+  @include trailing-border($border-style: (solid, #ccc));
+}
+
+.card__description,
+.card__footer {
+  @include rem(padding-right, 16px);
+  @include rem(padding-left, 16px);
+}
+
+.card__description {
+  position: relative;
+  z-index: 5;
+  @include padding-leader();
+}
+
+.description__title {
+  margin: 0;
+}
+
+.card__description::before {
+  position: absolute;
+  top: -20px;
+  right: 0;
+  z-index: -1;
+  display: block;
+  width: 100%;
+  height: 40px;
+  content: "";
+  background-color: #fff;
+  transform: skew(0deg, -5deg);
+}
+
+.card--1 .card__description::before {
+  transform: skew(0deg, -5deg);
+}
+
+.card--2 .card__description::before {
+  transform: skew(0deg, 5deg);
+}

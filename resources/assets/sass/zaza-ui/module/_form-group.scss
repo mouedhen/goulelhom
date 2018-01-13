@@ -1,0 +1,38 @@
+.form-group {
+  position: relative;
+}
+
+.form-group__control,
+.form-group__label {
+  display: block;
+  width: 100%;
+  @include rem(padding-right, 8px);
+  @include rem(padding-left, 8px);
+}
+
+.form-group__control {
+  box-sizing: border-box;
+  outline: none; // stylelint-disable-line plugin/no-unsupported-browser-features
+  box-shadow: inset 1px 1px 0 0 #bbb, inset -1px -1px 0 0 #bbb;
+  transition: box-shadow 0.15s;
+  @include adjust-font-size-to(ms(0));
+  @include adjust-leading-to(2);
+  @at-root textarea#{&} {
+    resize: none; // stylelint-disable-line plugin/no-unsupported-browser-features
+  }
+}
+
+.form-group__control:focus {
+  outline: none; // stylelint-disable-line plugin/no-unsupported-browser-features
+}
+
+.form-group__label {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  color: #bbb;
+  transition: visibility 0.15s;
+  @include adjust-font-size-to(ms(-1));
+  @include adjust-leading-to(2);
+}

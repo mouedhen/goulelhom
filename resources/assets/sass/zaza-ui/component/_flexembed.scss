@@ -1,0 +1,11 @@
+.FlexEmbed-content video { // stylelint-disable-line selector-max-type
+  width: inherit;
+  height: inherit;
+  object-fit: cover; // stylelint-disable-line plugin/no-unsupported-browser-features
+}
+
+.FlexEmbed-content img { // stylelint-disable-line selector-max-type
+  width: inherit;
+  height: inherit;
+  object-fit: cover; // stylelint-disable-line plugin/no-unsupported-browser-features
+}

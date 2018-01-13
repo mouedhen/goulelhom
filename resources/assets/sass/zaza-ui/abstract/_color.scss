@@ -1,0 +1,62 @@
+@function color-luminance($color) {
+  $rgb: ();
+  @each $channel in ("red", "green", "blue") {
+    $value: call($channel, $color) / 255;
+    $rgb: map-merge($rgb, ($channel: if($value < 0.03928, $value / 12.92, poly-pow(($value + 0.055) / 1.055, 2.4))));
+  }
+
+  @return 0.2126 * map_get($rgb, "red") + 0.7152 * map_get($rgb, "green") + 0.0722 * map_get($rgb, "blue");
+}
+
+@function color-contrast($st, $sd) {
+  $stLum: color-luminance($st) + 0.05;
+  $sdLum: color-luminance($sd) + 0.05;
+
+  @return max($stLum, $sdLum) / min($stLum, $sdLum);
+}
+
+@function color-tone($color, $tolerance: $color-contrast-tolerance) {
+  $light: color-contrast($color, #fff);
+  $dark: color-contrast($color, #000);
+
+  @if ($light < $tolerance) and ($dark > $light) {
+    @return "light";
+  }
+  @else {
+    @return "dark";
+  }
+}
+
+@function contrast-tone($color) {
+  @return if(color-tone($color) == "dark", "light", "dark");
+}
+
+@function color-clamp-percentage($percentage) {
+  @return max(0%, min(100%, $percentage));
+}
+
+@function color-tonal-variant($color, $i: 2) {
+  $luminance: color-luminance($color) * 100%;
+  $x1: color-clamp-percentage($color-tonal-offset * $i);
+  $x2: color-clamp-percentage($color-tonal-offset * $i * 2);
+  $lower: $x1;
+  $upper: 100% - $lower;
+
+  @if $luminance <= $lower {
+    @return ("dark": lighten($color, $x1), "light": lighten($color, $x2));
+  }
+  @else if $luminance >= $upper {
+    @return ("dark": darken($color, $x2), "light": darken($x1));
+  }
+  @else {
+    @return ("dark": darken($color, $x1), "light": lighten($color, $x1));
+  }
+}
+
+@function color-dark-variant($color, $i: 2) {
+  @return map_get(color-tonal-variant($color, $i), "dark");
+}
+
+@function color-light-variant($color, $i: 2) {
+  @return map_get(color-tonal-variant($color, $i), "light");
+}

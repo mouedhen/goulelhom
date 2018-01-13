@@ -1,0 +1,17 @@
+.menu {
+  display: flex; // stylelint-disable-line plugin/no-unsupported-browser-features
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+  @at-root ul#{&} {
+    margin-bottom: 0;
+  }
+}
+
+.menu__king {
+  display: block;
+  @include rem(padding-right, 16px);
+  @include rem(padding-left, 16px);
+  @include adjust-font-size-to(ms(-1));
+  @include adjust-leading-to(2);
+}

@@ -1,0 +1,8 @@
+.form-group--focused .form-group__control {
+  box-shadow: inset 1px 1px 0 0 map_get($palette-color, "color-1"), inset -1px -1px 0 0 map_get($palette-color, "color-1");
+}
+
+.form-group--focused .form-group__label {
+  pointer-events: none;
+  visibility: hidden;
+}

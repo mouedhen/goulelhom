@@ -1,0 +1,51 @@
+.button {
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  @include rem(padding-right, 16px);
+  @include rem(padding-left, 16px);
+  @include adjust-font-size-to(ms(0));
+  @include adjust-leading-to(2);
+  @include rem(height, rhythm(2));
+  @extend .Button; // stylelint-disable-line at-rule-blacklist
+  &:hover {
+    cursor: pointer;
+  }
+}
+
+.button--square,
+.button--round {
+  padding: 0;
+  @include rem(width, rhythm(2));
+}
+
+.button--round {
+  border-radius: 50%;
+}
+
+.button.button--2 .button__symbol--1,
+.button__symbol--2 {
+  display: none;
+}
+
+.button.button--2 .button__symbol--2 {
+  display: inline;
+}
+
+.button__symbol--square {
+  display: block;
+  height: 100%;
+  text-align: center;
+  @include rem(width, rhythm(2));
+}
+
+.button--primary {
+  color: #fff;
+  background-color: map_get($palette-color, "color-1");
+}
+
+.button--secondary {
+  position: relative;
+  color: map_get($palette-color, "color-1");
+  box-shadow: inset 1px 1px 0 0 map_get($palette-color, "color-1"), inset -1px -1px 0 0 map_get($palette-color, "color-1");
+}

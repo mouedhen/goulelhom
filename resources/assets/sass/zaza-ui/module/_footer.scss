@@ -1,0 +1,18 @@
+.footer {
+  display: none;
+  background-color: #333;
+  transition: width 0.3s;
+  @include breakpoint("large") {
+    display: block;
+  }
+}
+
+.footer .menu__king {
+  color: rgba(#fff, 0.75);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.footer .menu__king:hover {
+  color: #fff;
+}

@@ -1,0 +1,60 @@
+.grid {
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0 auto;
+  @include padding-leader();
+  @include rem(padding-right, 16px);
+  @include padding-trailer();
+  @include rem(padding-left, 16px);
+}
+
+.grid__inner {
+  display: flex; // stylelint-disable-line plugin/no-unsupported-browser-features
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+  @include rem(margin-top, rhythm() / -2);
+  @include rem(margin-right, -8px);
+  @include rem(margin-bottom, rhythm() / -2);
+  @include rem(margin-left, -8px);
+}
+
+.cell {
+  width: calc(100% - 16px);
+  box-sizing: border-box;
+  @include rem(margin-top, rhythm() / 2);
+  @include rem(margin-right, 8px);
+  @include rem(margin-bottom, rhythm() / 2);
+  @include rem(margin-left, 8px);
+  @for $i from 1 through length($grid) {
+    @if map_has_key(map_get($grid, nth(map_keys($grid), $i)), "breakpoint") {
+      @include breakpoint(nth(map_keys($grid), $i)) {
+        width: calc(#{percentage(map_get(map_get($grid, nth(map_keys($grid), 1)), "column") / map_get(map_get($grid, nth(map_keys($grid), $i)), "column"))} - 16px);
+      }
+    }
+    @else {
+      width: calc(#{percentage(map_get(map_get($grid, nth(map_keys($grid), 1)), "column") / map_get(map_get($grid, nth(map_keys($grid), $i)), "column"))} - 16px);
+    }
+  }
+}
+
+@for $j from 1 through length($grid) {
+  @if map_has_key(map_get($grid, nth(map_keys($grid), $j)), "breakpoint") {
+    @include breakpoint(nth(map_keys($grid), $j)) {
+      @for $k from 1 through map_get(map_get($grid, nth(map_keys($grid), length($grid))), "column") {
+        .cell--#{$k},
+        .cell--#{nth(map_keys($grid), $j)}-#{$k} {
+          width: calc(#{min(100%, percentage($k / map_get(map_get($grid, nth(map_keys($grid), $j)), "column")))} - 16px);
+        }
+      }
+    }
+  }
+  @else {
+    @for $l from 1 through map_get(map_get($grid, nth(map_keys($grid), length($grid))), "column") {
+      .cell--#{$l},
+      .cell--#{nth(map_keys($grid), $j)}-#{$l} {
+        width: calc(#{min(100%, percentage($l / map_get(map_get($grid, nth(map_keys($grid), $j)), "column")))} - 16px);
+      }
+    }
+  }
+}
