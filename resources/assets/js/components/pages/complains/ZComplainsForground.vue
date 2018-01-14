@@ -30,41 +30,42 @@
     <div class="content__foreground">
         <div id="splash" class="foreground__splash foreground__splash--2">
             <nav-splach style="color: #333333"/>
-            <form action="#" enctype="multipart/form-data">
+
+            <div class="claim-form" :class="{saving: claim.saving}">
                 <div class="grid">
                     <div class="grid__inner">
                         <div class="cell--large-12">
                             <h1 class="form-title">{{ $t('complains-title') }}</h1>
                         </div>
+
+                        <div class="cell cell--medium-8 cell--large-12">
+                            <span v-for="error in claim.errors.name">{{error}}</span>
+                        </div>
+
                         <div class="cell cell--medium-8 cell--large-12 form-group">
-                            <input type="text" id="name" class="form-group__control" name="name">
-                            <label for="name" class="form-group__label">
-                                {{ $t('name-placeholder') }}
-                            </label>
+                            <input type="text" id="name" class="form-group__control"
+                                   :placeholder="$t('name-placeholder')"
+                                   v-model="claim.claimerName" name="name">
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 form-group">
-                            <input type="text" id="phone" class="form-group__control" name="phone">
-                            <label for="phone" class="form-group__label">
-                                {{ $t('phone-placeholder') }}
-                            </label>
+                            <input type="text" id="phone" class="form-group__control"
+                                   :placeholder="$t('phone-placeholder')"
+                                   v-model="claim.claimerPhone" name="phone">
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 form-group">
-                            <input type="text" id="municipality" class="form-group__control" name="municipality">
-                            <label for="municipality" class="form-group__label">
-                                {{ $t('municipality-placeholder') }}
-                            </label>
+                            <input type="text" id="municipality" class="form-group__control"
+                                   :placeholder="$t('municipality-placeholder')"
+                                   v-model="claim.municipality" name="municipality">
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 form-group">
-                            <input type="text" id="subject" class="form-group__control" name="subject">
-                            <label for="subject" class="form-group__label">
-                                {{ $t('subject-placeholder') }}
-                            </label>
+                            <input type="text" id="subject" class="form-group__control"
+                                   :placeholder="$t('subject-placeholder')"
+                                   v-model="claim.subject" name="subject">
                         </div>
                         <div id="textareaDrop" class="cell cell--medium-8 cell--large-12 form-group">
-                            <textarea name="observation" id="observation" rows="2" class="form-group__control"></textarea>
-                            <label for="observation" class="form-group__label">
-                                {{ $t('observation-placeholder') }}
-                            </label>
+                            <textarea name="observation" id="observation" rows="2" class="form-group__control"
+                                      :placeholder="$t('observation-placeholder')"
+                                      v-model="claim.description"></textarea>
                         </div>
                         <div class="cell cell--large-12">
 
@@ -74,12 +75,12 @@
 
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 button-group controls">
-                            <input type="submit" :value="$t('button-submit')" class="button button--primary"/>
-                            <input type="reset" :value="$t('button-reset')" class="button button--secondary"/>
+                            <button v-on:click="claimSave" class="button button--primary">{{$t('button-submit')}}</button>
+                            <button type="reset" v-on:click="reInitClaim" class="button button--secondary">{{$t('button-reset')}}</button>
                         </div>
                     </div>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </template>
@@ -88,13 +89,13 @@
     const Uppy = require('uppy/lib/core');
     const Dashboard = require('uppy/lib/plugins/Dashboard');
     const Webcam = require('uppy/lib/plugins/Webcam');
-    const Tus = require('uppy/lib/plugins/Tus');
 
     import {addClass, hasClass, removeClass} from './../../../zaza-ui/helpers'
 
     import NavSplach from './../../shared/components/NavSplach.vue'
 
     export default {
+        props: ['claim'],
         components: {
             NavSplach
         },
@@ -159,6 +160,12 @@
             }
         },
         methods: {
+            claimSave() {
+                this.$emit('saveClaim')
+            },
+            reInitClaim() {
+                this.$emit('resetClaim')
+            },
             initialState() {
                 const container = document.getElementById('main');
                 if (!container.classList.contains('main--off-splash')) {
@@ -180,36 +187,6 @@
 
                 openSplashTrigger.addEventListener('click', openSplashHandler);
                 closeSplashTrigger.addEventListener('click', closeSplashHandler);
-            },
-            form() {
-                const formGroup = document.querySelectorAll('.form-group'); // eslint-disable-line no-undef
-
-                // const uploadFile1 = document.getElementById('uploadFile1'); // eslint-disable-line no-undef
-
-                // const uploadFile2 = document.getElementById('uploadFile2'); // eslint-disable-line no-undef
-
-                if (formGroup !== null) {
-                    for (const form of formGroup) { // eslint-disable-line no-restricted-syntax
-                        const control = form.querySelector('.form-group__control');
-                        control.addEventListener('focus', () => {
-                            addClass(form, 'form-group--focused');
-                        });
-
-                        control.addEventListener('blur', () => {
-                            removeClass(form, 'form-group--focused');
-                        });
-                    }
-                }
-                /*
-                if (uploadFile1 !== null) {
-                    uploadFile1.addEventListener('click', () => {
-                        // const event = document.createEvent('HTMLEvents'); // eslint-disable-line no-undef
-                        // event.initEvent('click', true, false);
-                        // uploadFile2.dispatchEvent(event);
-                        uploadFile2.click();
-                    });
-                }
-                */
             },
             fileUploader() {
                 const uppy = Uppy({
@@ -241,7 +218,6 @@
         mounted() {
             this.initialState();
             this.splash();
-            this.form();
             this.fileUploader();
         }
     }
