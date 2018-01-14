@@ -9,7 +9,9 @@
     <!-- TODO Handle RTL with mix -->
     <title>{{ config('app.name') }}</title>
 
-    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.43.0/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css"
+          integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ=="
+          crossorigin=""/>
     <link href="css/app.rtl.css" rel="stylesheet" type="text/css">
 
     <script>

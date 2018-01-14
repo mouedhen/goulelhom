@@ -3,7 +3,7 @@
         <div class="tnetnoc petition-container">
             <div class="grid">
                 <div class="grid__inner">
-                    <div class="cell cell--medium-12 cell--large-6">
+                    <div class="cell cell--medium-12 cell--large-6 petitions-cards-container">
                         <div class="grid__inner">
                             <div class="cell cell--medium-12 cell--large-12 hotspot">
                                 <div class="FlexEmbed hotspot__thumbnail">
@@ -78,7 +78,7 @@
                     </div>
 
                     <div class="cell cell--medium-12 cell--large-6 petition">
-                        <petition-form></petition-form>
+                        <petition-form/>
                     </div>
 
                 </div>

@@ -25,10 +25,7 @@ mix.js('resources/assets/js/app.js', 'public/js')
     .webpackConfig({
         plugins: [
             new LiveReloadPlugin(),
-            new WebpackRTLPlugin('/public/css/[name].rtl.css'),
-            new webpack.ProvidePlugin({
-                mapboxgl: 'mapbox-gl'
-            }),
+            new WebpackRTLPlugin('/public/css/[name].rtl.css')
         ],
         module: {
             rules: [

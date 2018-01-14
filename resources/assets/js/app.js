@@ -6,7 +6,7 @@ window.Vue = Vue;
 window.axios = axios;
 // window.mapboxgl = require('mapbox-gl');
 
-mapboxgl.setRTLTextPlugin('https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.1.1/mapbox-gl-rtl-text.js');
+// mapboxgl.setRTLTextPlugin('https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.1.1/mapbox-gl-rtl-text.js');
 
 import VueRouter from 'vue-router'
 import VueResource from 'vue-resource'

@@ -1,11 +1,13 @@
 <template>
     <section id="section" class="l-section section">
-        <div id="content" class="l-content content">
+        <router-view/>
+        <!-- <div id="content" class="l-content content">
             <z-mobile></z-mobile>
-            <router-view></router-view>
-            <router-view name="splash"></router-view>
+            <router-view/>
+            <router-view name="splash"/>
         </div>
-        <z-footer></z-footer>
+        --->
+        <z-footer/>
     </section>
 </template>
 

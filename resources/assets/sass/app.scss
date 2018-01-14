@@ -1,8 +1,11 @@
 @import url('https://fonts.googleapis.com/css?family=Cairo:200,300,400,600,700,900&subset=arabic');
+
 @import "zaza-ui/goulelhom";
-@import "~flexboxgrid-sass/flexboxgrid.scss";
 @import "variables";
+
+// @import "~leaflet/dist/leaflet";
 @import "~uppy/src/scss/uppy.scss";
+@import "~flexboxgrid-sass/flexboxgrid.scss";
 
 body {
   font-family: 'Cairo', sans-serif;
@@ -167,7 +170,7 @@ aside {
 
 .petition-container {
   .card, .hotspot {
-    height: 50%;
+    // height: 50%;
   }
   .grid {
     height: 100%;
@@ -233,4 +236,18 @@ aside {
 // TODO get a solution
 #edisaNavigation {
   display: none;
+}
+
+// card container elements
+
+.petitions-cards-container {
+  overflow-y: scroll;
+  overflow-x: hidden;
+  height: 100%;
+  &::-webkit-scrollbar {
+    width: 0;
+  }
+  h1, h2, h3, h4 {
+    margin-bottom: 12px !important;
+  }
 }
