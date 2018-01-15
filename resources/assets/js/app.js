@@ -12,7 +12,6 @@ import VueRouter from 'vue-router'
 import VueResource from 'vue-resource'
 import Vuex from 'vuex'
 import VueI18n from 'vue-i18n'
-import VueModel from 'vue-model'
 
 Vue.use(VueI18n);
 Vue.use(VueRouter);

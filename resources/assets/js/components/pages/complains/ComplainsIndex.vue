@@ -1,5 +1,11 @@
 <template>
     <div id="content" class="l-content content">
+        <!--
+        <div>Hello</div>
+        <div class="countries">
+            <div v-for="country in countries.models" :key="country.id">{{country['name_' + $i18n.locale]}}</div>
+        </div>
+        -->
         <!-- <z-mobile></z-mobile> -->
         <z-complains-background v-on:setLocation="setLocation" />
         <z-complains-forground :claim="claim" v-on:resetClaim="reInitClaim" v-on:saveClaim="claimSave" />
@@ -10,6 +16,8 @@
     import ZComplainsBackground from './ZComplainsBackground'
     import ZComplainsForground from './ZComplainsForground'
 
+    import {Countries} from './../../../models/Countries'
+    // import {ClaimsList, Claim} from './../../../models/Claims'
     import {ClaimsList, Claim} from './../../../models/Claims'
 
     export default {
@@ -17,7 +25,8 @@
         data() {
             return {
                 claim: new Claim(),
-                claimsList: new ClaimsList()
+                claimsList: new ClaimsList(),
+                countries: new Countries(),
             }
         },
         methods: {
@@ -37,7 +46,7 @@
             }
         },
         mounted() {
-            this.claimsList.fetch();
+            this.countries.fetch();
         }
     }
 

@@ -53,9 +53,18 @@
                                    v-model="claim.claimerPhone" name="phone">
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 form-group">
+                            <!--
                             <input type="text" id="municipality" class="form-group__control"
                                    :placeholder="$t('municipality-placeholder')"
                                    v-model="claim.municipality" name="municipality">
+                                   -->
+                            <select name="municipality" class="form-group__control">
+                                <option selected disabled>{{$t('municipality-placeholder')}}</option>
+                                <option value="volvo">Volvo</option>
+                                <option value="saab">Saab</option>
+                                <option value="mercedes">Mercedes</option>
+                                <option value="audi">Audi</option>
+                            </select>
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 form-group">
                             <input type="text" id="subject" class="form-group__control"

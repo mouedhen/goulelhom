@@ -18,18 +18,18 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-
-
 Route::group([
     'prefix' => 'v1',
 ], function ($router) {
     Route::apiResources([
         'tasks' => TaskController::class,
+        'countries' => 'CountryController',
     ], [
         'except' => ['create', 'edit',]
     ]);
 });
 
+/*
 Route::group([
     'middleware' => 'api',
     'prefix' => 'api',
@@ -40,9 +40,11 @@ Route::group([
         'prefix' => 'v1',
     ], function ($router) {
         Route::apiResources([
-            'tasks' => TaskController::class,
+            'tasks' => 'TaskController',
+            'countries' => 'CountryController',
         ], [
             'except' => ['create', 'edit',]
         ]);
     });
 });
+*/

@@ -3,7 +3,6 @@
 @import "zaza-ui/goulelhom";
 @import "variables";
 
-// @import "~leaflet/dist/leaflet";
 @import "~uppy/src/scss/uppy.scss";
 @import "~flexboxgrid-sass/flexboxgrid.scss";
 
@@ -196,6 +195,18 @@ aside {
 
 .form-group {
   margin: .5rem 0;
+
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    color: #939393;
+    line-height: 2.5rem;
+    font-size: .9rem;
+    option {
+      color: #222222;
+    }
+  }
   input, textarea, label {
     line-height: 2.5rem;
     font-size: .9rem;
