@@ -27,7 +27,8 @@ class CountryController extends Controller
     public function store(Request $request)
     {
         $country = new Country([
-            'name' => $request->get('name'),
+            'name_en' => $request->get('name_en'),
+            'name_fr' => $request->get('name_fr'),
             'name_ar' => $request->get('name_ar'),
         ]);
         return response()->json(new CountryResource($country));
@@ -55,6 +56,9 @@ class CountryController extends Controller
     public function update(Request $request, $id)
     {
         $country = Country::findOrFail($id);
+        $country->name_en = $request->get('name_en');
+        $country->name_fr = $request->get('name_fr');
+        $country->name_ar = $request->get('name_ar');
         return response()->json(new CountryResource($country));
     }
 
@@ -66,6 +70,12 @@ class CountryController extends Controller
      */
     public function destroy($id)
     {
-        //
+        Country::findOrFail($id)
+            ->delete();
+        $data = [
+            'code' => 204,
+            'message' => 'record deleted successfully',
+        ];
+        return response()->json($data, 204);
     }
 }

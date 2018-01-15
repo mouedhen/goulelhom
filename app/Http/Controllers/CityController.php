@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\CityResource;
+use App\Models\City;
 use Illuminate\Http\Request;
 
 class CityController extends Controller
@@ -13,17 +15,7 @@ class CityController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
+        return response()->json(CityResource::collection(City::all()));
     }
 
     /**
@@ -34,29 +26,13 @@ class CityController extends Controller
      */
     public function store(Request $request)
     {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
+        $city = new City([
+            'name_en' => $request->get('name_en'),
+            'name_fr' => $request->get('name_fr'),
+            'name_ar' => $request->get('name_ar'),
+            'country_id' => $request->get('country_id'),
+        ]);
+        return response()->json(new CityResource($city));
     }
 
     /**
@@ -68,7 +44,13 @@ class CityController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+
+        $city = City::findOrFail($id);
+        $city->name_en = $request->get('name_en');
+        $city->name_fr = $request->get('name_fr');
+        $city->name_ar = $request->get('name_ar');
+        $city->country_id = $request->get('country_id');
+        return response()->json(new CityResource($city));
     }
 
     /**
@@ -79,6 +61,12 @@ class CityController extends Controller
      */
     public function destroy($id)
     {
-        //
+        City::findOrFail($id)
+            ->delete();
+        $data = [
+            'code' => 204,
+            'message' => 'record deleted successfully',
+        ];
+        return response()->json($data, 204);
     }
 }

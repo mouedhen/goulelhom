@@ -24,6 +24,7 @@ Route::group([
     Route::apiResources([
         'tasks' => TaskController::class,
         'countries' => 'CountryController',
+        'cities' => 'CityController',
     ], [
         'except' => ['create', 'edit',]
     ]);

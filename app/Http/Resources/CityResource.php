@@ -14,6 +14,13 @@ class CityResource extends Resource
      */
     public function toArray($request)
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            'name_en' => $this->name_en,
+            'name_fr' => $this->name_fr,
+            'name_ar' => $this->name_ar,
+            'country_id' => $this->country_id,
+            'country' => $this->country,
+        ];
     }
 }
