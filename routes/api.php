@@ -25,6 +25,7 @@ Route::group([
         'tasks' => TaskController::class,
         'countries' => 'CountryController',
         'cities' => 'CityController',
+        'municipalities' => 'MunicipalityController',
     ], [
         'except' => ['create', 'edit',]
     ]);
