@@ -6,27 +6,33 @@
             <div v-for="country in countries.models" :key="country.id">{{country['name_' + $i18n.locale]}}</div>
         </div>
         -->
-        <!-- <z-mobile></z-mobile> -->
+        <z-mobile/>
         <z-complains-background v-on:setLocation="setLocation" />
-        <z-complains-forground :claim="claim" v-on:resetClaim="reInitClaim" v-on:saveClaim="claimSave" />
+        <z-complains-forground :claim="claim" :municipalities="municipalities.models" v-on:resetClaim="reInitClaim" v-on:saveClaim="claimSave" />
     </div>
 </template>
 
 <script>
+
+    import {addClass, hasClass, removeClass} from './../../../zaza-ui/helpers'
+
+    import ZMobile from './../../shared/ZMobileNavigation.vue'
     import ZComplainsBackground from './ZComplainsBackground'
     import ZComplainsForground from './ZComplainsForground'
 
     import {Countries} from './../../../models/Countries'
-    // import {ClaimsList, Claim} from './../../../models/Claims'
+    import {Municipalities} from './../../../models/Municipalities'
+
     import {ClaimsList, Claim} from './../../../models/Claims'
 
     export default {
-        components: {ZComplainsBackground, ZComplainsForground},
+        components: {ZMobile, ZComplainsBackground, ZComplainsForground},
         data() {
             return {
                 claim: new Claim(),
                 claimsList: new ClaimsList(),
                 countries: new Countries(),
+                municipalities: new Municipalities(),
             }
         },
         methods: {
@@ -46,7 +52,8 @@
             }
         },
         mounted() {
-            this.countries.fetch();
+            this.municipalities.fetch();
+            // console.log(this.municipalities)
         }
     }
 

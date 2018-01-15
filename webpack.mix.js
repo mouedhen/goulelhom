@@ -18,11 +18,21 @@ mix.js('resources/assets/js/admin.js', 'public/js')
     .sass('resources/assets/sass/app.scss', 'public/css')
     .sass('resources/assets/sass/admin.scss', 'public/css')
     .extract([
+        'animejs',
         'axios',
+        'fine-uploader',
+        'houdinijs',
+        'leaflet',
+        'leaflet.locatecontrol',
+        'lodash',
+        'uppy',
         'vue',
-        'vue-router',
+        'vue-i18n',
+        'vue-mc',
         'vue-resource',
-        'vuex',
+        'vue-router',
+        'vue2-leaflet',
+        'vuex'
     ])
     .webpackConfig({
         plugins: [

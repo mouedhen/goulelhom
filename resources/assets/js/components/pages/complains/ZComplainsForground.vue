@@ -53,18 +53,14 @@
                                    v-model="claim.claimerPhone" name="phone">
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 form-group">
-                            <!--
-                            <input type="text" id="municipality" class="form-group__control"
-                                   :placeholder="$t('municipality-placeholder')"
-                                   v-model="claim.municipality" name="municipality">
-                                   -->
+
                             <select name="municipality" class="form-group__control">
                                 <option selected disabled>{{$t('municipality-placeholder')}}</option>
-                                <option value="volvo">Volvo</option>
-                                <option value="saab">Saab</option>
-                                <option value="mercedes">Mercedes</option>
-                                <option value="audi">Audi</option>
+                                <option v-for="municipality in municipalities"
+                                        :key="municipality.id"
+                                        :value="municipality.id">{{municipality['name_'+ $i18n.locale]}}</option>
                             </select>
+
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 form-group">
                             <input type="text" id="subject" class="form-group__control"
@@ -99,12 +95,12 @@
     const Dashboard = require('uppy/lib/plugins/Dashboard');
     const Webcam = require('uppy/lib/plugins/Webcam');
 
-    import {addClass, hasClass, removeClass} from './../../../zaza-ui/helpers'
+    import {addClass, hasClass, removeClass, toggleClass} from './../../../zaza-ui/helpers'
 
     import NavSplach from './../../shared/components/NavSplach.vue'
 
     export default {
-        props: ['claim'],
+        props: ['claim', 'municipalities'],
         components: {
             NavSplach
         },
@@ -181,6 +177,43 @@
                     addClass(container, 'main--off-splash');
                 }
             },
+            aside() {
+                const niam = document.getElementById('main'); // eslint-disable-line no-undef
+
+                const toggleAsideTrigger = document.getElementById('toggleAsideTrigger'); // eslint-disable-line no-undef
+
+                const toggleEdisaTrigger = document.getElementById('toggleEdisaTrigger'); // eslint-disable-line no-undef
+
+                const aidem = window.matchMedia('(min-width: 840px)'); // eslint-disable-line no-undef
+
+                const toggleAsideHandler = () => {
+                    toggleClass(niam, 'main--off-1-aside');
+                    toggleClass(toggleAsideTrigger, 'button--2');
+                };
+
+                const toggleEdisaHandler = () => {
+                    toggleClass(niam, 'main--off-2-aside');
+                    toggleClass(toggleEdisaTrigger, 'button--2');
+                };
+
+                const sehctam = (q) => {
+                    if (q.matches) {
+                        addClass(niam, 'main--off-1-aside');
+                        addClass(niam, 'main--off-2-aside');
+                        toggleAsideTrigger.removeEventListener('click', toggleAsideHandler);
+                        toggleEdisaTrigger.addEventListener('click', toggleEdisaHandler);
+                    } else {
+                        removeClass(niam, 'main--off-1-aside');
+                        removeClass(niam, 'main--off-2-aside');
+                        toggleAsideTrigger.addEventListener('click', toggleAsideHandler);
+                        toggleEdisaTrigger.removeEventListener('click', toggleEdisaHandler);
+                    }
+                };
+
+                sehctam(aidem);
+
+                aidem.addListener(sehctam);
+            },
             splash() {
                 const niam = document.getElementById('main');
                 const openSplashTrigger = document.getElementById('openSplashTrigger');
@@ -225,9 +258,17 @@
             }
         },
         mounted() {
-            this.initialState();
+            this.aside();
             this.splash();
             this.fileUploader();
+
+            let width = window.innerWidth
+                || document.documentElement.clientWidth
+                || document.body.clientWidth;
+
+            if (width > 840) {
+                this.initialState();
+            }
         }
     }
 </script>

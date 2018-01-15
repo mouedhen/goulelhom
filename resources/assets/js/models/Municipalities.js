@@ -9,29 +9,41 @@ import {
     string,
 } from 'vue-mc/validation'
 
+import {City} from "./Cities";
+
 class Municipality extends Model {
 
     defaults() {
         return {
             id: null,
-            name: '',
-            city_id: null
+            name_en: '',
+            name_fr: '',
+            name_ar: '',
+            is_active: false,
+            city_id: null,
+            city: null
         }
     }
 
     mutations() {
         return {
             id:   (id) => Number(id) || null,
-            name: String,
-            city_id: (id) => Number(id) || null
+            name_en: String,
+            name_fr: String,
+            name_ar: String,
+            city_id: (id) => Number(id) || null,
+            is_active: Boolean,
         }
     }
 
     validation() {
         return {
             id: integer.and(min(1)).or(equal(null)),
-            name: required.and(string),
-            city_id: integer.and(min(1)).or(equal(null))
+            name_en: required.and(string),
+            name_fr: required.and(string),
+            name_ar: required.and(string),
+            city_id: integer.and(min(1)).or(equal(null)),
+            is_active: boolean,
         }
     }
 
