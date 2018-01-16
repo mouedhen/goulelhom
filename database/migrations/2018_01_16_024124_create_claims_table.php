@@ -19,6 +19,9 @@ class CreateClaimsTable extends Migration
             $table->string('subject');
             $table->string('description');
 
+            $table->decimal('longitude', 10, 7);
+            $table->decimal('latitude', 10, 7);
+
             $table->integer('claimer_id')->unsigned();
             $table->foreign('claimer_id')->references('id')->on('claimers')->onDelete('cascade');
             $table->integer('municipality_id')->unsigned();
