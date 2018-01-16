@@ -29,9 +29,29 @@
             that.claim.longitude = position[1];
 
             let map = this.$refs.map.mapObject;
+
+            let circle = L.circle(position, 1000);
+            let marker = new L.marker(position, {draggable: true});
+
+            marker.on('dragstart', function (event) {
+                circle.setRadius(0)
+            });
+
+            marker.on('dragend', function (event) {
+                circle.setLatLng(event.target.getLatLng()).setRadius(1000);
+
+                position = [event.target.getLatLng().lat, event.target.getLatLng().lng];
+                that.claim.latitude = position[0];
+                that.claim.longitude = position[1];
+            });
+
             let lc = L.control.locate({
                 onLocationError: function (err, control) {
-                    // alert(err);
+                    marker.addTo(map);
+                    circle.addTo(map);
+
+                    that.claim.latitude = position[0];
+                    that.claim.longitude = position[1];
                 },
                 setView: true,
                 flyTo: true,
@@ -43,39 +63,23 @@
                 }
             }).addTo(map);
 
-            let circle = L.circle(position, 1000);
-            let marker = new L.marker(position, {draggable: true});
-
             map.on('locationfound', layer => {
-                position = layer.latlng;
-                marker.setLatLng(position);
-                circle.setLatLng(position);
+
+                marker.setLatLng(layer.latlng);
+                circle.setLatLng(layer.latlng);
+
+                map.flyTo(layer.latlng);
 
                 marker.addTo(map);
                 circle.addTo(map);
 
+                position = [layer.latlng.lat, layer.latlng.lng];
                 that.claim.latitude = position[0];
                 that.claim.longitude = position[1];
             });
 
-            map.on('locationerror', error => {
-                marker.addTo(map);
-                circle.addTo(map);
-            });
 
             lc.start();
-
-            marker.on('dragstart', function (event) {
-                circle.setRadius(0)
-            });
-
-            marker.on('dragend', function (event) {
-                position = event.target.getLatLng();
-                circle.setLatLng(position).setRadius(1000);
-
-                that.claim.latitude = position[0];
-                that.claim.longitude = position[1];
-            })
         }
     }
 </script>

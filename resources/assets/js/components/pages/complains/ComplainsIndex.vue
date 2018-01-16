@@ -8,14 +8,17 @@
         -->
         <z-mobile/>
         <z-complains-background :claim="claim" v-on:setLocation="setLocation"/>
-        <z-complains-forground :claim="claim" :municipalities="municipalities.models" v-on:resetClaim="reInitClaim"
-                               v-on:saveClaim="claimSave"/>
+        <z-complains-forground
+                :claim="claim"
+                :claimer="claimer"
+                :municipalities="municipalities.models"
+                :uploadUrl="uploadUrl"
+                v-on:resetClaim="reInitClaim"
+                v-on:saveClaim="claimSave"/>
     </div>
 </template>
 
 <script>
-
-    import {addClass, hasClass, removeClass} from './../../../zaza-ui/helpers'
 
     import ZMobile from './../../shared/ZMobileNavigation.vue'
     import ZComplainsBackground from './ZComplainsBackground'
@@ -24,26 +27,36 @@
     import {Countries} from './../../../models/Countries'
     import {Municipalities} from './../../../models/Municipalities'
 
+    import {Claimer} from './../../../models/Claimer'
     import {ClaimsList, Claim} from './../../../models/Claims'
 
     export default {
         components: {ZMobile, ZComplainsBackground, ZComplainsForground},
         data() {
             return {
+                claimer: new Claimer(),
                 claim: new Claim(),
+                uploadUrl: 'api/v1/upload',
                 claimsList: new ClaimsList(),
-                countries: new Countries(),
                 municipalities: new Municipalities(),
             }
         },
         methods: {
             claimSave() {
-                this.claim
+
+                this.claimer
                     .save().then((response) => {
-                    console.log(response)
+                    this.claim.claimer_id = this.claimer.id;
+                    this.claim
+                        .save().then((response) => {
+                        console.log(this.claim)
+                    }).catch((error) => {
+                        console.log(error)
+                    })
+
                 }).catch((error) => {
                     console.log(error)
-                })
+                });
             },
             reInitClaim() {
                 this.claim = new Claim()

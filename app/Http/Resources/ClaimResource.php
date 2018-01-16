@@ -4,7 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\Resource;
 
-class ClaimController extends Resource
+class ClaimResource extends Resource
 {
     /**
      * Transform the resource into an array.

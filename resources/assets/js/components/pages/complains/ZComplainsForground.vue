@@ -10,7 +10,8 @@
         "observation-placeholder": "Observations",
         "attach-placeholder": "Attach files",
         "button-submit": "Send",
-        "button-reset": "Cancel"
+        "button-reset": "Cancel",
+    "dropzone": "Drop files here to upload"
     },
     "ar": {
         "complains-title": "تقديم شكوى",
@@ -22,7 +23,8 @@
         "observation-placeholder": "الملاحظات",
         "attach-placeholder": "إرفاق ملفات",
         "button-submit": "إرسال",
-        "button-reset": "إلغاء"
+        "button-reset": "إلغاء",
+    "dropzone": "إسقاط الملفات هنا لتحميل"
     }
 }
 </i18n>
@@ -31,27 +33,23 @@
         <div id="splash" class="foreground__splash foreground__splash--2">
             <nav-splach style="color: #333333"/>
 
-            <div class="claim-form" :class="{saving: claim.saving}">
                 <div class="grid">
                     <div class="grid__inner">
                         <div class="cell--large-12">
                             <h1 class="form-title">{{ $t('complains-title') }}</h1>
                         </div>
 
-                        <div class="cell cell--medium-8 cell--large-12">
-                            <span v-for="error in claim.errors.name">{{error}}</span>
-                        </div>
+                        <div class="cell cell--medium-8 cell--large-12 form-group">
+                                <input type="text" id="name" class="form-group__control"
+                                       :placeholder="$t('name-placeholder')"
+                                       v-model="claimer.name" name="name">
+                            </div>
 
-                        <div class="cell cell--medium-8 cell--large-12 form-group">
-                            <input type="text" id="name" class="form-group__control"
-                                   :placeholder="$t('name-placeholder')"
-                                   v-model="claim.claimerName" name="name">
-                        </div>
-                        <div class="cell cell--medium-8 cell--large-12 form-group">
-                            <input type="text" id="phone" class="form-group__control"
-                                   :placeholder="$t('phone-placeholder')"
-                                   v-model="claim.claimerPhone" name="phone">
-                        </div>
+                            <div class="cell cell--medium-8 cell--large-12 form-group">
+                                <input type="text" id="phone" class="form-group__control"
+                                       :placeholder="$t('phone-placeholder')"
+                                       v-model="claimer.phone_number" name="phone">
+                            </div>
                         <div class="cell cell--medium-8 cell--large-12 form-group">
 
                             <select name="municipality" class="form-group__control" v-model="claim.municipality_id">
@@ -74,7 +72,7 @@
                         </div>
                         <div class="cell cell--large-12">
 
-                            <vue-dropzone ref="myVueDropzone" id="dropzone" :options="dropzoneOptions"/>
+                            <vue-dropzone ref="claimDropzone" id="claimDropzone" :options="dropzoneOptions"/>
 
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 button-group controls">
@@ -83,25 +81,17 @@
                         </div>
                     </div>
                 </div>
-            </div>
         </div>
     </div>
 </template>
 
 <script>
-    const Uppy = require('uppy/lib/core');
-    const Dashboard = require('uppy/lib/plugins/Dashboard');
-    const Webcam = require('uppy/lib/plugins/Webcam');
-
     import {addClass, hasClass, removeClass, toggleClass} from './../../../zaza-ui/helpers'
-
     import NavSplach from './../../shared/components/NavSplach.vue'
-
     import vue2Dropzone from 'vue2-dropzone'
-    // import 'vue2-dropzone/dist/vue2Dropzone.css'
 
     export default {
-        props: ['claim', 'municipalities'],
+        props: ['claimer', 'claim', 'uploadUrl', 'municipalities'],
         components: {
             NavSplach,
             vueDropzone: vue2Dropzone
@@ -109,11 +99,15 @@
         data() {
             return {
                 dropzoneOptions: {
-                    url: 'https://httpbin.org/post',
-                    thumbnailWidth: 50,
-                    thumbnailHeight: 50,
-                    // maxFilesize: 0.5,
-                    headers: { "My-Awesome-Header": "header value" }
+                    url: this.uploadUrl,
+                    thumbnailWidth: 110,
+                    thumbnailHeight: 110,
+                    maxFilesize: 4,
+                    capture: 'camera',
+                    AcceptedFiles: ['images/*', 'audio/*', 'video/*', 'application/pdf'],
+                    dictDefaultMessage: this.$t('dropzone'),
+                    autoProcessQueue: false,
+                    addRemoveLinks: true
                 }
             }
         },

@@ -9,55 +9,52 @@ import {
     string,
 } from 'vue-mc/validation'
 
-class Country extends Model {
+class Claimer extends Model {
 
     defaults() {
         return {
             id: null,
-            name_en: '',
-            name_fr: '',
-            name_ar: ''
+            name: '',
+            phone_number: ''
         }
     }
 
     mutations() {
         return {
             id:   (id) => Number(id) || null,
-            name_en: String,
-            name_fr: String,
-            name_ar: String,
+            name: String,
+            phone_number: String,
         }
     }
 
     validation() {
         return {
             id: integer.and(min(1)).or(equal(null)),
-            name_en: required.and(string),
-            name_fr: required.and(string),
-            name_ar: required.and(string)
+            name: required.and(string),
+            phone_number: required.and(string),
         }
     }
 
     routes() {
         return {
-            fetch: 'api/v1/countries/{id}',
-            save:  'api/v1/countries',
+            fetch: 'api/v1/claimers/{id}',
+            save:  'api/v1/claimers',
         }
     }
 
 }
 
-class Countries extends Collection {
+class Claimers extends Collection {
 
     model() {
-        return Country;
+        return Claimer;
     }
 
     routes() {
         return {
-            fetch: 'api/v1/countries',
+            fetch: 'api/v1/claimers',
         }
     }
 }
 
-export {Country, Countries}
+export {Claimer, Claimers}

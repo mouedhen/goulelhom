@@ -13,4 +13,14 @@ class Municipality extends Model
     {
         return $this->belongsTo(City::class, 'city_id');
     }
+
+    public function claimers()
+    {
+        return $this->hasMany(Claimer::class, 'municipality_id');
+    }
+
+    public function claims()
+    {
+        return $this->hasMany(Claim::class, 'municipality_id');
+    }
 }

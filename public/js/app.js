@@ -28179,15 +28179,15 @@ module.exports = Component.exports
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__zaza_ui_helpers__ = __webpack_require__(80);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shared_ZMobileNavigation_vue__ = __webpack_require__(175);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__shared_ZMobileNavigation_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__shared_ZMobileNavigation_vue__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__ZComplainsBackground__ = __webpack_require__(570);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__ZComplainsBackground___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2__ZComplainsBackground__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__ZComplainsForground__ = __webpack_require__(578);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__ZComplainsForground___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_3__ZComplainsForground__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__models_Countries__ = __webpack_require__(606);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__models_Municipalities__ = __webpack_require__(626);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shared_ZMobileNavigation_vue__ = __webpack_require__(175);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__shared_ZMobileNavigation_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__shared_ZMobileNavigation_vue__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__ZComplainsBackground__ = __webpack_require__(570);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__ZComplainsBackground___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__ZComplainsBackground__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__ZComplainsForground__ = __webpack_require__(578);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__ZComplainsForground___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2__ZComplainsForground__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__models_Countries__ = __webpack_require__(606);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__models_Municipalities__ = __webpack_require__(626);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__models_Claimer__ = __webpack_require__(743);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__models_Claims__ = __webpack_require__(628);
 //
 //
@@ -28204,7 +28204,11 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
-
+//
+//
+//
+//
+//
 
 
 
@@ -28218,20 +28222,28 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
 
 /* harmony default export */ __webpack_exports__["default"] = ({
-    components: { ZMobile: __WEBPACK_IMPORTED_MODULE_1__shared_ZMobileNavigation_vue___default.a, ZComplainsBackground: __WEBPACK_IMPORTED_MODULE_2__ZComplainsBackground___default.a, ZComplainsForground: __WEBPACK_IMPORTED_MODULE_3__ZComplainsForground___default.a },
+    components: { ZMobile: __WEBPACK_IMPORTED_MODULE_0__shared_ZMobileNavigation_vue___default.a, ZComplainsBackground: __WEBPACK_IMPORTED_MODULE_1__ZComplainsBackground___default.a, ZComplainsForground: __WEBPACK_IMPORTED_MODULE_2__ZComplainsForground___default.a },
     data: function data() {
         return {
+            claimer: new __WEBPACK_IMPORTED_MODULE_5__models_Claimer__["a" /* Claimer */](),
             claim: new __WEBPACK_IMPORTED_MODULE_6__models_Claims__["a" /* Claim */](),
+            uploadUrl: 'api/v1/upload',
             claimsList: new __WEBPACK_IMPORTED_MODULE_6__models_Claims__["b" /* ClaimsList */](),
-            countries: new __WEBPACK_IMPORTED_MODULE_4__models_Countries__["a" /* Countries */](),
-            municipalities: new __WEBPACK_IMPORTED_MODULE_5__models_Municipalities__["a" /* Municipalities */]()
+            municipalities: new __WEBPACK_IMPORTED_MODULE_4__models_Municipalities__["a" /* Municipalities */]()
         };
     },
 
     methods: {
         claimSave: function claimSave() {
-            this.claim.save().then(function (response) {
-                console.log(response);
+            var _this = this;
+
+            this.claimer.save().then(function (response) {
+                _this.claim.claimer_id = _this.claimer.id;
+                _this.claim.save().then(function (response) {
+                    console.log(_this.claim);
+                }).catch(function (error) {
+                    console.log(error);
+                });
             }).catch(function (error) {
                 console.log(error);
             });
@@ -28843,9 +28855,29 @@ __webpack_require__(177);
         that.claim.longitude = position[1];
 
         var map = this.$refs.map.mapObject;
+
+        var circle = __WEBPACK_IMPORTED_MODULE_1_leaflet___default.a.circle(position, 1000);
+        var marker = new __WEBPACK_IMPORTED_MODULE_1_leaflet___default.a.marker(position, { draggable: true });
+
+        marker.on('dragstart', function (event) {
+            circle.setRadius(0);
+        });
+
+        marker.on('dragend', function (event) {
+            circle.setLatLng(event.target.getLatLng()).setRadius(1000);
+
+            position = [event.target.getLatLng().lat, event.target.getLatLng().lng];
+            that.claim.latitude = position[0];
+            that.claim.longitude = position[1];
+        });
+
         var lc = __WEBPACK_IMPORTED_MODULE_1_leaflet___default.a.control.locate({
             onLocationError: function onLocationError(err, control) {
-                // alert(err);
+                marker.addTo(map);
+                circle.addTo(map);
+
+                that.claim.latitude = position[0];
+                that.claim.longitude = position[1];
             },
             setView: true,
             flyTo: true,
@@ -28857,39 +28889,22 @@ __webpack_require__(177);
             }
         }).addTo(map);
 
-        var circle = __WEBPACK_IMPORTED_MODULE_1_leaflet___default.a.circle(position, 1000);
-        var marker = new __WEBPACK_IMPORTED_MODULE_1_leaflet___default.a.marker(position, { draggable: true });
-
         map.on('locationfound', function (layer) {
-            position = layer.latlng;
-            marker.setLatLng(position);
-            circle.setLatLng(position);
+
+            marker.setLatLng(layer.latlng);
+            circle.setLatLng(layer.latlng);
+
+            map.flyTo(layer.latlng);
 
             marker.addTo(map);
             circle.addTo(map);
 
+            position = [layer.latlng.lat, layer.latlng.lng];
             that.claim.latitude = position[0];
             that.claim.longitude = position[1];
-        });
-
-        map.on('locationerror', function (error) {
-            marker.addTo(map);
-            circle.addTo(map);
         });
 
         lc.start();
-
-        marker.on('dragstart', function (event) {
-            circle.setRadius(0);
-        });
-
-        marker.on('dragend', function (event) {
-            position = event.target.getLatLng();
-            circle.setLatLng(position).setRadius(1000);
-
-            that.claim.latitude = position[0];
-            that.claim.longitude = position[1];
-        });
     }
 });
 
@@ -29084,23 +29099,13 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
-//
-//
-//
-
-var Uppy = __webpack_require__(178);
-var Dashboard = __webpack_require__(179);
-var Webcam = __webpack_require__(185);
 
 
 
 
-
-
-// import 'vue2-dropzone/dist/vue2Dropzone.css'
 
 /* harmony default export */ __webpack_exports__["default"] = ({
-    props: ['claim', 'municipalities'],
+    props: ['claimer', 'claim', 'uploadUrl', 'municipalities'],
     components: {
         NavSplach: __WEBPACK_IMPORTED_MODULE_1__shared_components_NavSplach_vue___default.a,
         vueDropzone: __WEBPACK_IMPORTED_MODULE_2_vue2_dropzone___default.a
@@ -29108,11 +29113,15 @@ var Webcam = __webpack_require__(185);
     data: function data() {
         return {
             dropzoneOptions: {
-                url: 'https://httpbin.org/post',
-                thumbnailWidth: 50,
-                thumbnailHeight: 50,
-                // maxFilesize: 0.5,
-                headers: { "My-Awesome-Header": "header value" }
+                url: this.uploadUrl,
+                thumbnailWidth: 110,
+                thumbnailHeight: 110,
+                maxFilesize: 4,
+                capture: 'camera',
+                AcceptedFiles: ['images/*', 'audio/*', 'video/*', 'application/pdf'],
+                dictDefaultMessage: this.$t('dropzone'),
+                autoProcessQueue: false,
+                addRemoveLinks: true
             }
         };
     },
@@ -29322,292 +29331,254 @@ var render = function() {
       [
         _c("nav-splach", { staticStyle: { color: "#333333" } }),
         _vm._v(" "),
-        _c(
-          "div",
-          { staticClass: "claim-form", class: { saving: _vm.claim.saving } },
-          [
-            _c("div", { staticClass: "grid" }, [
-              _c("div", { staticClass: "grid__inner" }, [
-                _c("div", { staticClass: "cell--large-12" }, [
-                  _c("h1", { staticClass: "form-title" }, [
-                    _vm._v(_vm._s(_vm.$t("complains-title")))
-                  ])
-                ]),
-                _vm._v(" "),
-                _c(
-                  "div",
-                  { staticClass: "cell cell--medium-8 cell--large-12" },
-                  _vm._l(_vm.claim.errors.name, function(error) {
-                    return _c("span", [_vm._v(_vm._s(error))])
-                  })
-                ),
-                _vm._v(" "),
-                _c(
-                  "div",
-                  {
-                    staticClass: "cell cell--medium-8 cell--large-12 form-group"
-                  },
-                  [
-                    _c("input", {
-                      directives: [
-                        {
-                          name: "model",
-                          rawName: "v-model",
-                          value: _vm.claim.claimerName,
-                          expression: "claim.claimerName"
-                        }
-                      ],
-                      staticClass: "form-group__control",
-                      attrs: {
-                        type: "text",
-                        id: "name",
-                        placeholder: _vm.$t("name-placeholder"),
-                        name: "name"
-                      },
-                      domProps: { value: _vm.claim.claimerName },
-                      on: {
-                        input: function($event) {
-                          if ($event.target.composing) {
-                            return
-                          }
-                          _vm.$set(
-                            _vm.claim,
-                            "claimerName",
-                            $event.target.value
-                          )
-                        }
-                      }
-                    })
-                  ]
-                ),
-                _vm._v(" "),
-                _c(
-                  "div",
-                  {
-                    staticClass: "cell cell--medium-8 cell--large-12 form-group"
-                  },
-                  [
-                    _c("input", {
-                      directives: [
-                        {
-                          name: "model",
-                          rawName: "v-model",
-                          value: _vm.claim.claimerPhone,
-                          expression: "claim.claimerPhone"
-                        }
-                      ],
-                      staticClass: "form-group__control",
-                      attrs: {
-                        type: "text",
-                        id: "phone",
-                        placeholder: _vm.$t("phone-placeholder"),
-                        name: "phone"
-                      },
-                      domProps: { value: _vm.claim.claimerPhone },
-                      on: {
-                        input: function($event) {
-                          if ($event.target.composing) {
-                            return
-                          }
-                          _vm.$set(
-                            _vm.claim,
-                            "claimerPhone",
-                            $event.target.value
-                          )
-                        }
-                      }
-                    })
-                  ]
-                ),
-                _vm._v(" "),
-                _c(
-                  "div",
-                  {
-                    staticClass: "cell cell--medium-8 cell--large-12 form-group"
-                  },
-                  [
-                    _c(
-                      "select",
-                      {
-                        directives: [
-                          {
-                            name: "model",
-                            rawName: "v-model",
-                            value: _vm.claim.municipality_id,
-                            expression: "claim.municipality_id"
-                          }
-                        ],
-                        staticClass: "form-group__control",
-                        attrs: { name: "municipality" },
-                        on: {
-                          change: function($event) {
-                            var $$selectedVal = Array.prototype.filter
-                              .call($event.target.options, function(o) {
-                                return o.selected
-                              })
-                              .map(function(o) {
-                                var val = "_value" in o ? o._value : o.value
-                                return val
-                              })
-                            _vm.$set(
-                              _vm.claim,
-                              "municipality_id",
-                              $event.target.multiple
-                                ? $$selectedVal
-                                : $$selectedVal[0]
-                            )
-                          }
-                        }
-                      },
-                      [
-                        _c(
-                          "option",
-                          {
-                            attrs: { disabled: "" },
-                            domProps: { value: null }
-                          },
-                          [_vm._v(_vm._s(_vm.$t("municipality-placeholder")))]
-                        ),
-                        _vm._v(" "),
-                        _vm._l(_vm.municipalities, function(municipality) {
-                          return _c(
-                            "option",
-                            {
-                              key: municipality.id,
-                              domProps: { value: municipality.id }
-                            },
-                            [
-                              _vm._v(
-                                _vm._s(municipality["name_" + _vm.$i18n.locale])
-                              )
-                            ]
-                          )
-                        })
-                      ],
-                      2
-                    )
-                  ]
-                ),
-                _vm._v(" "),
-                _c(
-                  "div",
-                  {
-                    staticClass: "cell cell--medium-8 cell--large-12 form-group"
-                  },
-                  [
-                    _c("input", {
-                      directives: [
-                        {
-                          name: "model",
-                          rawName: "v-model",
-                          value: _vm.claim.subject,
-                          expression: "claim.subject"
-                        }
-                      ],
-                      staticClass: "form-group__control",
-                      attrs: {
-                        type: "text",
-                        id: "subject",
-                        placeholder: _vm.$t("subject-placeholder"),
-                        name: "subject"
-                      },
-                      domProps: { value: _vm.claim.subject },
-                      on: {
-                        input: function($event) {
-                          if ($event.target.composing) {
-                            return
-                          }
-                          _vm.$set(_vm.claim, "subject", $event.target.value)
-                        }
-                      }
-                    })
-                  ]
-                ),
-                _vm._v(" "),
-                _c(
-                  "div",
-                  {
-                    staticClass:
-                      "cell cell--medium-8 cell--large-12 form-group",
-                    attrs: { id: "textareaDrop" }
-                  },
-                  [
-                    _c("textarea", {
-                      directives: [
-                        {
-                          name: "model",
-                          rawName: "v-model",
-                          value: _vm.claim.description,
-                          expression: "claim.description"
-                        }
-                      ],
-                      staticClass: "form-group__control",
-                      attrs: {
-                        name: "observation",
-                        id: "observation",
-                        rows: "2",
-                        placeholder: _vm.$t("observation-placeholder")
-                      },
-                      domProps: { value: _vm.claim.description },
-                      on: {
-                        input: function($event) {
-                          if ($event.target.composing) {
-                            return
-                          }
-                          _vm.$set(
-                            _vm.claim,
-                            "description",
-                            $event.target.value
-                          )
-                        }
-                      }
-                    })
-                  ]
-                ),
-                _vm._v(" "),
-                _c(
-                  "div",
-                  { staticClass: "cell cell--large-12" },
-                  [
-                    _c("vue-dropzone", {
-                      ref: "myVueDropzone",
-                      attrs: { id: "dropzone", options: _vm.dropzoneOptions }
-                    })
+        _c("div", { staticClass: "grid" }, [
+          _c("div", { staticClass: "grid__inner" }, [
+            _c("div", { staticClass: "cell--large-12" }, [
+              _c("h1", { staticClass: "form-title" }, [
+                _vm._v(_vm._s(_vm.$t("complains-title")))
+              ])
+            ]),
+            _vm._v(" "),
+            _c(
+              "div",
+              { staticClass: "cell cell--medium-8 cell--large-12 form-group" },
+              [
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.claimer.name,
+                      expression: "claimer.name"
+                    }
                   ],
-                  1
-                ),
-                _vm._v(" "),
+                  staticClass: "form-group__control",
+                  attrs: {
+                    type: "text",
+                    id: "name",
+                    placeholder: _vm.$t("name-placeholder"),
+                    name: "name"
+                  },
+                  domProps: { value: _vm.claimer.name },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.$set(_vm.claimer, "name", $event.target.value)
+                    }
+                  }
+                })
+              ]
+            ),
+            _vm._v(" "),
+            _c(
+              "div",
+              { staticClass: "cell cell--medium-8 cell--large-12 form-group" },
+              [
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.claimer.phone_number,
+                      expression: "claimer.phone_number"
+                    }
+                  ],
+                  staticClass: "form-group__control",
+                  attrs: {
+                    type: "text",
+                    id: "phone",
+                    placeholder: _vm.$t("phone-placeholder"),
+                    name: "phone"
+                  },
+                  domProps: { value: _vm.claimer.phone_number },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.$set(_vm.claimer, "phone_number", $event.target.value)
+                    }
+                  }
+                })
+              ]
+            ),
+            _vm._v(" "),
+            _c(
+              "div",
+              { staticClass: "cell cell--medium-8 cell--large-12 form-group" },
+              [
                 _c(
-                  "div",
+                  "select",
                   {
-                    staticClass:
-                      "cell cell--medium-8 cell--large-12 button-group controls"
+                    directives: [
+                      {
+                        name: "model",
+                        rawName: "v-model",
+                        value: _vm.claim.municipality_id,
+                        expression: "claim.municipality_id"
+                      }
+                    ],
+                    staticClass: "form-group__control",
+                    attrs: { name: "municipality" },
+                    on: {
+                      change: function($event) {
+                        var $$selectedVal = Array.prototype.filter
+                          .call($event.target.options, function(o) {
+                            return o.selected
+                          })
+                          .map(function(o) {
+                            var val = "_value" in o ? o._value : o.value
+                            return val
+                          })
+                        _vm.$set(
+                          _vm.claim,
+                          "municipality_id",
+                          $event.target.multiple
+                            ? $$selectedVal
+                            : $$selectedVal[0]
+                        )
+                      }
+                    }
                   },
                   [
                     _c(
-                      "button",
-                      {
-                        staticClass: "button button--primary",
-                        on: { click: _vm.claimSave }
-                      },
-                      [_vm._v(_vm._s(_vm.$t("button-submit")))]
+                      "option",
+                      { attrs: { disabled: "" }, domProps: { value: null } },
+                      [_vm._v(_vm._s(_vm.$t("municipality-placeholder")))]
                     ),
                     _vm._v(" "),
-                    _c(
-                      "button",
-                      {
-                        staticClass: "button button--secondary",
-                        attrs: { type: "reset" },
-                        on: { click: _vm.reInitClaim }
-                      },
-                      [_vm._v(_vm._s(_vm.$t("button-reset")))]
-                    )
-                  ]
+                    _vm._l(_vm.municipalities, function(municipality) {
+                      return _c(
+                        "option",
+                        {
+                          key: municipality.id,
+                          domProps: { value: municipality.id }
+                        },
+                        [
+                          _vm._v(
+                            _vm._s(municipality["name_" + _vm.$i18n.locale])
+                          )
+                        ]
+                      )
+                    })
+                  ],
+                  2
                 )
-              ])
-            ])
-          ]
-        )
+              ]
+            ),
+            _vm._v(" "),
+            _c(
+              "div",
+              { staticClass: "cell cell--medium-8 cell--large-12 form-group" },
+              [
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.claim.subject,
+                      expression: "claim.subject"
+                    }
+                  ],
+                  staticClass: "form-group__control",
+                  attrs: {
+                    type: "text",
+                    id: "subject",
+                    placeholder: _vm.$t("subject-placeholder"),
+                    name: "subject"
+                  },
+                  domProps: { value: _vm.claim.subject },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.$set(_vm.claim, "subject", $event.target.value)
+                    }
+                  }
+                })
+              ]
+            ),
+            _vm._v(" "),
+            _c(
+              "div",
+              {
+                staticClass: "cell cell--medium-8 cell--large-12 form-group",
+                attrs: { id: "textareaDrop" }
+              },
+              [
+                _c("textarea", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.claim.description,
+                      expression: "claim.description"
+                    }
+                  ],
+                  staticClass: "form-group__control",
+                  attrs: {
+                    name: "observation",
+                    id: "observation",
+                    rows: "2",
+                    placeholder: _vm.$t("observation-placeholder")
+                  },
+                  domProps: { value: _vm.claim.description },
+                  on: {
+                    input: function($event) {
+                      if ($event.target.composing) {
+                        return
+                      }
+                      _vm.$set(_vm.claim, "description", $event.target.value)
+                    }
+                  }
+                })
+              ]
+            ),
+            _vm._v(" "),
+            _c(
+              "div",
+              { staticClass: "cell cell--large-12" },
+              [
+                _c("vue-dropzone", {
+                  ref: "claimDropzone",
+                  attrs: { id: "claimDropzone", options: _vm.dropzoneOptions }
+                })
+              ],
+              1
+            ),
+            _vm._v(" "),
+            _c(
+              "div",
+              {
+                staticClass:
+                  "cell cell--medium-8 cell--large-12 button-group controls"
+              },
+              [
+                _c(
+                  "button",
+                  {
+                    staticClass: "button button--primary",
+                    on: { click: _vm.claimSave }
+                  },
+                  [_vm._v(_vm._s(_vm.$t("button-submit")))]
+                ),
+                _vm._v(" "),
+                _c(
+                  "button",
+                  {
+                    staticClass: "button button--secondary",
+                    attrs: { type: "reset" },
+                    on: { click: _vm.reInitClaim }
+                  },
+                  [_vm._v(_vm._s(_vm.$t("button-reset")))]
+                )
+              ]
+            )
+          ])
+        ])
       ],
       1
     )
@@ -29629,7 +29600,7 @@ if (false) {
 
 module.exports = function (Component) {
   Component.options.__i18n = Component.options.__i18n || []
-  Component.options.__i18n.push('{"en":{"complains-title":"Complaints","complains-description":"Here you find a series of complaints classified by categories.","name-placeholder":"Your name","phone-placeholder":"Your phone number","municipality-placeholder":"The municipality","subject-placeholder":"The subject","observation-placeholder":"Observations","attach-placeholder":"Attach files","button-submit":"Send","button-reset":"Cancel"},"ar":{"complains-title":"تقديم شكوى","complains-description":"يمكنك تقديم شكوى تخص الإدارات العمومية من مصالح بلدية أو نقل عمومي. وإن لاحظت تجاوزات أو انتهاكات تمس من البيئة والمحيط أو المصلحة الجماعية بإمكانك التشكي وتقديم أدلة للدعم كصور أو فيديو. يمكنك أيضا تحديد موقع التجاوز على الخريطة.","name-placeholder":"الإسم واللقب","phone-placeholder":"رقم الهاتف","municipality-placeholder":"البلدية","subject-placeholder":"موضوع الشكوى","observation-placeholder":"الملاحظات","attach-placeholder":"إرفاق ملفات","button-submit":"إرسال","button-reset":"إلغاء"}}')
+  Component.options.__i18n.push('{"en":{"complains-title":"Complaints","complains-description":"Here you find a series of complaints classified by categories.","name-placeholder":"Your name","phone-placeholder":"Your phone number","municipality-placeholder":"The municipality","subject-placeholder":"The subject","observation-placeholder":"Observations","attach-placeholder":"Attach files","button-submit":"Send","button-reset":"Cancel","dropzone":"Drop files here to upload"},"ar":{"complains-title":"تقديم شكوى","complains-description":"يمكنك تقديم شكوى تخص الإدارات العمومية من مصالح بلدية أو نقل عمومي. وإن لاحظت تجاوزات أو انتهاكات تمس من البيئة والمحيط أو المصلحة الجماعية بإمكانك التشكي وتقديم أدلة للدعم كصور أو فيديو. يمكنك أيضا تحديد موقع التجاوز على الخريطة.","name-placeholder":"الإسم واللقب","phone-placeholder":"رقم الهاتف","municipality-placeholder":"البلدية","subject-placeholder":"موضوع الشكوى","observation-placeholder":"الملاحظات","attach-placeholder":"إرفاق ملفات","button-submit":"إرسال","button-reset":"إلغاء","dropzone":"إسقاط الملفات هنا لتحميل"}}')
 }
 
 
@@ -29639,7 +29610,7 @@ module.exports = function (Component) {
 
 "use strict";
 /* unused harmony export Country */
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Countries; });
+/* unused harmony export Countries */
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_vue_mc__ = __webpack_require__(64);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__ = __webpack_require__(83);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__);
@@ -29669,7 +29640,8 @@ var Country = function (_Model) {
         value: function defaults() {
             return {
                 id: null,
-                name: '',
+                name_en: '',
+                name_fr: '',
                 name_ar: ''
             };
         }
@@ -29680,7 +29652,8 @@ var Country = function (_Model) {
                 id: function id(_id) {
                     return Number(_id) || null;
                 },
-                name: String,
+                name_en: String,
+                name_fr: String,
                 name_ar: String
             };
         }
@@ -29689,7 +29662,8 @@ var Country = function (_Model) {
         value: function validation() {
             return {
                 id: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["integer"].and(Object(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["min"])(1)).or(Object(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["equal"])(null)),
-                name: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["string"]),
+                name_en: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["string"]),
+                name_fr: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["string"]),
                 name_ar: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["string"])
             };
         }
@@ -30265,13 +30239,10 @@ var Claim = function (_Model) {
         value: function defaults() {
             return {
                 id: null,
-                claimerName: '',
-                claimerPhone: '',
+                claimer_id: null,
                 municipality_id: null,
-                // municipality: '',
                 subject: '',
                 description: '',
-                files: '',
                 latitude: null,
                 longitude: null
             };
@@ -30283,31 +30254,33 @@ var Claim = function (_Model) {
                 id: function id(_id) {
                     return Number(_id) || null;
                 },
+                claimer_id: function claimer_id(_claimer_id) {
+                    return Number(_claimer_id) || null;
+                },
                 municipality_id: function municipality_id(_municipality_id) {
                     return Number(_municipality_id) || null;
                 },
-                claimerName: String,
-                claimerPhone: String,
-                // municipality: String,
                 subject: String,
                 description: String,
-                files: String
-                // latitude: (latitude) => Number(latitude) || null,
-                // longitude: (longitude) => Number(longitude) || null
+                latitude: function latitude(_latitude) {
+                    return Number(_latitude) || null;
+                },
+                longitude: function longitude(_longitude) {
+                    return Number(_longitude) || null;
+                }
             };
         }
-
-        /*validation() {
+    }, {
+        key: 'validation',
+        value: function validation() {
             return {
-                id:   integer.and(min(1)).or(equal(null)),
-                claimerName: required.and(string),
-                claimerPhone: required.and(string),
-                municipality_id: required.and(integer),
-                subject: required.and(string),
-                description: required.and(string)
-            }
-        }*/
-
+                id: __WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["integer"].and(Object(__WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["min"])(1)).or(Object(__WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["equal"])(null)),
+                claimer_id: __WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["integer"].and(Object(__WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["min"])(1)),
+                municipality_id: __WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["integer"]),
+                subject: __WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["string"]),
+                description: __WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["string"])
+            };
+        }
     }, {
         key: 'routes',
         value: function routes() {
@@ -30687,7 +30660,12 @@ var render = function() {
       }),
       _vm._v(" "),
       _c("z-complains-forground", {
-        attrs: { claim: _vm.claim, municipalities: _vm.municipalities.models },
+        attrs: {
+          claim: _vm.claim,
+          claimer: _vm.claimer,
+          municipalities: _vm.municipalities.models,
+          uploadUrl: _vm.uploadUrl
+        },
         on: { resetClaim: _vm.reInitClaim, saveClaim: _vm.claimSave }
       })
     ],
@@ -36342,6 +36320,107 @@ if (false) {
     require("vue-hot-reload-api")      .rerender("data-v-cc0118b8", module.exports)
   }
 }
+
+/***/ }),
+/* 743 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Claimer; });
+/* unused harmony export Claimers */
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_vue_mc__ = __webpack_require__(64);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__ = __webpack_require__(83);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__);
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+
+
+
+
+var Claimer = function (_Model) {
+    _inherits(Claimer, _Model);
+
+    function Claimer() {
+        _classCallCheck(this, Claimer);
+
+        return _possibleConstructorReturn(this, (Claimer.__proto__ || Object.getPrototypeOf(Claimer)).apply(this, arguments));
+    }
+
+    _createClass(Claimer, [{
+        key: 'defaults',
+        value: function defaults() {
+            return {
+                id: null,
+                name: '',
+                phone_number: ''
+            };
+        }
+    }, {
+        key: 'mutations',
+        value: function mutations() {
+            return {
+                id: function id(_id) {
+                    return Number(_id) || null;
+                },
+                name: String,
+                phone_number: String
+            };
+        }
+    }, {
+        key: 'validation',
+        value: function validation() {
+            return {
+                id: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["integer"].and(Object(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["min"])(1)).or(Object(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["equal"])(null)),
+                name: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["string"]),
+                phone_number: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["string"])
+            };
+        }
+    }, {
+        key: 'routes',
+        value: function routes() {
+            return {
+                fetch: 'api/v1/claimers/{id}',
+                save: 'api/v1/claimers'
+            };
+        }
+    }]);
+
+    return Claimer;
+}(__WEBPACK_IMPORTED_MODULE_0_vue_mc__["Model"]);
+
+var Claimers = function (_Collection) {
+    _inherits(Claimers, _Collection);
+
+    function Claimers() {
+        _classCallCheck(this, Claimers);
+
+        return _possibleConstructorReturn(this, (Claimers.__proto__ || Object.getPrototypeOf(Claimers)).apply(this, arguments));
+    }
+
+    _createClass(Claimers, [{
+        key: 'model',
+        value: function model() {
+            return Claimer;
+        }
+    }, {
+        key: 'routes',
+        value: function routes() {
+            return {
+                fetch: 'api/v1/claimers'
+            };
+        }
+    }]);
+
+    return Claimers;
+}(__WEBPACK_IMPORTED_MODULE_0_vue_mc__["Collection"]);
+
+
 
 /***/ })
 ],[328]);

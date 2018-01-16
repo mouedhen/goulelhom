@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ClaimerResource;
+use App\Models\Claimer;
 use Illuminate\Http\Request;
 
 class ClaimerController extends Controller
 {
+
     /**
      * Display a listing of the resource.
      *
@@ -34,7 +37,10 @@ class ClaimerController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $claimer = Claimer::firstOrCreate(
+            ['name' => $request->get('name')],
+            ['phone_number' => $request->get('phone_number')]);
+        return response()->json(new ClaimerResource($claimer));
     }
 
     /**

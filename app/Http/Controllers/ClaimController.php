@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ClaimResource;
+use App\Models\Claim;
 use Illuminate\Http\Request;
 
 class ClaimController extends Controller
@@ -17,16 +19,6 @@ class ClaimController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
      * Store a newly created resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -34,7 +26,15 @@ class ClaimController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $claim = Claim::create([
+            'claimer_id' => $request->get('claimer_id'),
+            'municipality_id' => $request->get('municipality_id'),
+            'subject' => $request->get('subject'),
+            'description' => $request->get('description'),
+            'latitude' => $request->get('latitude'),
+            'longitude' => $request->get('longitude'),
+        ]);
+        return response()->json(new ClaimResource($claim));
     }
 
     /**

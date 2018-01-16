@@ -26,13 +26,14 @@ Route::group([
         'countries' => 'CountryController',
         'cities' => 'CityController',
         'municipalities' => 'MunicipalityController',
+        'claimers' => 'ClaimerController',
+        'claims' => 'ClaimController',
     ], [
         'except' => ['create', 'edit',]
     ]);
 
-    Route::get('/list', 'ClaimFileController@list');
-
-    Route::post('/upload', 'ClaimFileController@upload');
+    Route::get('list', 'ClaimFileController@list');
+    Route::post('upload', 'ClaimFileController@upload');
 });
 
 /*

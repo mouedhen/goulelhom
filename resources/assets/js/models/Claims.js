@@ -16,13 +16,10 @@ class Claim extends Model {
     defaults() {
         return {
             id: null,
-            claimerName: '',
-            claimerPhone: '',
+            claimer_id: null,
             municipality_id: null,
-            // municipality: '',
             subject: '',
             description: '',
-            files: '',
             latitude: null,
             longitude: null,
         }
@@ -31,28 +28,24 @@ class Claim extends Model {
     mutations() {
         return {
             id: (id) => Number(id) || null,
+            claimer_id: (claimer_id) => Number(claimer_id) || null,
             municipality_id: (municipality_id) => Number(municipality_id) || null,
-            claimerName: String,
-            claimerPhone: String,
-            // municipality: String,
             subject: String,
             description: String,
-            files: String,
-            // latitude: (latitude) => Number(latitude) || null,
-            // longitude: (longitude) => Number(longitude) || null
+            latitude: (latitude) => Number(latitude) || null,
+            longitude: (longitude) => Number(longitude) || null
         }
     }
 
-    /*validation() {
+    validation() {
         return {
             id:   integer.and(min(1)).or(equal(null)),
-            claimerName: required.and(string),
-            claimerPhone: required.and(string),
+            claimer_id:   integer.and(min(1)),
             municipality_id: required.and(integer),
             subject: required.and(string),
             description: required.and(string)
         }
-    }*/
+    }
 
     routes() {
         return {
