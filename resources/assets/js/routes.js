@@ -6,6 +6,8 @@ import ComplainsIndex from './components/pages/complains/ComplainsIndex'
 
 import PetitionsIndex from './components/pages/petitions/PetitionsIndex'
 
+import TestIndex from './components/Tests/IndexUpload'
+
 
 const router = new VueRouter({
     mode: 'history',
@@ -29,6 +31,14 @@ const router = new VueRouter({
             name: 'petitions',
             components: {
                 default: PetitionsIndex
+            }
+        },
+
+        {
+            path: '/test',
+            name: 'test',
+            components: {
+                default: TestIndex
             }
         }
     ]

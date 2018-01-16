@@ -5,6 +5,7 @@ import {
     boolean,
     equal,
     integer,
+    numeric,
     min,
     required,
     string,
@@ -17,37 +18,41 @@ class Claim extends Model {
             id: null,
             claimerName: '',
             claimerPhone: '',
-            municipality: '',
+            municipality_id: null,
+            // municipality: '',
             subject: '',
             description: '',
             files: '',
-            location: '',
+            latitude: null,
+            longitude: null,
         }
     }
 
     mutations() {
         return {
-            id:   (id) => Number(id) || null,
+            id: (id) => Number(id) || null,
+            municipality_id: (municipality_id) => Number(municipality_id) || null,
             claimerName: String,
             claimerPhone: String,
-            municipality: String,
+            // municipality: String,
             subject: String,
             description: String,
             files: String,
-            location: String
+            // latitude: (latitude) => Number(latitude) || null,
+            // longitude: (longitude) => Number(longitude) || null
         }
     }
 
-    validation() {
+    /*validation() {
         return {
             id:   integer.and(min(1)).or(equal(null)),
             claimerName: required.and(string),
             claimerPhone: required.and(string),
-            municipality: required.and(string),
+            municipality_id: required.and(integer),
             subject: required.and(string),
             description: required.and(string)
         }
-    }
+    }*/
 
     routes() {
         return {

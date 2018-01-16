@@ -29,6 +29,10 @@ Route::group([
     ], [
         'except' => ['create', 'edit',]
     ]);
+
+    Route::get('/list', 'ClaimFileController@list');
+
+    Route::post('/upload', 'ClaimFileController@upload');
 });
 
 /*

@@ -4,6 +4,12 @@ import Vue from 'vue'
 
 window.Vue = Vue;
 window.axios = axios;
+
+window.axios.defaults.headers.common = {
+    'X-CSRF-TOKEN': window.Laravel.csrfToken,
+    'X-Requested-With': 'XMLHttpRequest'
+};
+
 // window.mapboxgl = require('mapbox-gl');
 
 // mapboxgl.setRTLTextPlugin('https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.1.1/mapbox-gl-rtl-text.js');

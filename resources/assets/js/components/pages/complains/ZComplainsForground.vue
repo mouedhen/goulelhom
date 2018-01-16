@@ -54,8 +54,8 @@
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 form-group">
 
-                            <select name="municipality" class="form-group__control">
-                                <option selected disabled>{{$t('municipality-placeholder')}}</option>
+                            <select name="municipality" class="form-group__control" v-model="claim.municipality_id">
+                                <option :value="null" disabled>{{$t('municipality-placeholder')}}</option>
                                 <option v-for="municipality in municipalities"
                                         :key="municipality.id"
                                         :value="municipality.id">{{municipality['name_'+ $i18n.locale]}}</option>
@@ -74,9 +74,7 @@
                         </div>
                         <div class="cell cell--large-12">
 
-                            <div class="UppyModalOpenerBtn button button--secondary" style="width: 100%">{{ $t('attach-placeholder') }}</div>
-
-                            <div class="DashboardContainer"></div>
+                            <vue-dropzone ref="myVueDropzone" id="dropzone" :options="dropzoneOptions"/>
 
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 button-group controls">
@@ -99,10 +97,25 @@
 
     import NavSplach from './../../shared/components/NavSplach.vue'
 
+    import vue2Dropzone from 'vue2-dropzone'
+    // import 'vue2-dropzone/dist/vue2Dropzone.css'
+
     export default {
         props: ['claim', 'municipalities'],
         components: {
-            NavSplach
+            NavSplach,
+            vueDropzone: vue2Dropzone
+        },
+        data() {
+            return {
+                dropzoneOptions: {
+                    url: 'https://httpbin.org/post',
+                    thumbnailWidth: 50,
+                    thumbnailHeight: 50,
+                    // maxFilesize: 0.5,
+                    headers: { "My-Awesome-Header": "header value" }
+                }
+            }
         },
         computed: {
             appyLocale: function() {
@@ -260,7 +273,7 @@
         mounted() {
             this.aside();
             this.splash();
-            this.fileUploader();
+            // this.fileUploader();
 
             let width = window.innerWidth
                 || document.documentElement.clientWidth

@@ -7,8 +7,9 @@
         </div>
         -->
         <z-mobile/>
-        <z-complains-background v-on:setLocation="setLocation" />
-        <z-complains-forground :claim="claim" :municipalities="municipalities.models" v-on:resetClaim="reInitClaim" v-on:saveClaim="claimSave" />
+        <z-complains-background :claim="claim" v-on:setLocation="setLocation"/>
+        <z-complains-forground :claim="claim" :municipalities="municipalities.models" v-on:resetClaim="reInitClaim"
+                               v-on:saveClaim="claimSave"/>
     </div>
 </template>
 
