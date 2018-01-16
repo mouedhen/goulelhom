@@ -65,6 +65,7 @@
         mounted() {
             this.claimsList.fetch();
             this.municipalities.fetch();
+            require('./../../../zaza-ui/splash')
         }
     }
 

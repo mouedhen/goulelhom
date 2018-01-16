@@ -9,3 +9,30 @@
   text-decoration: none;
   @include adjust-leading-to(2);
 }
+.logo-type--img .logo,
+.logo-type--img .type {
+  width: 100%;
+  height: 100%;
+  font-size: 0;
+  line-height: 0;
+  color: transparent;
+}
+
+.logo-type--img.logo-type--logotype,
+.logo-type--img.logo-type--logotypeNegative {
+  width: 80px;
+  height: 48px;
+}
+
+.logo-type--img.logo-type--logotype .type,
+.logo-type--img.logo-type--logotypeNegative .type {
+  @extend .sprite; // stylelint-disable-line at-rule-blacklist
+}
+
+.logo-type--img.logo-type--logotype .type {
+  @extend .sprite--logotype; // stylelint-disable-line at-rule-blacklist
+}
+
+.logo-type--img.logo-type--logotypeNegative .type {
+  @extend .sprite--logotypeNegative; // stylelint-disable-line at-rule-blacklist
+}

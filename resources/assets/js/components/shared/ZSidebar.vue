@@ -41,8 +41,8 @@
 <template>
     <aside id="aside" class="l-aside aside">
         <nav id="asideNavigation" class="l-navigation navigation">
-            <div id="asideNavigationLogotype" class="navigation__logo-type">
-                <h1 class="logo" v-on:click="accordionCollapse">
+            <div id="asideNavigationLogotype" class="navigation__logo-type logo-type logo-type--img logo-type--logotypeNegative">
+            <h1 class="logo" v-on:click="accordionCollapse">
                     <router-link :to="{name: 'home'}" class="type">
                         {{ $t('logo') }}
                     </router-link>
@@ -200,8 +200,12 @@
             }
         },
         mounted() {
-            this.aside();
-            this.accordion();
+            require('./../../zaza-ui/aside');
+            require('./../../zaza-ui/accordion')
+
+            // mounted() {
+            //     require('./../../zaza-ui/aside')
+            // }
         }
     }
 </script>

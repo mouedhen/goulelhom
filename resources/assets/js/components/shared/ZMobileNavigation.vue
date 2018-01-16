@@ -24,8 +24,8 @@
                     </svg>
                 </span>
         </button>
-        <div id="edisaNavigationLogotype" class="navigation__logo-type">
-            <h1 class="logo">
+        <div id="edisaNavigationLogotype" class="navigation__logo-type logo-type logo-type--img logo-type--logotype">
+        <h1 class="logo">
                 <a href="#0" class="type">
                     {{ $t('logo') }}
                 </a>
@@ -36,6 +36,5 @@
 
 <script>
     export default {
-        //
     }
 </script>

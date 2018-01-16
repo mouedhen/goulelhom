@@ -7,7 +7,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
     <!-- TODO Handle RTL with mix -->
-    <title>{{ config('app.name') }}</title>
+    <title>GOULEL'HOM - ڨوللهم</title>
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
 

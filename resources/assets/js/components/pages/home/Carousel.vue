@@ -63,22 +63,6 @@
                     <cite>-- {{ $t('slogan-4-cite') }} --</cite></blockquote>
             </div>
         </div>
-        <!--
-        -->
-        <!--
-        <div class="carousel__item">
-            <img src="images/cover.jpg" alt="placeholder 2">
-        </div>
-        <div class="carousel__item">
-            <img src="images/smoke3.jpg" alt="placeholder 3">
-        </div>
-        <div class="carousel__item">
-            <img src="images/smoke4.jpg" alt="placeholder 4">
-        </div>
-        <div class="carousel__item">
-            <img src="images/smoke5.jpg" alt="placeholder 5">
-        </div>
-        -->
     </div>
 </template>
 
@@ -121,7 +105,8 @@
             },
         },
         mounted() {
-            this.carousel();
+            require('./../../../zaza-ui/carousel');
+            // this.carousel();
             this.animateSlogan();
         }
     }

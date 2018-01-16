@@ -13,8 +13,16 @@ if (Config.extractVueStyles) {
     vueExtractPlugin = extractPlugins.length ? extractPlugins[0] : new ExtractTextPlugin(filePath);
 }
 
-mix.js('resources/assets/js/app.js', 'public/js')
-mix.js('resources/assets/js/admin.js', 'public/js')
+mix.options({
+    postCss: [
+        require('autoprefixer')({
+            browsers: ['last 2 versions'],
+            cascade: false
+        })
+    ]
+})
+    .js('resources/assets/js/app.js', 'public/js')
+    .js('resources/assets/js/admin.js', 'public/js')
     .sass('resources/assets/sass/app.scss', 'public/css')
     .sass('resources/assets/sass/admin.scss', 'public/css')
     .extract([

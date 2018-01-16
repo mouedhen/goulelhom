@@ -11,7 +11,10 @@
     import ZHomeForground from './ZHomeForground'
 
     export default {
-        components: {ZHomeBackground, ZHomeForground}
+        components: {ZHomeBackground, ZHomeForground},
+        mounted() {
+            // require('./../../../zaza-ui/index')
+        }
     }
 
 </script>

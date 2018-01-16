@@ -15,6 +15,8 @@
 
 <script>
     export default {
-        //
+        mounted() {
+            // require('./../../../zaza-ui/splash')
+        }
     }
 </script>

@@ -1,0 +1,16 @@
+.sprite {
+  background-image: url("/asset/sprite.svg");
+  background-repeat: no-repeat;
+}
+
+.sprite--logotype {
+  width: 80px;
+  height: 48px;
+  background-position: 0 0;
+}
+
+.sprite--logotypeNegative {
+  width: 80px;
+  height: 48px;
+  background-position: 100% 0;
+}

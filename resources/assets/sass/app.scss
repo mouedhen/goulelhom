@@ -57,20 +57,20 @@ p, ul, ol, pre, table, blockquote {
     text-align: justify;
   }
 }
-
+/*
 #toggleAsideTrigger, #edisaNavigationLogotype {
-  display: none;
+  // display: none;
 }
 
 @media screen and (max-width: 840px) {
   #toggleEdisaTrigger {
-    display: none;
+    display: block;
   }
   #toggleAsideTrigger, #edisaNavigationLogotype {
     display: block;
   }
 }
-
+*/
 .l-footer {
   height: 1.75rem;
   flex-basis: 1.75rem;
@@ -243,7 +243,7 @@ aside {
   width: auto;
   left: 0;
   right: auto;
-  z-index: 3000;
+  // z-index: 3000;
 }
 
 .petitions-cards-container {
@@ -268,4 +268,15 @@ aside {
   #splash {
     width: 100%;
   }
+}
+
+.leaflet-verticalcenter {
+  position: absolute;
+  top: 50%; /* possible because the placeholder's parent is the map */
+  transform: translateY(-50%); /* using the CSS3 Transform technique */
+  padding-top: 10px;
+}
+
+.leaflet-verticalcenter .leaflet-control {
+  margin-bottom: 10px;
 }

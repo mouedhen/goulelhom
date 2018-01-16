@@ -1,3 +1,5 @@
+
+
 import '@babel/polyfill'
 import axios from 'axios'
 import Vue from 'vue'
@@ -40,3 +42,4 @@ const app = new Vue({
     router,
     i18n
 }).$mount('#main');
+

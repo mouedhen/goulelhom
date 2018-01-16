@@ -243,47 +243,15 @@
 
                 openSplashTrigger.addEventListener('click', openSplashHandler);
                 closeSplashTrigger.addEventListener('click', closeSplashHandler);
-            },
-            fileUploader() {
-                const uppy = Uppy({
-                    debug: false,
-                    autoProceed: false,
-                    restrictions: {
-                        maxFileSize: 1000000,
-                        maxNumberOfFiles: 5,
-                        allowedFileTypes: ['image/*', 'video/*']
-                    }
-                })
-                    .use(Dashboard, {
-                        trigger: '.UppyModalOpenerBtn',
-                        target: '.DashboardContainer',
-                        inline: false,
-                        replaceTargetContent: true,
-                        note: null,
-                        maxHeight: 300,
-                        locale: this.appyLocale
-                    })
-                    .use(Webcam, { target: Dashboard })
-                    .run();
-                uppy.on('complete', result => {
-                    console.log('successful files:', result.successful);
-                    console.log('failed files:', result.failed)
-                })
             }
         },
         mounted() {
 
             let dropzone = this.$refs['claimDropzone'].dropzone;
-
-            // console.log(this.$refs['claimDropzone'].dropzone)
             dropzone.on("complete", function(file) {
                 dropzone.removeFile(file);
                 this.processUpload = false;
             });
-
-            this.aside();
-            this.splash();
-            // this.fileUploader();
 
             let width = window.innerWidth
                 || document.documentElement.clientWidth
@@ -292,6 +260,8 @@
             if (width > 840) {
                 this.initialState();
             }
+
+            this.splash();
         }
     }
 </script>

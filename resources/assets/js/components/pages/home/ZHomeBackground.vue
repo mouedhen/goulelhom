@@ -1,6 +1,6 @@
 <template>
     <div class="content__background">
-        <carousel></carousel>
+        <carousel/>
     </div>
 </template>
 

@@ -6,9 +6,17 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
-    <title>{{ config('app.name') }}</title>
+    <title>GOULEL'HOM - ڨوللهم</title>
 
-    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.43.0/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css"
+          integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ=="
+          crossorigin=""/>
+    <link href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.62.0/dist/L.Control.Locate.min.css" rel="stylesheet" type="text/css">
+    <link href="https://unpkg.com/leaflet.markercluster@1.2.0/dist/MarkerCluster.css" rel="stylesheet" type="text/css">
+    <link href="https://unpkg.com/leaflet.markercluster@1.2.0/dist/MarkerCluster.Default.css" rel="stylesheet" type="text/css">
+
     <link href="{{ mix('css/app.css') }}" rel="stylesheet" type="text/css">
 
     <script>

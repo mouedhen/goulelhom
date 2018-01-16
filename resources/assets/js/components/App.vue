@@ -17,5 +17,8 @@
 
     export default {
         components: {ZMobile, ZFooter},
+        mounted() {
+            // require('./../zaza-ui/splash')
+        }
     }
 </script>
