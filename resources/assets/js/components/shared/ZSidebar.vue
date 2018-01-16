@@ -49,16 +49,16 @@
                 </h1>
             </div>
             <button id="toggleEdisaTrigger" class="button button--square" type="button">
-            <span class="button__symbol button__symbol--1">
-                <svg class="icon icon-arrow-left">
-                    <use xlink:href="/asset/symbol-defs.svg#icon-arrow-left"></use>
-                </svg>
-            </span>
                 <span class="button__symbol button__symbol--2">
-                <svg class="icon icon-arrow-right">
-                    <use xlink:href="/asset/symbol-defs.svg#icon-arrow-right"></use>
-                </svg>
-            </span>
+                    <svg class="icon icon-arrow-left">
+                        <use xlink:href="/asset/symbol-defs.svg#icon-arrow-left"></use>
+                    </svg>
+                </span>
+                    <span class="button__symbol button__symbol--1">
+                    <svg class="icon icon-arrow-right">
+                        <use xlink:href="/asset/symbol-defs.svg#icon-arrow-right"></use>
+                    </svg>
+                </span>
             </button>
         </nav>
         <p class="aside__description">{{ $t('presentation-goulelhom-line-1') }}<br>{{ $t('presentation-goulelhom-line-2') }}</p>
@@ -66,7 +66,7 @@
 
             <accordion-element v-for="navElement in navBarElements"
                                :key="navElement.id"
-                               :navElement="navElement"></accordion-element>
+                               :navElement="navElement" />
         </div>
     </aside>
 </template>
@@ -162,50 +162,17 @@
                 for (const noidrocca of accordion) { // eslint-disable-line no-restricted-syntax
                     noidrocca.addEventListener('click', handleAccordion);
                 }
-            },
-            aside() {
-                const niam = document.getElementById('main');
-                const toggleAsideTrigger = document.getElementById('toggleAsideTrigger');
-                const toggleEdisaTrigger = document.getElementById('toggleEdisaTrigger');
-                const aidem = window.matchMedia('(min-width: 840px)');
-
-                const toggleAsideHandler = () => {
-                    toggleClass(niam, 'main--off-1-aside');
-                    toggleClass(toggleAsideTrigger, 'button--2');
-                };
-
-                const toggleEdisaHandler = () => {
-                    toggleClass(niam, 'main--off-2-aside');
-                    toggleClass(toggleEdisaTrigger, 'button--2');
-                };
-
-                const sehctam = (q) => {
-                    if (q.matches) {
-                        addClass(niam, 'main--off-1-aside');
-                        addClass(niam, 'main--off-2-aside');
-                        // toggleAsideTrigger.removeEventListener('click', toggleAsideHandler);
-                        toggleEdisaTrigger.addEventListener('click', toggleEdisaHandler);
-                    } else {
-                        removeClass(niam, 'main--off-1-aside');
-                        removeClass(niam, 'main--off-2-aside');
-                        // toggleAsideTrigger.addEventListener('click', toggleAsideHandler);
-                        toggleEdisaTrigger.removeEventListener('click', toggleEdisaHandler);
-                    }
-                };
-
-                sehctam(aidem);
-
-                aidem.addListener(sehctam);
-                this.$emit('sidebar-clicked')
             }
         },
         mounted() {
-            require('./../../zaza-ui/aside');
-            require('./../../zaza-ui/accordion')
+            let width = window.innerWidth
+                || document.documentElement.clientWidth
+                || document.body.clientWidth;
 
-            // mounted() {
-            //     require('./../../zaza-ui/aside')
-            // }
+            if (width > 840) {
+                require('./../../zaza-ui/accordion');
+            }
+            this.accordionCollapse();
         }
     }
 </script>

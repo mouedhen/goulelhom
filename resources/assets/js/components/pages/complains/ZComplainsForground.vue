@@ -24,7 +24,11 @@
         "attach-placeholder": "إرفاق ملفات",
         "button-submit": "إرسال",
         "button-reset": "إلغاء",
-    "dropzone": "إسقاط الملفات هنا لتحميل"
+    "dropzone": "تحميل الملفات",
+    "option-1": "البيئية",
+    "option-2": "النقل العمومي",
+    "option-3": "السياسة",
+    "option-4": "الإدارة"
     }
 }
 </i18n>
@@ -61,9 +65,15 @@
 
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 form-group">
-                            <input type="text" id="subject" class="form-group__control"
-                                   :placeholder="$t('subject-placeholder')"
-                                   v-model="claim.subject" name="subject">
+
+                            <select name="municipality" class="form-group__control" v-model="claim.subject_id">
+                                <option :value="null" disabled>{{$t('subject-placeholder')}}</option>
+                                <option :value="1" disabled>{{$t('option-1')}}</option>
+                                <option :value="2" disabled>{{$t('option-2')}}</option>
+                                <option :value="3" disabled>{{$t('option-3')}}</option>
+                                <option :value="4" disabled>{{$t('option-4')}}</option>
+                            </select>
+                            
                         </div>
                         <div id="textareaDrop" class="cell cell--medium-8 cell--large-12 form-group">
                             <textarea name="observation" id="observation" rows="2" class="form-group__control"
@@ -190,43 +200,6 @@
                 if (!container.classList.contains('main--off-splash')) {
                     addClass(container, 'main--off-splash');
                 }
-            },
-            aside() {
-                const niam = document.getElementById('main'); // eslint-disable-line no-undef
-
-                const toggleAsideTrigger = document.getElementById('toggleAsideTrigger'); // eslint-disable-line no-undef
-
-                const toggleEdisaTrigger = document.getElementById('toggleEdisaTrigger'); // eslint-disable-line no-undef
-
-                const aidem = window.matchMedia('(min-width: 840px)'); // eslint-disable-line no-undef
-
-                const toggleAsideHandler = () => {
-                    toggleClass(niam, 'main--off-1-aside');
-                    toggleClass(toggleAsideTrigger, 'button--2');
-                };
-
-                const toggleEdisaHandler = () => {
-                    toggleClass(niam, 'main--off-2-aside');
-                    toggleClass(toggleEdisaTrigger, 'button--2');
-                };
-
-                const sehctam = (q) => {
-                    if (q.matches) {
-                        addClass(niam, 'main--off-1-aside');
-                        addClass(niam, 'main--off-2-aside');
-                        toggleAsideTrigger.removeEventListener('click', toggleAsideHandler);
-                        toggleEdisaTrigger.addEventListener('click', toggleEdisaHandler);
-                    } else {
-                        removeClass(niam, 'main--off-1-aside');
-                        removeClass(niam, 'main--off-2-aside');
-                        toggleAsideTrigger.addEventListener('click', toggleAsideHandler);
-                        toggleEdisaTrigger.removeEventListener('click', toggleEdisaHandler);
-                    }
-                };
-
-                sehctam(aidem);
-
-                aidem.addListener(sehctam);
             },
             splash() {
                 const niam = document.getElementById('main');

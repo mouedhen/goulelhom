@@ -26,9 +26,7 @@
         </button>
         <div id="edisaNavigationLogotype" class="navigation__logo-type logo-type logo-type--img logo-type--logotype">
         <h1 class="logo">
-                <a href="#0" class="type">
-                    {{ $t('logo') }}
-                </a>
+                <router-link :to="{ name: 'home'}" class="type">{{ $t('logo') }}</router-link>
             </h1>
         </div>
     </nav>
@@ -36,5 +34,8 @@
 
 <script>
     export default {
+        mounted() {
+            require('./../../zaza-ui/aside');
+        }
     }
 </script>

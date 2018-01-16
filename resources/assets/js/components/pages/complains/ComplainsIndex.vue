@@ -1,6 +1,5 @@
 <template>
     <div id="content" class="l-content content">
-
         <z-mobile/>
         <z-complains-background
                 :claim="claim"
@@ -65,7 +64,7 @@
         mounted() {
             this.claimsList.fetch();
             this.municipalities.fetch();
-            require('./../../../zaza-ui/splash')
+            require('./../../../zaza-ui/splash');
         }
     }
 

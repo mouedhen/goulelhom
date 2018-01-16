@@ -258,9 +258,26 @@ aside {
   }
 }
 
+#toggleAsideTrigger {
+  display: none;
+}
+
+#toggleEdisaTrigger {
+  display: block;
+}
+
 @media screen and (max-width: 840px) {
   #splash {
     // width: 100%;
+  }
+
+  #toggleAsideTrigger {
+    display: block;
+  }
+
+
+  #toggleEdisaTrigger {
+    display: none;
   }
 }
 
@@ -268,6 +285,11 @@ aside {
   #splash {
     width: 100%;
   }
+}
+
+.foreground__splash {
+  -webkit-transform: translateY(calc(100% - 6rem));
+  transform: translateY(calc(100% - 6rem));
 }
 
 .leaflet-verticalcenter {
