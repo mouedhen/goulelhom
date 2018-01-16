@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ClaimerResource;
 use App\Http\Resources\ClaimResource;
 use App\Models\Claim;
 use Illuminate\Http\Request;
@@ -15,7 +16,7 @@ class ClaimController extends Controller
      */
     public function index()
     {
-        //
+        return response()->json(ClaimerResource::collection(Claim::all()));
     }
 
     /**

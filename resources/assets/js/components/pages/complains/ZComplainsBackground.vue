@@ -2,13 +2,24 @@
     <v-map :zoom=14 :center="[36.8188, 10.156]" ref="map" class="absolute-map">
         <v-tilelayer
                 url='https://api.mapbox.com/styles/v1/mapbox/streets-v10/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibW91ZWRoZW4iLCJhIjoiY2o1b25ibHdvMDFrbTJxcXRtaWttZ3VqcCJ9.D5l-yqWthlUroyn5GFoY2w'/>
-        <!-- <v-marker :lat-lng="[36.8188, 10.166]"/> -->
+        <v-marker :lat-lng="[36.8188, 10.166]"/>
+
+        <v-marker-cluster>
+            <v-marker v-for="claimMarker in claimsList"
+                      :key="claimMarker.id"
+                      :lat-lng="[claimMarker.latitude, claimMarker.longitude]">
+                <v-popup :content="'<h1>test</h1>'">{{claim.subject}}</v-popup>
+            </v-marker>
+        </v-marker-cluster>
+
     </v-map>
 </template>
 
 <script>
 
     import Vue2Leaflet from 'vue2-leaflet';
+    import Vue2LeafletMarkerCluster from 'vue2-leaflet-markercluster'
+
     import L from 'leaflet'
 
     require('leaflet.locatecontrol');
@@ -18,10 +29,19 @@
             'v-map': Vue2Leaflet.Map,
             'v-tilelayer': Vue2Leaflet.TileLayer,
             'v-marker': Vue2Leaflet.Marker,
+            'v-marker-cluster': Vue2LeafletMarkerCluster,
+            'v-popup': Vue2Leaflet.Popup
         },
-        props: ['claim',],
+        props: ['claim', 'claimsList'],
+        data() {
+            return {
+                // claimsList: new Claims(),
+            }
+        },
         methods: {},
         mounted() {
+
+
             let that = this;
             let position = [36.8188, 10.166];
 

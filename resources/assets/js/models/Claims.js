@@ -10,6 +10,7 @@ import {
     required,
     string,
 } from 'vue-mc/validation'
+import {Municipality} from "./Municipalities";
 
 class Claim extends Model {
 
@@ -56,7 +57,7 @@ class Claim extends Model {
 
 }
 
-class ClaimsList extends Collection {
+class Claims extends Collection {
 
     model() {
         return Claim;
@@ -69,4 +70,4 @@ class ClaimsList extends Collection {
     }
 }
 
-export {Claim, ClaimsList}
+export {Claim, Claims}

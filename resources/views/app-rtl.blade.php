@@ -15,6 +15,8 @@
           integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ=="
           crossorigin=""/>
     <link href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.62.0/dist/L.Control.Locate.min.css" rel="stylesheet" type="text/css">
+    <link href="https://unpkg.com/leaflet.markercluster@1.2.0/dist/MarkerCluster.css" rel="stylesheet" type="text/css">
+    <link href="https://unpkg.com/leaflet.markercluster@1.2.0/dist/MarkerCluster.Default.css" rel="stylesheet" type="text/css">
 
     <link href="css/app.rtl.css" rel="stylesheet" type="text/css">
 

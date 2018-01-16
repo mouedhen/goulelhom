@@ -91,7 +91,7 @@
     import vue2Dropzone from 'vue2-dropzone'
 
     export default {
-        props: ['claimer', 'claim', 'uploadUrl', 'municipalities'],
+        props: ['claimer', 'claim', 'uploadUrl', 'processUpload', 'municipalities'],
         components: {
             NavSplach,
             vueDropzone: vue2Dropzone
@@ -107,7 +107,14 @@
                     AcceptedFiles: ['images/*', 'audio/*', 'video/*', 'application/pdf'],
                     dictDefaultMessage: this.$t('dropzone'),
                     autoProcessQueue: false,
-                    addRemoveLinks: true
+                    addRemoveLinks: true,
+                }
+            }
+        },
+        watch: {
+            processUpload: function (newVal, oldVal) {
+                if (newVal === true) {
+                    this.$refs['claimDropzone'].processQueue();
                 }
             }
         },
@@ -265,6 +272,15 @@
             }
         },
         mounted() {
+
+            let dropzone = this.$refs['claimDropzone'].dropzone;
+
+            // console.log(this.$refs['claimDropzone'].dropzone)
+            dropzone.on("complete", function(file) {
+                dropzone.removeFile(file);
+                this.processUpload = false;
+            });
+
             this.aside();
             this.splash();
             // this.fileUploader();
