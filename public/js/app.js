@@ -29500,6 +29500,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__zaza_ui_classname__ = __webpack_require__(121);
 //
 //
 //
@@ -29535,70 +29536,22 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 
+
 /* harmony default export */ __webpack_exports__["default"] = ({
-    mounted: function mounted() {
-        __webpack_require__(560);
-    }
+    methods: {
+        toggleAside: function toggleAside() {
+            var niam = document.getElementById('main');
+            var toggleAsideTrigger = document.getElementById('toggleAsideTrigger');
+
+            Object(__WEBPACK_IMPORTED_MODULE_0__zaza_ui_classname__["d" /* toggleClass */])(niam, 'main--off-1-aside');
+            Object(__WEBPACK_IMPORTED_MODULE_0__zaza_ui_classname__["d" /* toggleClass */])(toggleAsideTrigger, 'button--2');
+        }
+    },
+    mounted: function mounted() {}
 });
 
 /***/ }),
-/* 560 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__classname__ = __webpack_require__(121);
- // eslint-disable-line import/no-duplicates, no-unused-vars
-
-var niam = document.getElementById('main'); // eslint-disable-line no-undef
-
-var toggleAsideTrigger = document.getElementById('toggleAsideTrigger'); // eslint-disable-line no-undef
-
-var toggleEdisaTrigger = document.getElementById('toggleEdisaTrigger'); // eslint-disable-line no-undef
-
-var aidem = window.matchMedia('(min-width: 840px)'); // eslint-disable-line no-undef
-
-var toggleAsideHandler = function toggleAsideHandler() {
-    Object(__WEBPACK_IMPORTED_MODULE_0__classname__["d" /* toggleClass */])(niam, 'main--off-1-aside');
-    Object(__WEBPACK_IMPORTED_MODULE_0__classname__["d" /* toggleClass */])(toggleAsideTrigger, 'button--2');
-};
-
-var toggleEdisaHandler = function toggleEdisaHandler() {
-    Object(__WEBPACK_IMPORTED_MODULE_0__classname__["d" /* toggleClass */])(niam, 'main--off-2-aside');
-    Object(__WEBPACK_IMPORTED_MODULE_0__classname__["d" /* toggleClass */])(toggleEdisaTrigger, 'button--2');
-};
-
-var sehctam = function sehctam(q) {
-    if (q.matches) {
-        if (aidem !== null) {
-            Object(__WEBPACK_IMPORTED_MODULE_0__classname__["a" /* addClass */])(niam, 'main--off-1-aside');
-            Object(__WEBPACK_IMPORTED_MODULE_0__classname__["a" /* addClass */])(niam, 'main--off-2-aside');
-        }
-        if (toggleAsideTrigger !== null) {
-            toggleAsideTrigger.removeEventListener('click', toggleAsideHandler);
-        }
-        if (toggleEdisaTrigger !== null) {
-            toggleEdisaTrigger.addEventListener('click', toggleEdisaHandler);
-        }
-    } else {
-        if (aidem !== null) {
-            Object(__WEBPACK_IMPORTED_MODULE_0__classname__["c" /* removeClass */])(niam, 'main--off-1-aside');
-            Object(__WEBPACK_IMPORTED_MODULE_0__classname__["c" /* removeClass */])(niam, 'main--off-2-aside');
-        }
-        if (toggleAsideTrigger !== null) {
-            toggleAsideTrigger.addEventListener('click', toggleAsideHandler);
-        }
-        if (toggleEdisaTrigger !== null) {
-            toggleEdisaTrigger.removeEventListener('click', toggleEdisaHandler);
-        }
-    }
-};
-
-sehctam(aidem);
-
-aidem.addListener(sehctam);
-
-/***/ }),
+/* 560 */,
 /* 561 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -29617,7 +29570,8 @@ var render = function() {
         "button",
         {
           staticClass: "button button--square",
-          attrs: { id: "toggleAsideTrigger", type: "button" }
+          attrs: { id: "toggleAsideTrigger", type: "button" },
+          on: { click: _vm.toggleAside }
         },
         [
           _c("span", { staticClass: "button__symbol button__symbol--1" }, [

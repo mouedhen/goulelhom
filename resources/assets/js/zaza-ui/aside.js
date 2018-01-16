@@ -9,38 +9,33 @@ const toggleEdisaTrigger = document.getElementById('toggleEdisaTrigger'); // esl
 const aidem = window.matchMedia('(min-width: 840px)'); // eslint-disable-line no-undef
 
 const toggleAsideHandler = () => {
+    console.log(hasClass(niam, 'main--off-1-aside'))
     toggleClass(niam, 'main--off-1-aside');
     toggleClass(toggleAsideTrigger, 'button--2');
 };
 
 const toggleEdisaHandler = () => {
+
+    console.log(hasClass(niam, 'main--off-2-aside'))
     toggleClass(niam, 'main--off-2-aside');
     toggleClass(toggleEdisaTrigger, 'button--2');
 };
 
+
+toggleEdisaTrigger.addEventListener('click', toggleEdisaHandler);
+toggleAsideTrigger.addEventListener('click', toggleAsideHandler);
+/*
 const sehctam = (q) => {
         if (q.matches) {
-            if (aidem !== null) {
-                addClass(niam, 'main--off-1-aside');
-                addClass(niam, 'main--off-2-aside');
-            }
-            if (toggleAsideTrigger !== null) {
-                toggleAsideTrigger.removeEventListener('click', toggleAsideHandler);
-            }
-            if (toggleEdisaTrigger !== null) {
-                toggleEdisaTrigger.addEventListener('click', toggleEdisaHandler);
-            }
+            addClass(niam, 'main--off-1-aside');
+            addClass(niam, 'main--off-2-aside');
+            toggleAsideTrigger.removeEventListener('click', toggleAsideHandler);
+            toggleEdisaTrigger.addEventListener('click', toggleEdisaHandler);
+
         } else {
-            if (aidem !== null) {
-                removeClass(niam, 'main--off-1-aside');
-                removeClass(niam, 'main--off-2-aside');
-            }
-            if (toggleAsideTrigger !== null) {
-                toggleAsideTrigger.addEventListener('click', toggleAsideHandler);
-            }
-            if (toggleEdisaTrigger !== null) {
-                toggleEdisaTrigger.removeEventListener('click', toggleEdisaHandler);
-            }
+            removeClass(niam, 'main--off-1-aside');
+            removeClass(niam, 'main--off-2-aside');
+            toggleAsideTrigger.addEventListener('click', toggleAsideHandler);
         }
     }
 ;
@@ -48,3 +43,4 @@ const sehctam = (q) => {
 sehctam(aidem);
 
 aidem.addListener(sehctam);
+*/

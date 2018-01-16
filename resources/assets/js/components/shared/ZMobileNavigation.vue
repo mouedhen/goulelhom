@@ -12,8 +12,8 @@
 
 <template>
     <nav id="edisaNavigation" class="l-navigation navigation">
-        <button id="toggleAsideTrigger" class="button button--square" type="button">
-                <span class="button__symbol button__symbol--1">
+        <button id="toggleAsideTrigger" class="button button--square" type="button" v-on:click="toggleAside">
+                <span class="button__symbol button__symbol--1" >
                     <svg class="icon icon-menu">
                         <use xlink:href="/asset/symbol-defs.svg#icon-menu"></use>
                     </svg>
@@ -33,9 +33,18 @@
 </template>
 
 <script>
+    import {toggleClass} from './../../zaza-ui/classname';
     export default {
+        methods: {
+            toggleAside() {
+                const niam = document.getElementById('main');
+                const toggleAsideTrigger = document.getElementById('toggleAsideTrigger');
+
+                toggleClass(niam, 'main--off-1-aside');
+                toggleClass(toggleAsideTrigger, 'button--2');
+            }
+        },
         mounted() {
-            require('./../../zaza-ui/aside');
         }
     }
 </script>

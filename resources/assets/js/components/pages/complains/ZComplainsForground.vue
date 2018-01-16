@@ -73,7 +73,7 @@
                                 <option :value="3" disabled>{{$t('option-3')}}</option>
                                 <option :value="4" disabled>{{$t('option-4')}}</option>
                             </select>
-                            
+
                         </div>
                         <div id="textareaDrop" class="cell cell--medium-8 cell--large-12 form-group">
                             <textarea name="observation" id="observation" rows="2" class="form-group__control"
