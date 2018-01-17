@@ -2,13 +2,12 @@
     <v-map :zoom=14 :center="[36.8188, 10.156]" ref="map" class="absolute-map">
         <v-tilelayer
                 url='https://api.mapbox.com/styles/v1/mapbox/streets-v10/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibW91ZWRoZW4iLCJhIjoiY2o1b25ibHdvMDFrbTJxcXRtaWttZ3VqcCJ9.D5l-yqWthlUroyn5GFoY2w'/>
-        <v-marker :lat-lng="[36.8188, 10.166]"/>
 
         <v-marker-cluster>
             <v-marker v-for="claimMarker in claimsList"
                       :key="claimMarker.id"
                       :lat-lng="[claimMarker.latitude, claimMarker.longitude]">
-                <v-popup :content="'<h1>test</h1>'">{{claim.subject}}</v-popup>
+                <v-popup :content="'<p>' + claimMarker.description + '</h1>'"></v-popup>
             </v-marker>
         </v-marker-cluster>
 

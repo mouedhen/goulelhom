@@ -33041,7 +33041,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
-//
 
 
 
@@ -33159,8 +33158,6 @@ var render = function() {
         }
       }),
       _vm._v(" "),
-      _c("v-marker", { attrs: { "lat-lng": [36.8188, 10.166] } }),
-      _vm._v(" "),
       _c(
         "v-marker-cluster",
         _vm._l(_vm.claimsList, function(claimMarker) {
@@ -33173,9 +33170,9 @@ var render = function() {
               }
             },
             [
-              _c("v-popup", { attrs: { content: "<h1>test</h1>" } }, [
-                _vm._v(_vm._s(_vm.claim.subject))
-              ])
+              _c("v-popup", {
+                attrs: { content: "<p>" + claimMarker.description + "</h1>" }
+              })
             ],
             1
           )

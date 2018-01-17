@@ -30,7 +30,7 @@ class ClaimController extends Controller
         $claim = Claim::create([
             'claimer_id' => $request->get('claimer_id'),
             'municipality_id' => $request->get('municipality_id'),
-            'subject' => $request->get('subject'),
+            'subject' => $request->get('subject_id'),
             'description' => $request->get('description'),
             'latitude' => $request->get('latitude'),
             'longitude' => $request->get('longitude'),
