@@ -24089,10 +24089,6 @@ var i18n = new __WEBPACK_IMPORTED_MODULE_6_vue_i18n__["default"]({
     locale: 'ar' // set locale
 });
 
-// Vue.component('z-style', ZStyle);
-// Vue.component('z-sidebar', ZSidebar);
-// Vue.component('app', App);
-
 var appStyle = new __WEBPACK_IMPORTED_MODULE_2_vue___default.a({
     components: {
         'z-style': __WEBPACK_IMPORTED_MODULE_8__components_shared_ZStyle___default.a
@@ -29790,6 +29786,8 @@ module.exports = Component.exports
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_animejs__ = __webpack_require__(178);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_animejs___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_animejs__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_flickity__ = __webpack_require__(567);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_flickity___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_flickity__);
 //
 //
 //
@@ -29858,52 +29856,32 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+
 
 
 
 /* harmony default export */ __webpack_exports__["default"] = ({
+    data: function data() {
+        return {
+            preloading: true
+        };
+    },
+
     methods: {
         carousel: function carousel() {
-            var carousel = document.getElementById('carousel');
-            var slideIndex = 0;
-            var showSlides = function showSlides() {
-                var slides = carousel.querySelectorAll('.carousel__item');
-                var _iteratorNormalCompletion = true;
-                var _didIteratorError = false;
-                var _iteratorError = undefined;
-
-                try {
-                    for (var _iterator = slides[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                        var slide = _step.value;
-
-                        slide.style.display = 'none';
-                    }
-                } catch (err) {
-                    _didIteratorError = true;
-                    _iteratorError = err;
-                } finally {
-                    try {
-                        if (!_iteratorNormalCompletion && _iterator.return) {
-                            _iterator.return();
-                        }
-                    } finally {
-                        if (_didIteratorError) {
-                            throw _iteratorError;
-                        }
-                    }
-                }
-
-                slideIndex++;
-                if (slideIndex > slides.length) {
-                    slideIndex = 1;
-                }
-                slides[slideIndex - 1].style.display = 'block';
-                setTimeout(showSlides, 6000);
-            };
-
-            if (carousel !== null) {
-                showSlides();
-            }
+            new __WEBPACK_IMPORTED_MODULE_1_flickity___default.a('#carousel', {
+                autoPlay: true,
+                prevNextButtons: false,
+                pageDots: false,
+                wrapAround: true
+            });
         },
         animateSlogan: function animateSlogan() {
             __WEBPACK_IMPORTED_MODULE_0_animejs___default()({
@@ -29919,34 +29897,13 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         }
     },
     mounted: function mounted() {
-        __webpack_require__(566);
-        // this.carousel();
+        this.carousel();
         this.animateSlogan();
     }
 });
 
 /***/ }),
-/* 566 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_flickity__ = __webpack_require__(567);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_flickity___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_flickity__);
-var _ref;
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-
-
-var redils = new __WEBPACK_IMPORTED_MODULE_0_flickity___default.a('#carousel', (_ref = { // eslint-disable-line no-unused-vars
-    autoPlay: true,
-    prevNextButtons: false,
-    pageDots: false,
-    wrapAround: true
-}, _defineProperty(_ref, 'autoPlay', true), _defineProperty(_ref, 'autoPlay', 3500), _ref));
-
-/***/ }),
+/* 566 */,
 /* 567 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -32200,7 +32157,7 @@ if (false) {
 
 module.exports = function (Component) {
   Component.options.__i18n = Component.options.__i18n || []
-  Component.options.__i18n.push('{"en":{"slogan-1-word-1":"We can build the future","slogan-1-word-2":"TOGETHER","slogan-2-word-1":"رصيد الديمقراطية الحقيقي ليس في صناديق الانتخابات فحسب بل في","slogan-2-word-2":"وعي الناس","slogan-3-word-1":"The power of the people is stronger than the people in the","slogan-3-word-2":"power","slogan-4-word-1":"لا أحد يحب قيوده و لو كانت من","slogan-4-word-2":"ذهب"},"ar":{"slogan-1-word-1":"يمكننا أن نبني المستقبل","slogan-1-word-2":"معا","slogan-2-word-1":"رصيد الديمقراطية الحقيقي ليس في صناديق الانتخابات فحسب بل في","slogan-2-word-2":"وعي الناس","slogan-2-cite":"جان جاك روسو","slogan-3-word-1":"قوة الشعب اعظم من قوة الاشخاص الذين في","slogan-3-word-2":"السلطة","slogan-3-cite":"مجهول","slogan-4-word-1":"لا أحد يحب قيوده و لو كانت من","slogan-4-word-2":"ذهب","slogan-4-cite":"ابراهام لنكولن"}}')
+  Component.options.__i18n.push('{"en":{"slogan-1-word-1":"We can build the future","slogan-1-word-2":"TOGETHER","slogan-2-word-1":"The true balance of democracy is not only in election funds but in","slogan-2-word-2":"people\u0027s consciousness","slogan-2-cite":"Jean-Jacques Rousseau","slogan-3-word-1":"The power of the people is stronger than the people in the","slogan-3-word-2":"Power","slogan-3-cite":"Anonymous","slogan-4-word-1":"No one likes his restrictions even if they are","slogan-4-word-2":"Gold","slogan-4-cite":"Abraham Lincoln"},"ar":{"slogan-1-word-1":"يمكننا أن نبني المستقبل","slogan-1-word-2":"معا","slogan-2-word-1":"رصيد الديمقراطية الحقيقي ليس في صناديق الانتخابات فحسب بل في","slogan-2-word-2":"وعي الناس","slogan-2-cite":"جان جاك روسو","slogan-3-word-1":"قوة الشعب اعظم من قوة الاشخاص الذين في","slogan-3-word-2":"السلطة","slogan-3-cite":"مجهول","slogan-4-word-1":"لا أحد يحب قيوده و لو كانت من","slogan-4-word-2":"ذهب","slogan-4-cite":"ابراهام لنكولن"}}')
 }
 
 
@@ -37874,7 +37831,6 @@ var Claim = function (_Model) {
                 subject_id: function subject_id(_subject_id) {
                     return Number(_subject_id) || null;
                 },
-                subject: String,
                 description: String,
                 latitude: function latitude(_latitude) {
                     return Number(_latitude) || null;
@@ -37891,7 +37847,6 @@ var Claim = function (_Model) {
                 id: __WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["integer"].and(Object(__WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["min"])(1)).or(Object(__WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["equal"])(null)),
                 claimer_id: __WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["integer"].and(Object(__WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["min"])(1)),
                 municipality_id: __WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["integer"]),
-                subject: __WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["string"]),
                 description: __WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_2_vue_mc_validation__["string"])
             };
         }
@@ -40204,7 +40159,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             // document.getElementById('ltr-style').disabled  = false;
             // document.getElementById('rtl-style').disabled = false;
             // document.getElementsByTagName('head')[0].getElementById('main-style').href='css/app.rtl.css';
-            this.rerender();
+            // this.rerender()
             // <link href="css/app.rtl.css" rel="stylesheet" id="rtl-style" type="text/css">
         }
     },

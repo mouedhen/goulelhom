@@ -33,7 +33,6 @@ class Claim extends Model {
             claimer_id: (claimer_id) => Number(claimer_id) || null,
             municipality_id: (municipality_id) => Number(municipality_id) || null,
             subject_id: (subject_id) => Number(subject_id) || null,
-            subject: String,
             description: String,
             latitude: (latitude) => Number(latitude) || null,
             longitude: (longitude) => Number(longitude) || null
@@ -45,7 +44,6 @@ class Claim extends Model {
             id:   integer.and(min(1)).or(equal(null)),
             claimer_id:   integer.and(min(1)),
             municipality_id: required.and(integer),
-            subject: required.and(string),
             description: required.and(string)
         }
     }

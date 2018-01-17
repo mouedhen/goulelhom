@@ -10,7 +10,6 @@
     <title>GOULEL'HOM - ڨوللهم</title>
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
-    <link rel="https://cdn.jsdelivr.net/npm/flickity@2.0.10/dist/flickity.min.css">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css"
           integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ=="
@@ -19,7 +18,7 @@
     <link href="https://unpkg.com/leaflet.markercluster@1.2.0/dist/MarkerCluster.css" rel="stylesheet" type="text/css">
     <link href="https://unpkg.com/leaflet.markercluster@1.2.0/dist/MarkerCluster.Default.css" rel="stylesheet" type="text/css">
 
-    <link href="{{ mix('css/app.css') }}" rel="stylesheet" type="text/css">
+    <link href="css/app.rtl.css" rel="stylesheet" type="text/css">
 
     <script>
         window.Laravel = {!! json_encode([
@@ -31,9 +30,11 @@
 
 </head>
 <body>
+
 <div id="styles">
     <z-style></z-style>
 </div>
+
 <main id="main" class="l-main main">
     <z-sidebar></z-sidebar>
     <app></app>

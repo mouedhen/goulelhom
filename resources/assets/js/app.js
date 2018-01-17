@@ -36,11 +36,6 @@ const i18n = new VueI18n({
     locale: 'ar', // set locale
 });
 
-
-// Vue.component('z-style', ZStyle);
-// Vue.component('z-sidebar', ZSidebar);
-// Vue.component('app', App);
-
 const appStyle = new Vue({
     components: {
         'z-style': ZStyle

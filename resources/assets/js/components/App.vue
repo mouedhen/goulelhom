@@ -35,7 +35,7 @@
                 // document.getElementById('ltr-style').disabled  = false;
                 // document.getElementById('rtl-style').disabled = false;
                 // document.getElementsByTagName('head')[0].getElementById('main-style').href='css/app.rtl.css';
-                this.rerender()
+                // this.rerender()
                 // <link href="css/app.rtl.css" rel="stylesheet" id="rtl-style" type="text/css">
             }
         },
