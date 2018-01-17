@@ -38362,6 +38362,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__ZPetitionsBackground___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__ZPetitionsBackground__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__ZPetitionsForground__ = __webpack_require__(636);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__ZPetitionsForground___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2__ZPetitionsForground__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__models_Municipalities__ = __webpack_require__(187);
 //
 //
 //
@@ -38370,6 +38371,11 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
+//
+//
+//
+
+
 
 
 
@@ -38377,8 +38383,15 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
 /* harmony default export */ __webpack_exports__["default"] = ({
     components: { ZPetitionsBackground: __WEBPACK_IMPORTED_MODULE_1__ZPetitionsBackground___default.a, ZPetitionsForground: __WEBPACK_IMPORTED_MODULE_2__ZPetitionsForground___default.a, ZMobile: __WEBPACK_IMPORTED_MODULE_0__shared_ZMobileNavigation___default.a },
+    data: function data() {
+        return {
+            municipalities: new __WEBPACK_IMPORTED_MODULE_3__models_Municipalities__["a" /* Municipalities */](),
+            uploadUrl: 'api/v1/upload',
+            processUpload: false
+        };
+    },
     mounted: function mounted() {
-        // require('./../../../zaza-ui/aside')
+        this.municipalities.fetch();
     }
 });
 
@@ -38596,6 +38609,20 @@ module.exports = Component.exports
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_vue2_dropzone__ = __webpack_require__(186);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_vue2_dropzone___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_vue2_dropzone__);
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 //
 //
 //
@@ -38686,8 +38713,34 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 
+
 /* harmony default export */ __webpack_exports__["default"] = ({
-    //
+    props: ['municipalities', 'uploadUrl'],
+    components: {
+        vueDropzone: __WEBPACK_IMPORTED_MODULE_0_vue2_dropzone___default.a
+    },
+    computed: {
+        dropzoneOptions: function dropzoneOptions() {
+            return {
+                url: 'api/v1/upload',
+                thumbnailWidth: 110,
+                thumbnailHeight: 110,
+                maxFilesize: 4,
+                capture: 'camera',
+                AcceptedFiles: ['images/*', 'audio/*', 'video/*', 'application/pdf'],
+                dictDefaultMessage: 'Upload files<br>' + 'إرفاق ملفات',
+                autoProcessQueue: false,
+                addRemoveLinks: true
+            };
+        }
+    },
+    mounted: function mounted() {
+        var dropzone = this.$refs['petitionsDropzone'].dropzone;
+        dropzone.on("complete", function (file) {
+            dropzone.removeFile(file);
+            this.processUpload = false;
+        });
+    }
 });
 
 /***/ }),
@@ -38698,137 +38751,165 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _vm._m(0)
-}
-var staticRenderFns = [
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c(
-      "form",
-      { attrs: { action: "/#", enctype: "multipart/form-data" } },
-      [
-        _c("h1", [_vm._v("New Petition")]),
-        _vm._v(" "),
-        _c("div", { staticClass: "form-group" }, [
-          _c("input", {
-            staticClass: "form-group__control",
-            attrs: {
-              type: "text",
-              id: "name",
-              name: "name",
-              placeholder: "Your name"
-            }
-          })
-        ]),
-        _vm._v(" "),
-        _c("div", { staticClass: "form-group" }, [
-          _c("input", {
-            staticClass: "form-group__control",
-            attrs: {
-              type: "text",
-              id: "email",
-              name: "email",
-              placeholder: "Your email"
-            }
-          })
-        ]),
-        _vm._v(" "),
-        _c("div", { staticClass: "form-group" }, [
-          _c("input", {
-            staticClass: "form-group__control",
-            attrs: {
-              type: "text",
-              id: "theme",
-              name: "theme",
-              placeholder: "Theme"
-            }
-          })
-        ]),
-        _vm._v(" "),
-        _c("div", { staticClass: "form-group" }, [
-          _c("input", {
-            staticClass: "form-group__control",
-            attrs: {
-              type: "text",
-              id: "title",
-              name: "title",
-              placeholder: "Title"
-            }
-          })
-        ]),
-        _vm._v(" "),
-        _c("div", { staticClass: "form-group" }, [
-          _c("textarea", {
-            staticClass: "form-group__control",
-            attrs: {
-              name: "description",
-              id: "description",
-              rows: "2",
-              placeholder: "Details"
-            }
-          })
-        ]),
-        _vm._v(" "),
-        _c("div", { staticClass: "form-group" }, [
-          _c("p", { staticClass: "sworn-statement" }, [
-            _c("small", [
-              _vm._v(
-                "\n                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ad aliquid, at dolorum eaque eos eveniet\n                exercitationem in laborum magni nisi nobis numquam obcaecati officiis placeat quidem repellendus\n                temporibus, ut vero?"
-              ),
-              _c("br"),
-              _vm._v(
-                "\n                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ad aliquid, at dolorum eaque eos eveniet\n                exercitationem in laborum magni nisi nobis numquam obcaecati officiis placeat quidem repellendus\n                temporibus, ut vero?"
-              ),
-              _c("br"),
-              _vm._v(
-                "\n                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ad aliquid, at dolorum eaque eos eveniet\n                exercitationem in laborum magni nisi nobis numquam obcaecati officiis placeat quidem repellendus\n                temporibus, ut vero?"
-              ),
-              _c("br"),
-              _vm._v(
-                "\n                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ad aliquid, at dolorum eaque eos eveniet\n                exercitationem in laborum magni nisi nobis numquam obcaecati officiis placeat quidem repellendus\n                temporibus, ut vero?"
-              ),
-              _c("br"),
-              _vm._v(
-                "\n                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ad aliquid, at dolorum eaque eos eveniet\n                exercitationem in laborum magni nisi nobis numquam obcaecati officiis placeat quidem repellendus\n                temporibus, ut vero?"
-              ),
-              _c("br"),
-              _vm._v(
-                "\n                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ad aliquid, at dolorum eaque eos eveniet\n                exercitationem in laborum magni nisi nobis numquam obcaecati officiis placeat quidem repellendus\n                temporibus, ut vero?"
-              ),
-              _c("br")
-            ])
-          ]),
-          _vm._v(" "),
-          _c("input", {
-            attrs: {
-              id: "condition-agree",
-              name: "condition-agree",
-              type: "checkbox"
-            }
-          }),
-          _vm._v(" "),
-          _c("label", { attrs: { for: "condition-agree" } }, [
-            _vm._v("I agree with the sworn statement")
-          ])
-        ]),
-        _vm._v(" "),
-        _c("div", { staticClass: "button-group controls" }, [
-          _c("input", {
-            staticClass: "button button--primary",
-            attrs: { type: "submit", value: "Submit" }
-          }),
-          _vm._v(" "),
-          _c("input", {
-            staticClass: "button button--secondary",
-            attrs: { type: "reset", value: "Reset" }
-          })
+  return _c(
+    "form",
+    {
+      attrs: {
+        action: "/petitions",
+        enctype: "multipart/form-data",
+        method: "get"
+      }
+    },
+    [
+      _c("div", { staticClass: "cell--large-12" }, [
+        _c("h1", { staticClass: "form-title" }, [
+          _vm._v(_vm._s(_vm.$t("complains-title")))
         ])
-      ]
-    )
-  }
-]
+      ]),
+      _vm._v(" "),
+      _c("div", { staticClass: "form-group" }, [
+        _c("input", {
+          staticClass: "form-group__control",
+          attrs: {
+            type: "text",
+            id: "name",
+            placeholder: _vm.$t("name-placeholder"),
+            name: "name"
+          }
+        })
+      ]),
+      _vm._v(" "),
+      _c("div", { staticClass: "form-group" }, [
+        _c("input", {
+          staticClass: "form-group__control",
+          attrs: {
+            type: "text",
+            id: "phone",
+            placeholder: _vm.$t("phone-placeholder"),
+            name: "phone"
+          }
+        })
+      ]),
+      _vm._v(" "),
+      _c("div", { staticClass: "form-group" }, [
+        _c(
+          "select",
+          {
+            staticClass: "form-group__control",
+            attrs: { name: "municipality" }
+          },
+          [
+            _c(
+              "option",
+              {
+                attrs: { selected: "", disabled: "" },
+                domProps: { value: null }
+              },
+              [_vm._v(_vm._s(_vm.$t("municipality-placeholder")))]
+            ),
+            _vm._v(" "),
+            _vm._l(_vm.municipalities, function(municipality) {
+              return _c(
+                "option",
+                { key: municipality.id, domProps: { value: municipality.id } },
+                [_vm._v(_vm._s(municipality["name_" + _vm.$i18n.locale]))]
+              )
+            })
+          ],
+          2
+        )
+      ]),
+      _vm._v(" "),
+      _c("div", { staticClass: "form-group" }, [
+        _c(
+          "select",
+          {
+            staticClass: "form-group__control",
+            attrs: { name: "municipality" }
+          },
+          [
+            _c(
+              "option",
+              {
+                attrs: { selected: "", disabled: "" },
+                domProps: { value: null }
+              },
+              [_vm._v(_vm._s(_vm.$t("subject-placeholder")))]
+            ),
+            _vm._v(" "),
+            _c("option", { domProps: { value: 1 } }, [
+              _vm._v(_vm._s(_vm.$t("option-1")))
+            ]),
+            _vm._v(" "),
+            _c("option", { domProps: { value: 2 } }, [
+              _vm._v(_vm._s(_vm.$t("option-2")))
+            ]),
+            _vm._v(" "),
+            _c("option", { domProps: { value: 3 } }, [
+              _vm._v(_vm._s(_vm.$t("option-3")))
+            ]),
+            _vm._v(" "),
+            _c("option", { domProps: { value: 4 } }, [
+              _vm._v(_vm._s(_vm.$t("option-4")))
+            ])
+          ]
+        )
+      ]),
+      _vm._v(" "),
+      _c("div", { staticClass: "form-group", attrs: { id: "textareaDrop" } }, [
+        _c("textarea", {
+          staticClass: "form-group__control",
+          attrs: {
+            name: "observation",
+            id: "observation",
+            rows: "2",
+            placeholder: _vm.$t("observation-placeholder")
+          }
+        })
+      ]),
+      _vm._v(" "),
+      _c(
+        "div",
+        { staticClass: "cell cell--large-12" },
+        [
+          _c("vue-dropzone", {
+            ref: "petitionsDropzone",
+            attrs: { id: "claimDropzone", options: _vm.dropzoneOptions }
+          })
+        ],
+        1
+      ),
+      _vm._v(" "),
+      _c("div", { staticClass: "form-group" }, [
+        _c("input", {
+          attrs: {
+            type: "checkbox",
+            id: "subscribeNews",
+            name: "subscribe",
+            value: "newsletter"
+          }
+        }),
+        _vm._v(" "),
+        _c("label", { attrs: { for: "subscribeNews" } }, [
+          _vm._v(_vm._s(_vm.$t("honor-placeholder")))
+        ])
+      ]),
+      _vm._v(" "),
+      _c("div", { staticClass: "button-group controls" }, [
+        _c("button", { staticClass: "button button--primary" }, [
+          _vm._v(_vm._s(_vm.$t("button-submit")))
+        ]),
+        _vm._v(" "),
+        _c(
+          "button",
+          { staticClass: "button button--secondary", attrs: { type: "reset" } },
+          [_vm._v(_vm._s(_vm.$t("button-reset")))]
+        )
+      ])
+    ]
+  )
+}
+var staticRenderFns = []
 render._withStripped = true
 module.exports = { render: render, staticRenderFns: staticRenderFns }
 if (false) {
@@ -39145,7 +39226,13 @@ var render = function() {
       _vm._v(" "),
       _c("z-petitions-background"),
       _vm._v(" "),
-      _c("z-petitions-forground")
+      _c("z-petitions-forground", {
+        attrs: {
+          uploadUrl: _vm.uploadUrl,
+          processUpload: _vm.processUpload,
+          municipalities: _vm.municipalities.models
+        }
+      })
     ],
     1
   )
@@ -41102,7 +41189,7 @@ if (false) {
 
 module.exports = function (Component) {
   Component.options.__i18n = Component.options.__i18n || []
-  Component.options.__i18n.push('{"en":{"complains-title":"Petitions","complains-description":"Here you find a series of complaints classified by categories.","name-placeholder":"Your name","phone-placeholder":"Your email","subject-placeholder":"The subject","observation-placeholder":"Observations","attach-placeholder":"Attach files","button-submit":"Send","button-reset":"Cancel","dropzone":"Drop files here to upload","option-1":"environment","option-2":"public transport","option-3":"politic","option-4":"administration"},"ar":{"complains-title":"العرائض","complains-description":"يمكنك تقديم شكوى تخص الإدارات العمومية من مصالح بلدية أو نقل عمومي. وإن لاحظت تجاوزات أو انتهاكات تمس من البيئة والمحيط أو المصلحة الجماعية بإمكانك التشكي وتقديم أدلة للدعم كصور أو فيديو. يمكنك أيضا تحديد موقع التجاوز على الخريطة.","name-placeholder":"الإسم واللقب","phone-placeholder":"بريدك الالكتروني","subject-placeholder":"موضوع الشكوى","observation-placeholder":"الملاحظات","attach-placeholder":"إرفاق ملفات","button-submit":"إرسال","button-reset":"إلغاء","dropzone":"تحميل الملفات","option-1":"البيئية","option-2":"النقل العمومي","option-3":"السياسة","option-4":"الإدارة"}}')
+  Component.options.__i18n.push('{"en":{"complains-title":"Petitions","complains-description":"Here you find a series of complaints classified by categories.","name-placeholder":"Your name","phone-placeholder":"Your email","municipality-placeholder":"The municipality","subject-placeholder":"The subject","observation-placeholder":"Observations","attach-placeholder":"Attach files","button-submit":"Send","button-reset":"Cancel","honor-placeholder":"I declare and certify the validity of the information provided above","dropzone":"Drop files here to upload","option-1":"environment","option-2":"public transport","option-3":"politic","option-4":"administration"},"ar":{"complains-title":"العرائض","complains-description":"يمكنك تقديم شكوى تخص الإدارات العمومية من مصالح بلدية أو نقل عمومي. وإن لاحظت تجاوزات أو انتهاكات تمس من البيئة والمحيط أو المصلحة الجماعية بإمكانك التشكي وتقديم أدلة للدعم كصور أو فيديو. يمكنك أيضا تحديد موقع التجاوز على الخريطة.","name-placeholder":"الإسم واللقب","phone-placeholder":"بريدك الالكتروني","municipality-placeholder":"البلدية","subject-placeholder":"موضوع العريضة","observation-placeholder":"الملاحظات","attach-placeholder":"إرفاق ملفات","button-submit":"إرسال","button-reset":"إلغاء","honor-placeholder":"أصرح وأشهد بصحة المعلومات المقدمة أعلاه","dropzone":"تحميل الملفات","option-1":"البيئية","option-2":"النقل العمومي","option-3":"السياسة","option-4":"الإدارة"}}')
 }
 
 
