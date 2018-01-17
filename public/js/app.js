@@ -33360,6 +33360,11 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
+//
+//
+//
+//
+//
 
 
 
@@ -37157,29 +37162,21 @@ var render = function() {
                       [_vm._v(_vm._s(_vm.$t("subject-placeholder")))]
                     ),
                     _vm._v(" "),
-                    _c(
-                      "option",
-                      { attrs: { disabled: "" }, domProps: { value: 1 } },
-                      [_vm._v(_vm._s(_vm.$t("option-1")))]
-                    ),
+                    _c("option", { domProps: { value: 1 } }, [
+                      _vm._v(_vm._s(_vm.$t("option-1")))
+                    ]),
                     _vm._v(" "),
-                    _c(
-                      "option",
-                      { attrs: { disabled: "" }, domProps: { value: 2 } },
-                      [_vm._v(_vm._s(_vm.$t("option-2")))]
-                    ),
+                    _c("option", { domProps: { value: 2 } }, [
+                      _vm._v(_vm._s(_vm.$t("option-2")))
+                    ]),
                     _vm._v(" "),
-                    _c(
-                      "option",
-                      { attrs: { disabled: "" }, domProps: { value: 3 } },
-                      [_vm._v(_vm._s(_vm.$t("option-3")))]
-                    ),
+                    _c("option", { domProps: { value: 3 } }, [
+                      _vm._v(_vm._s(_vm.$t("option-3")))
+                    ]),
                     _vm._v(" "),
-                    _c(
-                      "option",
-                      { attrs: { disabled: "" }, domProps: { value: 4 } },
-                      [_vm._v(_vm._s(_vm.$t("option-4")))]
-                    )
+                    _c("option", { domProps: { value: 4 } }, [
+                      _vm._v(_vm._s(_vm.$t("option-4")))
+                    ])
                   ]
                 )
               ]
@@ -37283,7 +37280,7 @@ if (false) {
 
 module.exports = function (Component) {
   Component.options.__i18n = Component.options.__i18n || []
-  Component.options.__i18n.push('{"en":{"complains-title":"Complaints","complains-description":"Here you find a series of complaints classified by categories.","name-placeholder":"Your name","phone-placeholder":"Your phone number","municipality-placeholder":"The municipality","subject-placeholder":"The subject","observation-placeholder":"Observations","attach-placeholder":"Attach files","button-submit":"Send","button-reset":"Cancel","dropzone":"Drop files here to upload"},"ar":{"complains-title":"تقديم شكوى","complains-description":"يمكنك تقديم شكوى تخص الإدارات العمومية من مصالح بلدية أو نقل عمومي. وإن لاحظت تجاوزات أو انتهاكات تمس من البيئة والمحيط أو المصلحة الجماعية بإمكانك التشكي وتقديم أدلة للدعم كصور أو فيديو. يمكنك أيضا تحديد موقع التجاوز على الخريطة.","name-placeholder":"الإسم واللقب","phone-placeholder":"رقم الهاتف","municipality-placeholder":"البلدية","subject-placeholder":"موضوع الشكوى","observation-placeholder":"الملاحظات","attach-placeholder":"إرفاق ملفات","button-submit":"إرسال","button-reset":"إلغاء","dropzone":"تحميل الملفات","option-1":"البيئية","option-2":"النقل العمومي","option-3":"السياسة","option-4":"الإدارة"}}')
+  Component.options.__i18n.push('{"en":{"complains-title":"Complaints","complains-description":"Here you find a series of complaints classified by categories.","name-placeholder":"Your name","phone-placeholder":"Your phone number","municipality-placeholder":"The municipality","subject-placeholder":"The subject","observation-placeholder":"Observations","attach-placeholder":"Attach files","button-submit":"Send","button-reset":"Cancel","dropzone":"Drop files here to upload","option-1":"environment","option-2":"public transport","option-3":"politic","option-4":"administration"},"ar":{"complains-title":"تقديم شكوى","complains-description":"يمكنك تقديم شكوى تخص الإدارات العمومية من مصالح بلدية أو نقل عمومي. وإن لاحظت تجاوزات أو انتهاكات تمس من البيئة والمحيط أو المصلحة الجماعية بإمكانك التشكي وتقديم أدلة للدعم كصور أو فيديو. يمكنك أيضا تحديد موقع التجاوز على الخريطة.","name-placeholder":"الإسم واللقب","phone-placeholder":"رقم الهاتف","municipality-placeholder":"البلدية","subject-placeholder":"موضوع الشكوى","observation-placeholder":"الملاحظات","attach-placeholder":"إرفاق ملفات","button-submit":"إرسال","button-reset":"إلغاء","dropzone":"تحميل الملفات","option-1":"البيئية","option-2":"النقل العمومي","option-3":"السياسة","option-4":"الإدارة"}}')
 }
 
 

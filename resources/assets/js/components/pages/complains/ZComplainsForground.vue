@@ -11,7 +11,12 @@
         "attach-placeholder": "Attach files",
         "button-submit": "Send",
         "button-reset": "Cancel",
-    "dropzone": "Drop files here to upload"
+    "dropzone": "Drop files here to upload",
+
+    "option-1": "environment",
+    "option-2": "public transport",
+    "option-3": "politic",
+    "option-4": "administration"
     },
     "ar": {
         "complains-title": "تقديم شكوى",
@@ -68,10 +73,10 @@
 
                             <select name="municipality" class="form-group__control" v-model="claim.subject_id">
                                 <option :value="null" disabled>{{$t('subject-placeholder')}}</option>
-                                <option :value="1" disabled>{{$t('option-1')}}</option>
-                                <option :value="2" disabled>{{$t('option-2')}}</option>
-                                <option :value="3" disabled>{{$t('option-3')}}</option>
-                                <option :value="4" disabled>{{$t('option-4')}}</option>
+                                <option :value="1">{{$t('option-1')}}</option>
+                                <option :value="2">{{$t('option-2')}}</option>
+                                <option :value="3">{{$t('option-3')}}</option>
+                                <option :value="4">{{$t('option-4')}}</option>
                             </select>
 
                         </div>
