@@ -33365,6 +33365,14 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -37232,6 +37240,25 @@ var render = function() {
             _vm._v(" "),
             _c(
               "div",
+              { staticClass: "cell cell--medium-8 cell--large-12 form-group" },
+              [
+                _c("input", {
+                  attrs: {
+                    type: "checkbox",
+                    id: "subscribeNews",
+                    name: "subscribe",
+                    value: "newsletter"
+                  }
+                }),
+                _vm._v(" "),
+                _c("label", { attrs: { for: "subscribeNews" } }, [
+                  _vm._v(_vm._s(_vm.$t("honor-placeholder")))
+                ])
+              ]
+            ),
+            _vm._v(" "),
+            _c(
+              "div",
               {
                 staticClass:
                   "cell cell--medium-8 cell--large-12 button-group controls"
@@ -37280,7 +37307,7 @@ if (false) {
 
 module.exports = function (Component) {
   Component.options.__i18n = Component.options.__i18n || []
-  Component.options.__i18n.push('{"en":{"complains-title":"Complaints","complains-description":"Here you find a series of complaints classified by categories.","name-placeholder":"Your name","phone-placeholder":"Your phone number","municipality-placeholder":"The municipality","subject-placeholder":"The subject","observation-placeholder":"Observations","attach-placeholder":"Attach files","button-submit":"Send","button-reset":"Cancel","dropzone":"Drop files here to upload","option-1":"environment","option-2":"public transport","option-3":"politic","option-4":"administration"},"ar":{"complains-title":"تقديم شكوى","complains-description":"يمكنك تقديم شكوى تخص الإدارات العمومية من مصالح بلدية أو نقل عمومي. وإن لاحظت تجاوزات أو انتهاكات تمس من البيئة والمحيط أو المصلحة الجماعية بإمكانك التشكي وتقديم أدلة للدعم كصور أو فيديو. يمكنك أيضا تحديد موقع التجاوز على الخريطة.","name-placeholder":"الإسم واللقب","phone-placeholder":"رقم الهاتف","municipality-placeholder":"البلدية","subject-placeholder":"موضوع الشكوى","observation-placeholder":"الملاحظات","attach-placeholder":"إرفاق ملفات","button-submit":"إرسال","button-reset":"إلغاء","dropzone":"تحميل الملفات","option-1":"البيئية","option-2":"النقل العمومي","option-3":"السياسة","option-4":"الإدارة"}}')
+  Component.options.__i18n.push('{"en":{"complains-title":"Complaints","complains-description":"Here you find a series of complaints classified by categories.","name-placeholder":"Your name","phone-placeholder":"Your phone number","municipality-placeholder":"The municipality","subject-placeholder":"The subject","observation-placeholder":"Observations","attach-placeholder":"Attach files","honor-placeholder":"I declare and certify the validity of the information provided above","button-submit":"Send","button-reset":"Cancel","dropzone":"Drop files here to upload","option-1":"environment","option-2":"public transport","option-3":"politic","option-4":"administration"},"ar":{"complains-title":"تقديم شكوى","complains-description":"يمكنك تقديم شكوى تخص الإدارات العمومية من مصالح بلدية أو نقل عمومي. وإن لاحظت تجاوزات أو انتهاكات تمس من البيئة والمحيط أو المصلحة الجماعية بإمكانك التشكي وتقديم أدلة للدعم كصور أو فيديو. يمكنك أيضا تحديد موقع التجاوز على الخريطة.","name-placeholder":"الإسم واللقب","phone-placeholder":"رقم الهاتف","municipality-placeholder":"البلدية","subject-placeholder":"موضوع الشكوى","observation-placeholder":"الملاحظات","attach-placeholder":"إرفاق ملفات","honor-placeholder":"أصرح وأشهد بصحة المعلومات المقدمة أعلاه","button-submit":"إرسال","button-reset":"إلغاء","dropzone":"تحميل الملفات","option-1":"البيئية","option-2":"النقل العمومي","option-3":"السياسة","option-4":"الإدارة"}}')
 }
 
 
@@ -38537,6 +38564,16 @@ var Component = normalizeComponent(
 )
 Component.options.__file = "resources/assets/js/components/pages/petitions/PetitionForm.vue"
 
+/* customBlocks */
+var customBlock = __webpack_require__(774)
+if (customBlock && customBlock.__esModule) {
+  customBlock = customBlock.default
+}
+if (typeof customBlock === "function") {
+  customBlock(Component)
+}
+
+
 /* hot reload */
 if (false) {(function () {
   var hotAPI = require("vue-hot-reload-api")
@@ -38562,6 +38599,43 @@ module.exports = Component.exports
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 //
 //
 //
@@ -40926,6 +41000,114 @@ if (false) {
 /***/ (function(module, exports) {
 
 // removed by extract-text-webpack-plugin
+
+/***/ }),
+/* 676 */,
+/* 677 */,
+/* 678 */,
+/* 679 */,
+/* 680 */,
+/* 681 */,
+/* 682 */,
+/* 683 */,
+/* 684 */,
+/* 685 */,
+/* 686 */,
+/* 687 */,
+/* 688 */,
+/* 689 */,
+/* 690 */,
+/* 691 */,
+/* 692 */,
+/* 693 */,
+/* 694 */,
+/* 695 */,
+/* 696 */,
+/* 697 */,
+/* 698 */,
+/* 699 */,
+/* 700 */,
+/* 701 */,
+/* 702 */,
+/* 703 */,
+/* 704 */,
+/* 705 */,
+/* 706 */,
+/* 707 */,
+/* 708 */,
+/* 709 */,
+/* 710 */,
+/* 711 */,
+/* 712 */,
+/* 713 */,
+/* 714 */,
+/* 715 */,
+/* 716 */,
+/* 717 */,
+/* 718 */,
+/* 719 */,
+/* 720 */,
+/* 721 */,
+/* 722 */,
+/* 723 */,
+/* 724 */,
+/* 725 */,
+/* 726 */,
+/* 727 */,
+/* 728 */,
+/* 729 */,
+/* 730 */,
+/* 731 */,
+/* 732 */,
+/* 733 */,
+/* 734 */,
+/* 735 */,
+/* 736 */,
+/* 737 */,
+/* 738 */,
+/* 739 */,
+/* 740 */,
+/* 741 */,
+/* 742 */,
+/* 743 */,
+/* 744 */,
+/* 745 */,
+/* 746 */,
+/* 747 */,
+/* 748 */,
+/* 749 */,
+/* 750 */,
+/* 751 */,
+/* 752 */,
+/* 753 */,
+/* 754 */,
+/* 755 */,
+/* 756 */,
+/* 757 */,
+/* 758 */,
+/* 759 */,
+/* 760 */,
+/* 761 */,
+/* 762 */,
+/* 763 */,
+/* 764 */,
+/* 765 */,
+/* 766 */,
+/* 767 */,
+/* 768 */,
+/* 769 */,
+/* 770 */,
+/* 771 */,
+/* 772 */,
+/* 773 */,
+/* 774 */
+/***/ (function(module, exports) {
+
+module.exports = function (Component) {
+  Component.options.__i18n = Component.options.__i18n || []
+  Component.options.__i18n.push('{"en":{"complains-title":"Petitions","complains-description":"Here you find a series of complaints classified by categories.","name-placeholder":"Your name","phone-placeholder":"Your email","subject-placeholder":"The subject","observation-placeholder":"Observations","attach-placeholder":"Attach files","button-submit":"Send","button-reset":"Cancel","dropzone":"Drop files here to upload","option-1":"environment","option-2":"public transport","option-3":"politic","option-4":"administration"},"ar":{"complains-title":"العرائض","complains-description":"يمكنك تقديم شكوى تخص الإدارات العمومية من مصالح بلدية أو نقل عمومي. وإن لاحظت تجاوزات أو انتهاكات تمس من البيئة والمحيط أو المصلحة الجماعية بإمكانك التشكي وتقديم أدلة للدعم كصور أو فيديو. يمكنك أيضا تحديد موقع التجاوز على الخريطة.","name-placeholder":"الإسم واللقب","phone-placeholder":"بريدك الالكتروني","subject-placeholder":"موضوع الشكوى","observation-placeholder":"الملاحظات","attach-placeholder":"إرفاق ملفات","button-submit":"إرسال","button-reset":"إلغاء","dropzone":"تحميل الملفات","option-1":"البيئية","option-2":"النقل العمومي","option-3":"السياسة","option-4":"الإدارة"}}')
+}
+
 
 /***/ })
 ],[335]);

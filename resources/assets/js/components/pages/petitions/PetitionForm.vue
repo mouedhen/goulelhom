@@ -1,3 +1,40 @@
+<i18n>
+    {
+    "en": {
+    "complains-title": "Petitions",
+    "complains-description": "Here you find a series of complaints classified by categories.",
+    "name-placeholder": "Your name",
+    "phone-placeholder": "Your email",
+    "subject-placeholder": "The subject",
+    "observation-placeholder": "Observations",
+    "attach-placeholder": "Attach files",
+    "button-submit": "Send",
+    "button-reset": "Cancel",
+    "dropzone": "Drop files here to upload",
+
+    "option-1": "environment",
+    "option-2": "public transport",
+    "option-3": "politic",
+    "option-4": "administration"
+    },
+    "ar": {
+    "complains-title": "العرائض",
+    "complains-description": "يمكنك تقديم شكوى تخص الإدارات العمومية من مصالح بلدية أو نقل عمومي. وإن لاحظت تجاوزات أو انتهاكات تمس من البيئة والمحيط أو المصلحة الجماعية بإمكانك التشكي وتقديم أدلة للدعم كصور أو فيديو. يمكنك أيضا تحديد موقع التجاوز على الخريطة.",
+    "name-placeholder": "الإسم واللقب",
+    "phone-placeholder": "بريدك الالكتروني",
+    "subject-placeholder": "موضوع الشكوى",
+    "observation-placeholder": "الملاحظات",
+    "attach-placeholder": "إرفاق ملفات",
+    "button-submit": "إرسال",
+    "button-reset": "إلغاء",
+    "dropzone": "تحميل الملفات",
+    "option-1": "البيئية",
+    "option-2": "النقل العمومي",
+    "option-3": "السياسة",
+    "option-4": "الإدارة"
+    }
+    }
+</i18n>
 <template>
     <form action="/#" enctype="multipart/form-data">
         <h1>New Petition</h1>

@@ -9,6 +9,7 @@
         "subject-placeholder": "The subject",
         "observation-placeholder": "Observations",
         "attach-placeholder": "Attach files",
+        "honor-placeholder": "I declare and certify the validity of the information provided above",
         "button-submit": "Send",
         "button-reset": "Cancel",
     "dropzone": "Drop files here to upload",
@@ -27,6 +28,8 @@
         "subject-placeholder": "موضوع الشكوى",
         "observation-placeholder": "الملاحظات",
         "attach-placeholder": "إرفاق ملفات",
+
+    "honor-placeholder": "أصرح وأشهد بصحة المعلومات المقدمة أعلاه",
         "button-submit": "إرسال",
         "button-reset": "إلغاء",
     "dropzone": "تحميل الملفات",
@@ -89,6 +92,11 @@
 
                             <vue-dropzone ref="claimDropzone" id="claimDropzone" :options="dropzoneOptions"/>
 
+                        </div>
+
+                        <div class="cell cell--medium-8 cell--large-12 form-group">
+                            <input type="checkbox" id="subscribeNews" name="subscribe" value="newsletter">
+                            <label for="subscribeNews">{{$t('honor-placeholder')}}</label>
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 button-group controls">
                             <button v-on:click="claimSave" class="button button--primary">{{$t('button-submit')}}</button>
