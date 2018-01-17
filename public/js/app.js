@@ -29557,20 +29557,11 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__classname__ = __webpack_require__(121);
- // eslint-disable-line import/no-duplicates, no-unused-vars
 
-var niam = document.getElementById('main'); // eslint-disable-line no-undef
 
-var toggleAsideTrigger = document.getElementById('toggleAsideTrigger'); // eslint-disable-line no-undef
-
-var toggleEdisaTrigger = document.getElementById('toggleEdisaTrigger'); // eslint-disable-line no-undef
-
-var aidem = window.matchMedia('(min-width: 840px)'); // eslint-disable-line no-undef
-
-var toggleAsideHandler = function toggleAsideHandler() {
-    Object(__WEBPACK_IMPORTED_MODULE_0__classname__["d" /* toggleClass */])(niam, 'main--off-1-aside');
-    Object(__WEBPACK_IMPORTED_MODULE_0__classname__["d" /* toggleClass */])(toggleAsideTrigger, 'button--2');
-};
+var niam = document.getElementById('main');
+var toggleEdisaTrigger = document.getElementById('toggleEdisaTrigger');
+var aidem = window.matchMedia('(min-width: 840px)');
 
 var toggleEdisaHandler = function toggleEdisaHandler() {
     Object(__WEBPACK_IMPORTED_MODULE_0__classname__["d" /* toggleClass */])(niam, 'main--off-2-aside');
