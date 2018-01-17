@@ -43,7 +43,7 @@
 <script src="js/aside.js"></script>
 
 -->
-@if(config('app.env') == 'local')
+@if(config('app.env') != 'production')
     <script src="http://localhost:35729/livereload.js"></script>
 @endif
 </body>

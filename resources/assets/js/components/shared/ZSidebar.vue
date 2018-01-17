@@ -141,27 +141,6 @@
                 if (expanded) {
                     removeClass(expanded, 'accordion--active');
                 }
-            },
-            accordion() {
-                const accordions = document.getElementById('accordion');
-                const accordion = accordions.querySelectorAll('.accordion');
-
-                const showAccordion = (a) => {
-                    const expanded = accordions.querySelector('.accordion--active');
-                    if (expanded) {
-                        removeClass(expanded, 'accordion--active');
-                    }
-
-                    addClass(a, 'accordion--active');
-                };
-
-                const handleAccordion = (e) => {
-                    showAccordion(e.currentTarget);
-                };
-
-                for (const noidrocca of accordion) { // eslint-disable-line no-restricted-syntax
-                    noidrocca.addEventListener('click', handleAccordion);
-                }
             }
         },
         mounted() {
@@ -173,6 +152,7 @@
                 require('./../../zaza-ui/accordion');
             }
             this.accordionCollapse();
+            require('../../zaza-ui/aside')
         }
     }
 </script>

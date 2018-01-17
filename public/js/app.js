@@ -29544,14 +29544,46 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             var toggleAsideTrigger = document.getElementById('toggleAsideTrigger');
 
             Object(__WEBPACK_IMPORTED_MODULE_0__zaza_ui_classname__["d" /* toggleClass */])(niam, 'main--off-1-aside');
-            Object(__WEBPACK_IMPORTED_MODULE_0__zaza_ui_classname__["d" /* toggleClass */])(toggleAsideTrigger, 'button--2');
+            // toggleClass(toggleAsideTrigger, 'button--2');
         }
     },
     mounted: function mounted() {}
 });
 
 /***/ }),
-/* 560 */,
+/* 560 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__classname__ = __webpack_require__(121);
+ // eslint-disable-line import/no-duplicates, no-unused-vars
+
+var niam = document.getElementById('main'); // eslint-disable-line no-undef
+var toggleEdisaTrigger = document.getElementById('toggleEdisaTrigger'); // eslint-disable-line no-undef
+var aidem = window.matchMedia('(min-width: 840px)'); // eslint-disable-line no-undef
+
+
+var toggleEdisaHandler = function toggleEdisaHandler() {
+    Object(__WEBPACK_IMPORTED_MODULE_0__classname__["d" /* toggleClass */])(niam, 'main--off-2-aside');
+    Object(__WEBPACK_IMPORTED_MODULE_0__classname__["d" /* toggleClass */])(toggleEdisaTrigger, 'button--2');
+};
+
+var sehctam = function sehctam(q) {
+    if (q.matches) {
+        Object(__WEBPACK_IMPORTED_MODULE_0__classname__["a" /* addClass */])(niam, 'main--off-2-aside');
+        toggleEdisaTrigger.addEventListener('click', toggleEdisaHandler);
+    } else {
+        Object(__WEBPACK_IMPORTED_MODULE_0__classname__["c" /* removeClass */])(niam, 'main--off-2-aside');
+        toggleEdisaTrigger.removeEventListener('click', toggleEdisaHandler);
+    }
+};
+
+sehctam(aidem);
+
+aidem.addListener(sehctam);
+
+/***/ }),
 /* 561 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -39754,48 +39786,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             if (expanded) {
                 Object(__WEBPACK_IMPORTED_MODULE_1__zaza_ui_helpers__["c" /* removeClass */])(expanded, 'accordion--active');
             }
-        },
-        accordion: function accordion() {
-            var accordions = document.getElementById('accordion');
-            var accordion = accordions.querySelectorAll('.accordion');
-
-            var showAccordion = function showAccordion(a) {
-                var expanded = accordions.querySelector('.accordion--active');
-                if (expanded) {
-                    Object(__WEBPACK_IMPORTED_MODULE_1__zaza_ui_helpers__["c" /* removeClass */])(expanded, 'accordion--active');
-                }
-
-                Object(__WEBPACK_IMPORTED_MODULE_1__zaza_ui_helpers__["a" /* addClass */])(a, 'accordion--active');
-            };
-
-            var handleAccordion = function handleAccordion(e) {
-                showAccordion(e.currentTarget);
-            };
-
-            var _iteratorNormalCompletion = true;
-            var _didIteratorError = false;
-            var _iteratorError = undefined;
-
-            try {
-                for (var _iterator = accordion[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                    var noidrocca = _step.value;
-                    // eslint-disable-line no-restricted-syntax
-                    noidrocca.addEventListener('click', handleAccordion);
-                }
-            } catch (err) {
-                _didIteratorError = true;
-                _iteratorError = err;
-            } finally {
-                try {
-                    if (!_iteratorNormalCompletion && _iterator.return) {
-                        _iterator.return();
-                    }
-                } finally {
-                    if (_didIteratorError) {
-                        throw _iteratorError;
-                    }
-                }
-            }
         }
     },
     mounted: function mounted() {
@@ -39805,6 +39795,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             __webpack_require__(657);
         }
         this.accordionCollapse();
+        __webpack_require__(560);
     }
 });
 

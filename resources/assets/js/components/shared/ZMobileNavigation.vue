@@ -41,7 +41,7 @@
                 const toggleAsideTrigger = document.getElementById('toggleAsideTrigger');
 
                 toggleClass(niam, 'main--off-1-aside');
-                toggleClass(toggleAsideTrigger, 'button--2');
+                // toggleClass(toggleAsideTrigger, 'button--2');
             }
         },
         mounted() {
