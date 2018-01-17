@@ -88,7 +88,15 @@
                     icon: '/asset/symbol-defs.svg#icon-camera',
                     description: 'test'
                 },
-                navBarElements: [
+                show: true
+            }
+        },
+        computed: {
+            locale: function () {
+                return this.$i18n.locale
+            },
+            navBarElements: function () {
+                return [
                     {
                         id: 1,
                         icon: '/asset/symbol-defs.svg#icon-camera',
@@ -132,7 +140,7 @@
                         routeName: 'home'
                     },
                 ]
-            }
+            },
         },
         methods: {
             accordionCollapse() {
@@ -141,7 +149,7 @@
                 if (expanded) {
                     removeClass(expanded, 'accordion--active');
                 }
-            }
+            },
         },
         mounted() {
             let width = window.innerWidth

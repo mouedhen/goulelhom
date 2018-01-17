@@ -1,6 +1,6 @@
 <template>
     <div id="content" class="l-content content">
-        <z-mobile></z-mobile>
+        <z-mobile/>
         <z-home-background />
         <z-home-forground />
     </div>

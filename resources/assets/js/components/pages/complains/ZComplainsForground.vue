@@ -108,17 +108,7 @@
         },
         data() {
             return {
-                dropzoneOptions: {
-                    url: this.uploadUrl,
-                    thumbnailWidth: 110,
-                    thumbnailHeight: 110,
-                    maxFilesize: 4,
-                    capture: 'camera',
-                    AcceptedFiles: ['images/*', 'audio/*', 'video/*', 'application/pdf'],
-                    dictDefaultMessage: this.$t('dropzone'),
-                    autoProcessQueue: false,
-                    addRemoveLinks: true,
-                }
+
             }
         },
         watch: {
@@ -129,62 +119,17 @@
             }
         },
         computed: {
-            appyLocale: function() {
-                if (this.$i18n.locale === 'ar') {
-                    return {
-                        strings: {
-                            selectToUpload: 'حدد الملفات المراد تحميلها',
-                            closeModal: 'أغلق مودال',
-                            upload: 'تحميل',
-                            importFrom: 'استيراد الملفات من',
-                            dashboardWindowTitle: 'نافذة لوحة وبي (اضغط الهروب لإغلاق)',
-                            dashboardTitle: 'لوحة مفاتيح وبي',
-                            copyLinkToClipboardSuccess: 'تم نسخ الرابط إلى الحافظة.',
-                            copyLinkToClipboardFallback: 'انسخ عنوان ورل أدناه',
-                            fileSource: 'مصدر الملف',
-                            done: 'انتهى',
-                            localDisk: 'القرص المحلي',
-                            myDevice: 'جهازي',
-                            dropPasteImport: 'يمكنك إسقاط الملفات هنا أو لصقها أو استيرادها من أحد المواقع أعلاه أو',
-                            dropPaste: 'إسقاط الملفات هنا، لصق أو',
-                            browse: 'تصفح',
-                            fileProgress: 'تقدم الملف: سرعة التحميل و إيتا',
-                            numberOfSelectedFiles: 'عدد الملفات المحددة',
-                            uploadAllNewFiles: 'تحميل جميع الملفات الجديدة',
-                            emptyFolderAdded: 'لم تتم إضافة أية ملفات من المجلد الفارغ',
-                            folderAdded: {
-                                0: 'Added %{smart_count} file from %{folder}',
-                                1: 'Added %{smart_count} files from %{folder}'
-                            }
-                        }
-                    }
-                }
+            dropzoneOptions: function () {
                 return {
-                    strings: {
-                        selectToUpload: 'Select files to upload',
-                        closeModal: 'Close Modal',
-                        upload: 'Upload',
-                        importFrom: 'Import files from',
-                        dashboardWindowTitle: 'Uppy Dashboard Window (Press escape to close)',
-                        dashboardTitle: 'Uppy Dashboard',
-                        copyLinkToClipboardSuccess: 'Link copied to clipboard.',
-                        copyLinkToClipboardFallback: 'Copy the URL below',
-                        fileSource: 'File source',
-                        done: 'Done',
-                        localDisk: 'Local Disk',
-                        myDevice: 'My Device',
-                        dropPasteImport: 'Drop files here, paste, import from one of the locations above or',
-                        dropPaste: 'Drop files here, paste or',
-                        browse: 'browse',
-                        fileProgress: 'File progress: upload speed and ETA',
-                        numberOfSelectedFiles: 'Number of selected files',
-                        uploadAllNewFiles: 'Upload all new files',
-                        emptyFolderAdded: 'No files were added from empty folder',
-                        folderAdded: {
-                            0: 'Added %{smart_count} file from %{folder}',
-                            1: 'Added %{smart_count} files from %{folder}'
-                        }
-                    }
+                    url: this.uploadUrl,
+                    thumbnailWidth: 110,
+                    thumbnailHeight: 110,
+                    maxFilesize: 4,
+                    capture: 'camera',
+                    AcceptedFiles: ['images/*', 'audio/*', 'video/*', 'application/pdf'],
+                    dictDefaultMessage:'Upload files<br>'+ 'إرفاق ملفات',
+                    autoProcessQueue: false,
+                    addRemoveLinks: true,
                 }
             }
         },

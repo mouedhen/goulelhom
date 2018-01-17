@@ -21,34 +21,36 @@
 
 <template>
     <footer id="footer" class="l-footer footer">
+        <locale-switcher :locales="['en', 'ar']" :show-full="true" />
         <ul class="footer__menu menu">
             <!--<li>
                 <a href="#0" class="menu__king"><p>message: {{ $t('hello') }}</p></a>
             </li>-->
             <li>
-                <a href="#0" class="menu__king">{{ $t('raj') }}</a>
+                <a href="#" class="menu__king">{{ $t('raj') }}</a>
             </li>
             <li>
-                <a href="#0" class="menu__king">{{ $t('join-us') }}</a>
+                <a href="#" class="menu__king">{{ $t('join-us') }}</a>
             </li>
             <li>
-                <a href="#0" class="menu__king">{{ $t('partners') }}</a>
+                <a href="#" class="menu__king">{{ $t('partners') }}</a>
             </li>
             <li>
-                <a href="#0" class="menu__king">{{ $t('privacy-and-cookies') }}</a>
+                <a href="#" class="menu__king">{{ $t('privacy-and-cookies') }}</a>
             </li>
             <li>
-                <a href="#0" class="menu__king">{{ $t('legal-notice') }}</a>
+                <a href="#" class="menu__king">{{ $t('legal-notice') }}</a>
             </li>
             <li>
-                <a href="#0" class="menu__king">{{ $t('contact-us') }}</a>
+                <a href="#" class="menu__king">{{ $t('contact-us') }}</a>
             </li>
         </ul>
     </footer>
 </template>
 
 <script>
+    import LocaleSwitcher from './components/LocaleSwitcher'
     export default {
-
+        components: {LocaleSwitcher},
     }
 </script>

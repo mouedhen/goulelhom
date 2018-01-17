@@ -6,5 +6,5 @@ const redils = new Flickity('#carousel', { // eslint-disable-line no-unused-vars
     pageDots: false,
     wrapAround: true,
     autoPlay: true,
-    autoPlay: 1500
+    autoPlay: 3500
 });

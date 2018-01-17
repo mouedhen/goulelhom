@@ -1,16 +1,9 @@
 <template>
-    <section v-if="show" id="section" class="l-section section">
-        <router-view/>
-        <z-footer/>
-    </section>
+    <link :href="cssLink" rel="stylesheet" id="rtl-style" type="text/css">
 </template>
 
 <script>
-    import ZMobile from './shared/ZMobileNavigation.vue'
-    import ZFooter from './shared/ZFooter.vue'
-
     export default {
-        components: {ZMobile, ZFooter},
         data() {
             return {
                 show: true
@@ -22,20 +15,20 @@
         computed: {
             locale: function () {
                 return this.$i18n.locale
+            },
+            cssLink: function () {
+                if (this.$i18n.locale === 'ar') {
+                    return 'css/app.rtl.css'
+                }
+                return 'css/app.css'
             }
         },
         watch: {
             locale: function (newLocale) {
-                if (newLocale === 'ar') {
-                    document.dir = 'rtl'
-                } else {
-                    document.dir = 'ltr'
-                }
-                document.lang = newLocale
                 // document.getElementById('ltr-style').disabled  = false;
                 // document.getElementById('rtl-style').disabled = false;
                 // document.getElementsByTagName('head')[0].getElementById('main-style').href='css/app.rtl.css';
-                this.rerender()
+                // this.rerender()
                 // <link href="css/app.rtl.css" rel="stylesheet" id="rtl-style" type="text/css">
             }
         },

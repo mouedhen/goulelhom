@@ -4,6 +4,7 @@
 // @import "~flexboxgrid-sass/flexboxgrid.scss";
 @import '~vue2-dropzone/dist/vue2Dropzone.css';
 
+
 @import "zaza-ui/goulelhom";
 @import "variables";
 
@@ -284,6 +285,15 @@ aside {
 @media screen and (max-width: 480px) {
   #splash {
     width: 100%;
+  }
+}
+
+.locale-switcher {
+  position: absolute;
+  a {
+    color: #f2f2f2;
+    text-decoration: none;
+    font-size: .8rem;
   }
 }
 

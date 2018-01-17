@@ -28,18 +28,33 @@ Vue.use(Vuex);
 
 import router from './routes'
 
-import ZSidebar from './components/shared/ZSidebar.vue'
+import ZStyle from './components/shared/ZStyle'
+import ZSidebar from './components/shared/ZSidebar'
 import App from './components/App.vue'
-
-Vue.component('z-sidebar', ZSidebar);
-Vue.component('app', App);
 
 const i18n = new VueI18n({
     locale: 'ar', // set locale
 });
 
+
+// Vue.component('z-style', ZStyle);
+// Vue.component('z-sidebar', ZSidebar);
+// Vue.component('app', App);
+
+const appStyle = new Vue({
+    components: {
+        'z-style': ZStyle
+    },
+    i18n
+}).$mount('#styles');
+
 const app = new Vue({
+    components: {
+        'z-sidebar': ZSidebar,
+        'app': App
+    },
     router,
     i18n
 }).$mount('#main');
+
 
