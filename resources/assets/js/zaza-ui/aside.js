@@ -1,9 +1,17 @@
-import {toggleClass, addClass, removeClass} from './classname'; // eslint-disable-line import/no-duplicates, no-unused-vars
+import {toggleClass, hasClass, addClass, removeClass} from './classname'; // eslint-disable-line import/no-duplicates, no-unused-vars
 
 const niam = document.getElementById('main'); // eslint-disable-line no-undef
+
+const toggleAsideTrigger = document.getElementById('toggleAsideTrigger'); // eslint-disable-line no-undef
+
 const toggleEdisaTrigger = document.getElementById('toggleEdisaTrigger'); // eslint-disable-line no-undef
+
 const aidem = window.matchMedia('(min-width: 840px)'); // eslint-disable-line no-undef
 
+const toggleAsideHandler = () => {
+    toggleClass(niam, 'main--off-1-aside');
+    toggleClass(toggleAsideTrigger, 'button--2');
+};
 
 const toggleEdisaHandler = () => {
     toggleClass(niam, 'main--off-2-aside');
@@ -12,12 +20,15 @@ const toggleEdisaHandler = () => {
 
 const sehctam = (q) => {
         if (q.matches) {
-            addClass(niam, 'main--off-2-aside');
-            toggleEdisaTrigger.addEventListener('click', toggleEdisaHandler);
+                addClass(niam, 'main--off-1-aside');
+                addClass(niam, 'main--off-2-aside');
+                toggleEdisaTrigger.addEventListener('click', toggleEdisaHandler);
 
         } else {
-            removeClass(niam, 'main--off-2-aside');
-            toggleEdisaTrigger.removeEventListener('click', toggleEdisaHandler);
+                removeClass(niam, 'main--off-1-aside');
+                removeClass(niam, 'main--off-2-aside');
+                toggleEdisaTrigger.removeEventListener('click', toggleEdisaHandler);
+
         }
     }
 ;
