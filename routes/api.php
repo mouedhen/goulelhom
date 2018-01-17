@@ -28,6 +28,7 @@ Route::group([
         'municipalities' => 'MunicipalityController',
         'claimers' => 'ClaimerController',
         'claims' => 'ClaimController',
+        'petitions' => 'PetitionController',
     ], [
         'except' => ['create', 'edit',]
     ]);

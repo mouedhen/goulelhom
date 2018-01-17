@@ -38362,7 +38362,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__ZPetitionsBackground___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__ZPetitionsBackground__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__ZPetitionsForground__ = __webpack_require__(636);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__ZPetitionsForground___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2__ZPetitionsForground__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__models_Municipalities__ = __webpack_require__(187);
 //
 //
 //
@@ -38371,28 +38370,13 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
-//
-//
-//
-
-
 
 
 
 
 
 /* harmony default export */ __webpack_exports__["default"] = ({
-    components: { ZPetitionsBackground: __WEBPACK_IMPORTED_MODULE_1__ZPetitionsBackground___default.a, ZPetitionsForground: __WEBPACK_IMPORTED_MODULE_2__ZPetitionsForground___default.a, ZMobile: __WEBPACK_IMPORTED_MODULE_0__shared_ZMobileNavigation___default.a },
-    data: function data() {
-        return {
-            municipalities: new __WEBPACK_IMPORTED_MODULE_3__models_Municipalities__["a" /* Municipalities */](),
-            uploadUrl: 'api/v1/upload',
-            processUpload: false
-        };
-    },
-    mounted: function mounted() {
-        this.municipalities.fetch();
-    }
+    components: { ZPetitionsBackground: __WEBPACK_IMPORTED_MODULE_1__ZPetitionsBackground___default.a, ZPetitionsForground: __WEBPACK_IMPORTED_MODULE_2__ZPetitionsForground___default.a, ZMobile: __WEBPACK_IMPORTED_MODULE_0__shared_ZMobileNavigation___default.a }
 });
 
 /***/ }),
@@ -38450,6 +38434,8 @@ module.exports = Component.exports
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__PetitionForm_vue__ = __webpack_require__(632);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__PetitionForm_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__PetitionForm_vue__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__models_Municipalities__ = __webpack_require__(187);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__models_Petitions__ = __webpack_require__(775);
 //
 //
 //
@@ -38508,42 +38494,35 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
+
+
+
 
 
 
 /* harmony default export */ __webpack_exports__["default"] = ({
-    components: { PetitionForm: __WEBPACK_IMPORTED_MODULE_0__PetitionForm_vue___default.a }
+    components: { PetitionForm: __WEBPACK_IMPORTED_MODULE_0__PetitionForm_vue___default.a },
+    data: function data() {
+        return {
+            municipalities: new __WEBPACK_IMPORTED_MODULE_1__models_Municipalities__["a" /* Municipalities */](),
+            uploadUrl: 'api/v1/upload',
+            processUpload: false,
+            petitions: new __WEBPACK_IMPORTED_MODULE_2__models_Petitions__["b" /* Petitions */]()
+        };
+    },
+
+    methods: {
+        refreshData: function refreshData() {
+            this.petitions.fetch();
+            console.log(this.petitions);
+        }
+    },
+    mounted: function mounted() {
+        this.municipalities.fetch();
+        console.log(this.municipalities);
+        this.petitions.fetch();
+        console.log(this.petitions);
+    }
 });
 
 /***/ }),
@@ -38611,6 +38590,7 @@ module.exports = Component.exports
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_vue2_dropzone__ = __webpack_require__(186);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_vue2_dropzone___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_vue2_dropzone__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__models_Petitions__ = __webpack_require__(775);
 //
 //
 //
@@ -38712,12 +38692,34 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+
+
 
 
 /* harmony default export */ __webpack_exports__["default"] = ({
     props: ['municipalities', 'uploadUrl'],
     components: {
         vueDropzone: __WEBPACK_IMPORTED_MODULE_0_vue2_dropzone___default.a
+    },
+    data: function data() {
+        return {
+            petition: new __WEBPACK_IMPORTED_MODULE_1__models_Petitions__["a" /* Petition */]()
+        };
+    },
+
+    methods: {
+        submitPetition: function submitPetition() {
+            this.petition.save();
+            this.$emit('petitionSaved');
+        }
     },
     computed: {
         dropzoneOptions: function dropzoneOptions() {
@@ -38769,24 +38771,58 @@ var render = function() {
       _vm._v(" "),
       _c("div", { staticClass: "form-group" }, [
         _c("input", {
+          directives: [
+            {
+              name: "model",
+              rawName: "v-model",
+              value: _vm.petition.claimer,
+              expression: "petition.claimer"
+            }
+          ],
           staticClass: "form-group__control",
           attrs: {
             type: "text",
             id: "name",
             placeholder: _vm.$t("name-placeholder"),
             name: "name"
+          },
+          domProps: { value: _vm.petition.claimer },
+          on: {
+            input: function($event) {
+              if ($event.target.composing) {
+                return
+              }
+              _vm.$set(_vm.petition, "claimer", $event.target.value)
+            }
           }
         })
       ]),
       _vm._v(" "),
       _c("div", { staticClass: "form-group" }, [
         _c("input", {
+          directives: [
+            {
+              name: "model",
+              rawName: "v-model",
+              value: _vm.petition.claimer_mail,
+              expression: "petition.claimer_mail"
+            }
+          ],
           staticClass: "form-group__control",
           attrs: {
             type: "text",
             id: "phone",
             placeholder: _vm.$t("phone-placeholder"),
             name: "phone"
+          },
+          domProps: { value: _vm.petition.claimer_mail },
+          on: {
+            input: function($event) {
+              if ($event.target.composing) {
+                return
+              }
+              _vm.$set(_vm.petition, "claimer_mail", $event.target.value)
+            }
           }
         })
       ]),
@@ -38795,15 +38831,40 @@ var render = function() {
         _c(
           "select",
           {
+            directives: [
+              {
+                name: "model",
+                rawName: "v-model",
+                value: _vm.petition.municipality,
+                expression: "petition.municipality"
+              }
+            ],
             staticClass: "form-group__control",
-            attrs: { name: "municipality" }
+            attrs: { name: "municipality" },
+            on: {
+              change: function($event) {
+                var $$selectedVal = Array.prototype.filter
+                  .call($event.target.options, function(o) {
+                    return o.selected
+                  })
+                  .map(function(o) {
+                    var val = "_value" in o ? o._value : o.value
+                    return val
+                  })
+                _vm.$set(
+                  _vm.petition,
+                  "municipality",
+                  $event.target.multiple ? $$selectedVal : $$selectedVal[0]
+                )
+              }
+            }
           },
           [
             _c(
               "option",
               {
                 attrs: { selected: "", disabled: "" },
-                domProps: { value: null }
+                domProps: { value: "" }
               },
               [_vm._v(_vm._s(_vm.$t("municipality-placeholder")))]
             ),
@@ -38811,7 +38872,10 @@ var render = function() {
             _vm._l(_vm.municipalities, function(municipality) {
               return _c(
                 "option",
-                { key: municipality.id, domProps: { value: municipality.id } },
+                {
+                  key: municipality.id,
+                  domProps: { value: municipality["name_" + _vm.$i18n.locale] }
+                },
                 [_vm._v(_vm._s(municipality["name_" + _vm.$i18n.locale]))]
               )
             })
@@ -38824,32 +38888,57 @@ var render = function() {
         _c(
           "select",
           {
+            directives: [
+              {
+                name: "model",
+                rawName: "v-model",
+                value: _vm.petition.theme,
+                expression: "petition.theme"
+              }
+            ],
             staticClass: "form-group__control",
-            attrs: { name: "municipality" }
+            attrs: { name: "municipality" },
+            on: {
+              change: function($event) {
+                var $$selectedVal = Array.prototype.filter
+                  .call($event.target.options, function(o) {
+                    return o.selected
+                  })
+                  .map(function(o) {
+                    var val = "_value" in o ? o._value : o.value
+                    return val
+                  })
+                _vm.$set(
+                  _vm.petition,
+                  "theme",
+                  $event.target.multiple ? $$selectedVal : $$selectedVal[0]
+                )
+              }
+            }
           },
           [
             _c(
               "option",
               {
                 attrs: { selected: "", disabled: "" },
-                domProps: { value: null }
+                domProps: { value: "" }
               },
               [_vm._v(_vm._s(_vm.$t("subject-placeholder")))]
             ),
             _vm._v(" "),
-            _c("option", { domProps: { value: 1 } }, [
+            _c("option", { domProps: { value: _vm.$t("option-1") } }, [
               _vm._v(_vm._s(_vm.$t("option-1")))
             ]),
             _vm._v(" "),
-            _c("option", { domProps: { value: 2 } }, [
+            _c("option", { domProps: { value: _vm.$t("option-2") } }, [
               _vm._v(_vm._s(_vm.$t("option-2")))
             ]),
             _vm._v(" "),
-            _c("option", { domProps: { value: 3 } }, [
+            _c("option", { domProps: { value: _vm.$t("option-3") } }, [
               _vm._v(_vm._s(_vm.$t("option-3")))
             ]),
             _vm._v(" "),
-            _c("option", { domProps: { value: 4 } }, [
+            _c("option", { domProps: { value: _vm.$t("option-4") } }, [
               _vm._v(_vm._s(_vm.$t("option-4")))
             ])
           ]
@@ -38858,12 +38947,29 @@ var render = function() {
       _vm._v(" "),
       _c("div", { staticClass: "form-group", attrs: { id: "textareaDrop" } }, [
         _c("textarea", {
+          directives: [
+            {
+              name: "model",
+              rawName: "v-model",
+              value: _vm.petition.observation,
+              expression: "petition.observation"
+            }
+          ],
           staticClass: "form-group__control",
           attrs: {
             name: "observation",
             id: "observation",
             rows: "2",
             placeholder: _vm.$t("observation-placeholder")
+          },
+          domProps: { value: _vm.petition.observation },
+          on: {
+            input: function($event) {
+              if ($event.target.composing) {
+                return
+              }
+              _vm.$set(_vm.petition, "observation", $event.target.value)
+            }
           }
         })
       ]),
@@ -38896,9 +39002,14 @@ var render = function() {
       ]),
       _vm._v(" "),
       _c("div", { staticClass: "button-group controls" }, [
-        _c("button", { staticClass: "button button--primary" }, [
-          _vm._v(_vm._s(_vm.$t("button-submit")))
-        ]),
+        _c(
+          "button",
+          {
+            staticClass: "button button--primary",
+            on: { click: _vm.submitPetition }
+          },
+          [_vm._v(_vm._s(_vm.$t("button-submit")))]
+        ),
         _vm._v(" "),
         _c(
           "button",
@@ -38931,12 +39042,61 @@ var render = function() {
     _c("div", { staticClass: "tnetnoc petition-container" }, [
       _c("div", { staticClass: "grid" }, [
         _c("div", { staticClass: "grid__inner" }, [
-          _vm._m(0),
+          _c(
+            "div",
+            {
+              staticClass:
+                "cell cell--medium-12 cell--large-6 petitions-cards-container"
+            },
+            [
+              _c(
+                "div",
+                { staticClass: "grid__inner" },
+                _vm._l(_vm.petitions.models, function(petition) {
+                  return _c(
+                    "div",
+                    { staticClass: "cell cell--medium-12 cell--large-6 card" },
+                    [
+                      _vm._m(0, true),
+                      _vm._v(" "),
+                      _c("div", { staticClass: "card__description" }, [
+                        _c("h4", { staticClass: "description__title" }, [
+                          _vm._v(
+                            "\n                                    " +
+                              _vm._s(petition.theme) +
+                              "\n                                "
+                          )
+                        ]),
+                        _vm._v(" "),
+                        _c("p", { staticClass: "description__p" }, [
+                          _vm._v(
+                            "\n                                    " +
+                              _vm._s(petition.observation) +
+                              "\n                                "
+                          )
+                        ])
+                      ])
+                    ]
+                  )
+                })
+              )
+            ]
+          ),
           _vm._v(" "),
           _c(
             "div",
             { staticClass: "cell cell--medium-12 cell--large-6 petition" },
-            [_c("petition-form")],
+            [
+              _c("petition-form", {
+                attrs: {
+                  uploadUrl: _vm.uploadUrl,
+                  processUpload: _vm.processUpload,
+                  municipalities: _vm.municipalities.models,
+                  petitions: _vm.petitions.models
+                },
+                on: { petitionSaved: _vm.refreshData }
+              })
+            ],
             1
           )
         ])
@@ -38949,172 +39109,18 @@ var staticRenderFns = [
     var _vm = this
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
-    return _c(
-      "div",
-      {
-        staticClass:
-          "cell cell--medium-12 cell--large-6 petitions-cards-container"
-      },
-      [
-        _c("div", { staticClass: "grid__inner" }, [
-          _c(
-            "div",
-            { staticClass: "cell cell--medium-12 cell--large-12 hotspot" },
-            [
-              _c("div", { staticClass: "FlexEmbed hotspot__thumbnail" }, [
-                _c(
-                  "div",
-                  { staticClass: "FlexEmbed-ratio FlexEmbed-ratio--16by9" },
-                  [
-                    _c("div", { staticClass: "FlexEmbed-content" }, [
-                      _c("img", {
-                        attrs: {
-                          src: "http://via.placeholder.com/379x289?text=card",
-                          alt: "card"
-                        }
-                      })
-                    ])
-                  ]
-                )
-              ]),
-              _vm._v(" "),
-              _c("div", { staticClass: "hotspot__description" }, [
-                _c("h4", { staticClass: "description__title" }, [
-                  _vm._v(
-                    "\n                                    Iis sapientiam statuerimus accepimus perfecta.\n                                "
-                  )
-                ]),
-                _vm._v(" "),
-                _c("p", { staticClass: "description__p" }, [
-                  _vm._v(
-                    "\n                                    Ex exemplis narravimus primordiis utinam Bellona narravimus forte exitium saeviens\n                                    iuge consurgunt supra et ex.\n                                "
-                  )
-                ]),
-                _vm._v(" "),
-                _c("div", { staticClass: "hotspot__footer" }, [
-                  _c(
-                    "a",
-                    {
-                      staticClass: "button button--primary",
-                      attrs: { href: "#0" }
-                    },
-                    [
-                      _vm._v(
-                        "\n                                        Adnexa\n                                    "
-                      )
-                    ]
-                  )
-                ])
-              ])
-            ]
-          ),
-          _vm._v(" "),
-          _c(
-            "div",
-            { staticClass: "cell cell--medium-12 cell--large-6 card" },
-            [
-              _c("div", { staticClass: "FlexEmbed card__thumbnail" }, [
-                _c(
-                  "div",
-                  { staticClass: "FlexEmbed-ratio FlexEmbed-ratio--4by3" },
-                  [
-                    _c("div", { staticClass: "FlexEmbed-content" }, [
-                      _c("img", {
-                        attrs: {
-                          src: "http://via.placeholder.com/379x289?text=card",
-                          alt: "card"
-                        }
-                      })
-                    ])
-                  ]
-                )
-              ]),
-              _vm._v(" "),
-              _c("div", { staticClass: "card__description" }, [
-                _c("h4", { staticClass: "description__title" }, [
-                  _vm._v(
-                    "\n                                    Manicis perduceret vias fluminis vias.\n                                "
-                  )
-                ]),
-                _vm._v(" "),
-                _c("p", { staticClass: "description__p" }, [
-                  _vm._v(
-                    "\n                                    Et ex vero nobilis quae punico conmilitio sospitales abstractum vel redirent illius\n                                    abstractum consumpsit mors.\n                                "
-                  )
-                ])
-              ]),
-              _vm._v(" "),
-              _c("div", { staticClass: "card__footer" }, [
-                _c(
-                  "button",
-                  {
-                    staticClass: "button button--primary",
-                    attrs: { type: "button", "data-modal-trigger": "card3" }
-                  },
-                  [
-                    _vm._v(
-                      "\n                                    Quod\n                                "
-                    )
-                  ]
-                )
-              ])
-            ]
-          ),
-          _vm._v(" "),
-          _c(
-            "div",
-            { staticClass: "cell cell--medium-12 cell--large-6 card" },
-            [
-              _c("div", { staticClass: "FlexEmbed card__thumbnail" }, [
-                _c(
-                  "div",
-                  { staticClass: "FlexEmbed-ratio FlexEmbed-ratio--4by3" },
-                  [
-                    _c("div", { staticClass: "FlexEmbed-content" }, [
-                      _c("img", {
-                        attrs: {
-                          src: "http://via.placeholder.com/379x289?text=card",
-                          alt: "card"
-                        }
-                      })
-                    ])
-                  ]
-                )
-              ]),
-              _vm._v(" "),
-              _c("div", { staticClass: "card__description" }, [
-                _c("h4", { staticClass: "description__title" }, [
-                  _vm._v(
-                    "\n                                    Manicis perduceret vias fluminis vias.\n                                "
-                  )
-                ]),
-                _vm._v(" "),
-                _c("p", { staticClass: "description__p" }, [
-                  _vm._v(
-                    "\n                                    Et ex vero nobilis quae punico conmilitio sospitales abstractum vel redirent illius\n                                    abstractum consumpsit mors.\n                                "
-                  )
-                ])
-              ]),
-              _vm._v(" "),
-              _c("div", { staticClass: "card__footer" }, [
-                _c(
-                  "button",
-                  {
-                    staticClass: "button button--primary",
-                    attrs: { type: "button", "data-modal-trigger": "card3" }
-                  },
-                  [
-                    _vm._v(
-                      "\n                                    Quod\n                                "
-                    )
-                  ]
-                )
-              ])
-            ]
-          )
+    return _c("div", { staticClass: "FlexEmbed card__thumbnail" }, [
+      _c("div", { staticClass: "FlexEmbed-ratio FlexEmbed-ratio--4by3" }, [
+        _c("div", { staticClass: "FlexEmbed-content" }, [
+          _c("img", {
+            attrs: {
+              src: "http://via.placeholder.com/379x289?text=card",
+              alt: "card"
+            }
+          })
         ])
-      ]
-    )
+      ])
+    ])
   }
 ]
 render._withStripped = true
@@ -39226,13 +39232,7 @@ var render = function() {
       _vm._v(" "),
       _c("z-petitions-background"),
       _vm._v(" "),
-      _c("z-petitions-forground", {
-        attrs: {
-          uploadUrl: _vm.uploadUrl,
-          processUpload: _vm.processUpload,
-          municipalities: _vm.municipalities.models
-        }
-      })
+      _c("z-petitions-forground")
     ],
     1
   )
@@ -41191,6 +41191,118 @@ module.exports = function (Component) {
   Component.options.__i18n = Component.options.__i18n || []
   Component.options.__i18n.push('{"en":{"complains-title":"Petitions","complains-description":"Here you find a series of complaints classified by categories.","name-placeholder":"Your name","phone-placeholder":"Your email","municipality-placeholder":"The municipality","subject-placeholder":"The subject","observation-placeholder":"Observations","attach-placeholder":"Attach files","button-submit":"Send","button-reset":"Cancel","honor-placeholder":"I declare and certify the validity of the information provided above","dropzone":"Drop files here to upload","option-1":"environment","option-2":"public transport","option-3":"politic","option-4":"administration"},"ar":{"complains-title":"العرائض","complains-description":"يمكنك تقديم شكوى تخص الإدارات العمومية من مصالح بلدية أو نقل عمومي. وإن لاحظت تجاوزات أو انتهاكات تمس من البيئة والمحيط أو المصلحة الجماعية بإمكانك التشكي وتقديم أدلة للدعم كصور أو فيديو. يمكنك أيضا تحديد موقع التجاوز على الخريطة.","name-placeholder":"الإسم واللقب","phone-placeholder":"بريدك الالكتروني","municipality-placeholder":"البلدية","subject-placeholder":"موضوع العريضة","observation-placeholder":"الملاحظات","attach-placeholder":"إرفاق ملفات","button-submit":"إرسال","button-reset":"إلغاء","honor-placeholder":"أصرح وأشهد بصحة المعلومات المقدمة أعلاه","dropzone":"تحميل الملفات","option-1":"البيئية","option-2":"النقل العمومي","option-3":"السياسة","option-4":"الإدارة"}}')
 }
+
+
+/***/ }),
+/* 775 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Petition; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return Petitions; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_vue_mc__ = __webpack_require__(67);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__ = __webpack_require__(87);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__);
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+// ['claimer', 'claimer_mail', 'municipality', 'theme', 'observation'];
+
+
+
+
+
+var Petition = function (_Model) {
+    _inherits(Petition, _Model);
+
+    function Petition() {
+        _classCallCheck(this, Petition);
+
+        return _possibleConstructorReturn(this, (Petition.__proto__ || Object.getPrototypeOf(Petition)).apply(this, arguments));
+    }
+
+    _createClass(Petition, [{
+        key: 'defaults',
+        value: function defaults() {
+            return {
+                id: null,
+                claimer: '',
+                claimer_mail: '',
+                municipality: '',
+                theme: '',
+                observation: ''
+            };
+        }
+    }, {
+        key: 'mutations',
+        value: function mutations() {
+            return {
+                id: function id(_id) {
+                    return Number(_id) || null;
+                },
+                claimer: String,
+                claimer_mail: String,
+                municipality: String,
+                theme: String,
+                observation: String
+            };
+        }
+    }, {
+        key: 'validation',
+        value: function validation() {
+            return {
+                id: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["integer"].and(Object(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["min"])(1)).or(Object(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["equal"])(null)),
+                claimer: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["string"]),
+                claimer_mail: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["string"]),
+                municipality: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["string"]),
+                theme: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["string"]),
+                observation: __WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["required"].and(__WEBPACK_IMPORTED_MODULE_1_vue_mc_validation__["string"])
+            };
+        }
+    }, {
+        key: 'routes',
+        value: function routes() {
+            return {
+                fetch: 'api/v1/petitions/{id}',
+                save: 'api/v1/petitions'
+            };
+        }
+    }]);
+
+    return Petition;
+}(__WEBPACK_IMPORTED_MODULE_0_vue_mc__["Model"]);
+
+var Petitions = function (_Collection) {
+    _inherits(Petitions, _Collection);
+
+    function Petitions() {
+        _classCallCheck(this, Petitions);
+
+        return _possibleConstructorReturn(this, (Petitions.__proto__ || Object.getPrototypeOf(Petitions)).apply(this, arguments));
+    }
+
+    _createClass(Petitions, [{
+        key: 'model',
+        value: function model() {
+            return Petition;
+        }
+    }, {
+        key: 'routes',
+        value: function routes() {
+            return {
+                fetch: 'api/v1/petitions'
+            };
+        }
+    }]);
+
+    return Petitions;
+}(__WEBPACK_IMPORTED_MODULE_0_vue_mc__["Collection"]);
+
 
 
 /***/ })

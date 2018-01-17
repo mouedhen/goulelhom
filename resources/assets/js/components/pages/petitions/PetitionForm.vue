@@ -48,39 +48,47 @@
         <div class="form-group">
             <input type="text" id="name" class="form-group__control"
                    :placeholder="$t('name-placeholder')"
+                   v-model="petition.claimer"
                    name="name">
         </div>
 
         <div class="form-group">
             <input type="text" id="phone" class="form-group__control"
                    :placeholder="$t('phone-placeholder')"
+                   v-model="petition.claimer_mail"
                    name="phone">
         </div>
         <div class="form-group">
 
-            <select name="municipality" class="form-group__control">
-                <option :value="null" selected disabled>{{$t('municipality-placeholder')}}</option>
+            <select name="municipality"
+                    v-model="petition.municipality"
+                    class="form-group__control">
+                <option :value="''" selected disabled>{{$t('municipality-placeholder')}}</option>
                 <option v-for="municipality in municipalities"
                         :key="municipality.id"
-                        :value="municipality.id">{{municipality['name_'+ $i18n.locale]}}</option>
+                        :value="municipality['name_'+ $i18n.locale]">{{municipality['name_'+ $i18n.locale]}}</option>
             </select>
 
         </div>
         <div class="form-group">
 
-            <select name="municipality" class="form-group__control">
-                <option :value="null" selected disabled>{{$t('subject-placeholder')}}</option>
-                <option :value="1">{{$t('option-1')}}</option>
-                <option :value="2">{{$t('option-2')}}</option>
-                <option :value="3">{{$t('option-3')}}</option>
-                <option :value="4">{{$t('option-4')}}</option>
+            <select name="municipality"
+                    v-model="petition.theme"
+                    class="form-group__control">
+                <option :value="''" selected disabled>{{$t('subject-placeholder')}}</option>
+                <option :value="$t('option-1')">{{$t('option-1')}}</option>
+                <option :value="$t('option-2')">{{$t('option-2')}}</option>
+                <option :value="$t('option-3')">{{$t('option-3')}}</option>
+                <option :value="$t('option-4')">{{$t('option-4')}}</option>
             </select>
 
         </div>
         <div id="textareaDrop" class="form-group">
-                            <textarea name="observation" id="observation" rows="2" class="form-group__control"
-                                      :placeholder="$t('observation-placeholder')"
-                            ></textarea>
+            <textarea name="observation"
+                      v-model="petition.observation"
+                      id="observation" rows="2" class="form-group__control"
+                      :placeholder="$t('observation-placeholder')"
+            ></textarea>
         </div>
         <div class="cell cell--large-12">
 
@@ -93,7 +101,7 @@
             <label for="subscribeNews">{{$t('honor-placeholder')}}</label>
         </div>
         <div class="button-group controls">
-            <button class="button button--primary">{{$t('button-submit')}}</button>
+            <button class="button button--primary" v-on:click="submitPetition">{{$t('button-submit')}}</button>
             <button type="reset" class="button button--secondary">{{$t('button-reset')}}</button>
         </div>
     </form>
@@ -101,10 +109,23 @@
 
 <script>
     import vue2Dropzone from 'vue2-dropzone'
+    import {Petition} from './../../../models/Petitions'
+
     export default {
         props: ['municipalities', 'uploadUrl'],
         components: {
             vueDropzone: vue2Dropzone
+        },
+        data() {
+            return {
+                petition: new Petition()
+            }
+        },
+        methods: {
+            submitPetition() {
+                this.petition.save();
+                this.$emit('petitionSaved')
+            }
         },
         computed: {
             dropzoneOptions: function () {

@@ -2,10 +2,7 @@
     <div id="content" class="l-content content">
         <z-mobile />
         <z-petitions-background />
-        <z-petitions-forground
-                :uploadUrl="uploadUrl"
-                :processUpload="processUpload"
-                :municipalities="municipalities.models" />
+        <z-petitions-forground/>
     </div>
 </template>
 
@@ -14,20 +11,8 @@
     import ZPetitionsBackground from './ZPetitionsBackground'
     import ZPetitionsForground from './ZPetitionsForground'
 
-    import {Municipalities} from './../../../models/Municipalities'
-
     export default {
         components: {ZPetitionsBackground, ZPetitionsForground, ZMobile},
-        data() {
-            return {
-                municipalities: new Municipalities(),
-                uploadUrl: 'api/v1/upload',
-                processUpload: false,
-            }
-        },
-        mounted() {
-            this.municipalities.fetch();
-        }
     }
 
 </script>
