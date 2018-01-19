@@ -50,7 +50,8 @@
             let map = this.$refs.map.mapObject;
 
             let circle = L.circle(position, 1000);
-            let marker = new L.marker(position, {draggable: true});
+            let marker = new L.marker(position, {draggable: true})
+
 
             marker.on('dragstart', function (event) {
                 circle.setRadius(0)
@@ -97,6 +98,14 @@
                 that.claim.longitude = position[1];
             });
 
+            map.on('click', function (event) {
+                marker.setLatLng(event.latlng);
+                circle.setLatLng(event.latlng).setRadius(1000);
+
+                position = [event.latlng.lat, event.latlng.lng];
+                that.claim.latitude = position[0];
+                that.claim.longitude = position[1];
+            });
 
             lc.start();
         }
