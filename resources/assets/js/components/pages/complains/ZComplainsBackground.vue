@@ -72,6 +72,8 @@
 
                     that.claim.latitude = position[0];
                     that.claim.longitude = position[1];
+
+                    lc.stop()
                 },
                 setView: true,
                 flyTo: true,
@@ -96,6 +98,8 @@
                 position = [layer.latlng.lat, layer.latlng.lng];
                 that.claim.latitude = position[0];
                 that.claim.longitude = position[1];
+
+                lc.stop()
             });
 
             map.on('click', function (event) {

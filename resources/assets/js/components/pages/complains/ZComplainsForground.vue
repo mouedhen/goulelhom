@@ -60,7 +60,9 @@
                             <div class="cell cell--medium-8 cell--large-12 form-group">
                                 <input type="text" id="phone" class="form-group__control"
                                        :placeholder="$t('phone-placeholder')"
-                                       v-model="claimer.phone_number" name="phone">
+                                       data-inputmask="'mask': '99 999 999'"
+                                       v-model="claimer.phone_number" name="phone" dir="ltr"
+                                       :style="stylePlaceholder">
                             </div>
                         <div class="cell cell--medium-8 cell--large-12 form-group">
 
@@ -83,15 +85,14 @@
                             </select>
 
                         </div>
+
                         <div id="textareaDrop" class="cell cell--medium-8 cell--large-12 form-group">
                             <textarea name="observation" id="observation" rows="2" class="form-group__control"
                                       :placeholder="$t('observation-placeholder')"
                                       v-model="claim.description"></textarea>
                         </div>
                         <div class="cell cell--large-12">
-
                             <vue-dropzone ref="claimDropzone" id="claimDropzone" :options="dropzoneOptions"/>
-
                         </div>
 
                         <div class="cell cell--medium-8 cell--large-12 form-group">
@@ -109,6 +110,7 @@
 </template>
 
 <script>
+    import Inputmask from "inputmask"
     import {addClass, hasClass, removeClass, toggleClass} from './../../../zaza-ui/helpers'
     import NavSplach from './../../shared/components/NavSplach.vue'
     import vue2Dropzone from 'vue2-dropzone'
@@ -132,6 +134,10 @@
             }
         },
         computed: {
+            stylePlaceholder: function () {
+                if (this.$i18n.locale === 'ar') { return 'text-align: right'}
+                return ''
+            },
             dropzoneOptions: function () {
                 return {
                     url: this.uploadUrl,
@@ -177,7 +183,7 @@
             }
         },
         mounted() {
-
+            Inputmask().mask(document.querySelectorAll("input"));
             let dropzone = this.$refs['claimDropzone'].dropzone;
             dropzone.on("complete", function(file) {
                 dropzone.removeFile(file);

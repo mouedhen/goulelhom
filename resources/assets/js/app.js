@@ -36,6 +36,10 @@ const i18n = new VueI18n({
     locale: 'ar', // set locale
 });
 
+import VeeValidate from 'vee-validate';
+
+Vue.use(VeeValidate);
+
 const appStyle = new Vue({
     components: {
         'z-style': ZStyle
