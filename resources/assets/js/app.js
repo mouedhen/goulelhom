@@ -7,9 +7,11 @@ import Vue from 'vue'
 window.Vue = Vue;
 window.axios = axios;
 
-window.axios.defaults.headers.common = {
+axios.defaults.headers.common = {
     'X-CSRF-TOKEN': window.Laravel.csrfToken,
-    'X-Requested-With': 'XMLHttpRequest'
+    'X-Requested-With': 'XMLHttpRequest',
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
 };
 
 // window.mapboxgl = require('mapbox-gl');

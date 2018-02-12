@@ -1,6 +1,6 @@
 <template>
     <div class="content__background">
-        <div class="tnetnoc petition-container">
+        <div class="tnetnoc petition-container" style="overflow-y: scroll;">
             <div class="grid">
                 <div class="grid__inner">
                     <div class="cell cell--medium-12 cell--large-6 petitions-cards-container">

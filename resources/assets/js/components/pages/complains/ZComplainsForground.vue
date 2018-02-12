@@ -76,12 +76,11 @@
                         </div>
                         <div class="cell cell--medium-8 cell--large-12 form-group">
 
-                            <select name="municipality" class="form-group__control" v-model="claim.subject_id">
+                            <select name="theme" class="form-group__control" v-model="claim.theme_id">
                                 <option :value="null" disabled>{{$t('subject-placeholder')}}</option>
-                                <option :value="1">{{$t('option-1')}}</option>
-                                <option :value="2">{{$t('option-2')}}</option>
-                                <option :value="3">{{$t('option-3')}}</option>
-                                <option :value="4">{{$t('option-4')}}</option>
+                                <option v-for="theme in themes"
+                                        :key="theme.id"
+                                        :value="theme.id">{{theme['name_'+ $i18n.locale]}}</option>
                             </select>
 
                         </div>
@@ -115,18 +114,12 @@
     import NavSplach from './../../shared/components/NavSplach.vue'
     import vue2Dropzone from 'vue2-dropzone'
 
-    import {Themes} from './../../../models/Themes'
 
     export default {
-        props: ['claimer', 'claim', 'uploadUrl', 'processUpload', 'municipalities'],
+        props: ['claimer', 'claim', 'uploadUrl', 'processUpload', 'municipalities', 'themes'],
         components: {
             NavSplach,
             vueDropzone: vue2Dropzone
-        },
-        data() {
-            return {
-                themes: new Themes(),
-            }
         },
         watch: {
             processUpload: function (newVal, oldVal) {
@@ -185,8 +178,6 @@
             }
         },
         mounted() {
-            this.themes.fetch()
-            console.log(this.themes.models)
             Inputmask().mask(document.querySelectorAll("input"));
             let dropzone = this.$refs['claimDropzone'].dropzone;
             dropzone.on("complete", function(file) {

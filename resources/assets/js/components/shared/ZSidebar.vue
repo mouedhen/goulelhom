@@ -123,7 +123,7 @@
                         icon: '/asset/symbol-defs.svg#icon-library',
                         label: this.$t('municipalities-title'),
                         description: this.$t('municipalities-description'),
-                        routeName: 'home'
+                        routeName: 'municipalities'
                     },
                     {
                         id: 5,

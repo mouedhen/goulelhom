@@ -22,7 +22,8 @@ class Municipality extends Model {
             name_ar: '',
             is_active: false,
             city_id: null,
-            city: null
+            city: null,
+            cover: null,
         }
     }
 

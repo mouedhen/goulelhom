@@ -1,13 +1,9 @@
 import VueRouter from 'vue-router'
 
 import HomeIndex from './components/pages/home/HomeIndex'
-
 import ComplainsIndex from './components/pages/complains/ComplainsIndex'
-
 import PetitionsIndex from './components/pages/petitions/PetitionsIndex'
-
-import TestIndex from './components/Tests/IndexUpload'
-
+import MunicipalitiesIndex from './components/pages/municipalities/MunicipalitiesIndex'
 
 const router = new VueRouter({
     mode: 'history',
@@ -33,14 +29,13 @@ const router = new VueRouter({
                 default: PetitionsIndex
             }
         },
-
         {
-            path: '/test',
-            name: 'test',
+            path: '/municipalities',
+            name: 'municipalities',
             components: {
-                default: TestIndex
+                default: MunicipalitiesIndex
             }
-        }
+        },
     ]
 });
 

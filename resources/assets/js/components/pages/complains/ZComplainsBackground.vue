@@ -1,5 +1,5 @@
 <template>
-    <v-map :zoom=14 :center="[36.8188, 10.156]" ref="map" class="absolute-map">
+    <v-map :zoom=14 :center="[36.8188, 10.156]" ref="map" class="absolute-map" :minZoom=6>
         <v-tilelayer
                 url='https://api.mapbox.com/styles/v1/mapbox/streets-v10/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibW91ZWRoZW4iLCJhIjoiY2o1b25ibHdvMDFrbTJxcXRtaWttZ3VqcCJ9.D5l-yqWthlUroyn5GFoY2w'/>
 
@@ -7,7 +7,7 @@
             <v-marker v-for="claimMarker in claimsList"
                       :key="claimMarker.id"
                       :lat-lng="[claimMarker.latitude, claimMarker.longitude]">
-                <v-popup :content="'<p>' + claimMarker.description + '</h1>'"></v-popup>
+                <v-popup :content="'<p>' + claimMarker.description + '</h1>'"/>
             </v-marker>
         </v-marker-cluster>
 
