@@ -30,15 +30,6 @@ class Country extends Model {
         }
     }
 
-    validation() {
-        return {
-            id: integer.and(min(1)).or(equal(null)),
-            name_en: required.and(string),
-            name_fr: required.and(string),
-            name_ar: required.and(string)
-        }
-    }
-
     routes() {
         return {
             fetch: apiConfig().apiUrl + 'countries/{id}',

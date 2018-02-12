@@ -123,8 +123,11 @@
         },
         watch: {
             processUpload: function (newVal, oldVal) {
-                if (newVal === true) {
+                if (newVal !== true && newVal !== -1) {
+                    console.log(this.$refs['claimDropzone'].dropzone);
+                    this.$refs['claimDropzone'].dropzone.options.url = this.uploadUrl + '/' + newVal;
                     this.$refs['claimDropzone'].processQueue();
+                    this.$refs['claimDropzone'].dropzone.options.url = this.uploadUrl;
                 }
             }
         },

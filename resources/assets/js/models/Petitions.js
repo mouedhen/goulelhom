@@ -36,17 +36,6 @@ class Petition extends Model {
         }
     }
 
-    validation() {
-        return {
-            id: integer.and(min(1)).or(equal(null)),
-            claimer: required.and(string),
-            claimer_mail: required.and(string),
-            municipality: required.and(string),
-            theme: required.and(string),
-            observation: required.and(string)
-        }
-    }
-
     routes() {
         return {
             fetch: apiConfig().apiUrl + 'petitions/{id}',

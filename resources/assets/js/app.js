@@ -42,6 +42,10 @@ import VeeValidate from 'vee-validate';
 
 Vue.use(VeeValidate);
 
+import Notifications from 'vue-notification'
+
+Vue.use(Notifications);
+
 const appStyle = new Vue({
     components: {
         'z-style': ZStyle

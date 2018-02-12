@@ -38,7 +38,7 @@
             return {
                 claimer: new Claimer(),
                 claim: new Claim(),
-                uploadUrl: 'api/v1/upload',
+                uploadUrl: apiConfig().apiUrl + 'claims/upload',
                 processUpload: false,
                 municipalities: new Municipalities(),
                 themes: new Themes(),
@@ -47,37 +47,38 @@
         },
         methods: {
             claimSave() {
-                /*axios(
-                    {
-                        method: 'POST',
-                        url: apiConfig().apiUrl  + 'claimers',
-                        data: this.claimer,
-                        headers: {
-                            'X-CSRF-TOKEN': window.Laravel.csrfToken,
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Content-Type': 'application/json',
-                            'Access-Control-Allow-Origin': '*',
-                        }
-                    })
-                    .then(response => {
-                        console.log(response.data)
-                    })
-                    .catch(error => {
-                        console.log(error.response.data)
-                    })*/
-
                 this.claimer
                     .save().then((response) => {
                     this.claim.claimer_id = this.claimer.id;
-                    this.claim
-                        .save().then((response) => {
-                            this.processUpload = true;
+                    this.claim.save()
+                        .then((response) => {
+                            console.log(response.data)
+                            console.log(this.claim)
+                            // this.uploadUrl = this.uploadUrl + '/' + this.claim.id;
+                            this.processUpload = this.claim.id;
                             this.reInitClaim();
-                    }).catch((error) => {
+                            this.$notify({
+                                group: 'foo',
+                                title: 'Succès',
+                                text: 'Votre demande a été enregistrée avec succès!',
+                                type: 'success'
+                            });
+                        }).catch((error) => {
                         console.log(error)
+                        this.$notify({
+                            group: 'foo',
+                            title: 'Erreur',
+                            text: 'Merci de vérifier vos paramètres...',
+                            type: 'error'
+                        });
                     })
                 }).catch((error) => {
-                    console.log(error)
+                    this.$notify({
+                        group: 'foo',
+                        title: 'Erreur',
+                        text: 'Merci de vérifier vos paramètres...',
+                        type: 'error'
+                    });
                 });
 
             },

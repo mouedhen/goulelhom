@@ -38,17 +38,6 @@ class Municipality extends Model {
         }
     }
 
-    validation() {
-        return {
-            id: integer.and(min(1)).or(equal(null)),
-            name_en: required.and(string),
-            name_fr: required.and(string),
-            name_ar: required.and(string),
-            city_id: integer.and(min(1)).or(equal(null)),
-            is_active: boolean,
-        }
-    }
-
     routes() {
         return {
             fetch: apiConfig().apiUrl + 'municipalities/{id}',

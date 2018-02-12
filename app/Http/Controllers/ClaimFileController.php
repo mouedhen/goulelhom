@@ -8,7 +8,7 @@
 
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
-use Storage;
+use Illuminate\Support\Facades\Storage;
 
 class ClaimFileController extends Controller
 {

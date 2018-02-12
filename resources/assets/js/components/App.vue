@@ -1,5 +1,6 @@
 <template>
     <section v-if="show" id="section" class="l-section section">
+        <notifications group="foo" position="top center" />
         <router-view/>
         <z-footer/>
     </section>

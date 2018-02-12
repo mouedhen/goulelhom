@@ -28,14 +28,6 @@ class Claimer extends Model {
         }
     }
 
-    validation() {
-        return {
-            id: integer.and(min(1)).or(equal(null)),
-            name: required.and(string),
-            phone_number: required.and(string),
-        }
-    }
-
     routes() {
         return {
             fetch: apiConfig().apiUrl + 'claimers/{id}',

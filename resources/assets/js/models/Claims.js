@@ -17,7 +17,7 @@ class Claim extends Model {
 
     defaults() {
         return {
-            id: null,
+            id: -1,
             claimer_id: null,
             municipality_id: null,
             theme_id: null,
@@ -37,15 +37,6 @@ class Claim extends Model {
             description: String,
             latitude: (latitude) => Number(latitude) || null,
             longitude: (longitude) => Number(longitude) || null
-        }
-    }
-
-    validation() {
-        return {
-            id:   integer.and(min(1)).or(equal(null)),
-            claimer_id:   integer.and(min(1)),
-            municipality_id: required.and(integer),
-            description: required.and(string)
         }
     }
 
