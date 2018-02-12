@@ -10,6 +10,7 @@ import {
     required,
     string,
 } from 'vue-mc/validation'
+import {apiConfig} from "../api-config";
 
 class Petition extends Model {
 
@@ -48,8 +49,8 @@ class Petition extends Model {
 
     routes() {
         return {
-            fetch: 'api/v1/petitions/{id}',
-            save:  'api/v1/petitions',
+            fetch: apiConfig().apiUrl + 'petitions/{id}',
+            save:  apiConfig().apiUrl + 'petitions',
         }
     }
 
@@ -63,7 +64,7 @@ class Petitions extends Collection {
 
     routes() {
         return {
-            fetch: 'api/v1/petitions',
+            fetch: apiConfig().apiUrl + 'petitions',
         }
     }
 }

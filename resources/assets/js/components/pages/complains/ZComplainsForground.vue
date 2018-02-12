@@ -115,6 +115,8 @@
     import NavSplach from './../../shared/components/NavSplach.vue'
     import vue2Dropzone from 'vue2-dropzone'
 
+    import {Themes} from './../../../models/Themes'
+
     export default {
         props: ['claimer', 'claim', 'uploadUrl', 'processUpload', 'municipalities'],
         components: {
@@ -123,7 +125,7 @@
         },
         data() {
             return {
-
+                themes: new Themes(),
             }
         },
         watch: {
@@ -183,6 +185,8 @@
             }
         },
         mounted() {
+            this.themes.fetch()
+            console.log(this.themes.models)
             Inputmask().mask(document.querySelectorAll("input"));
             let dropzone = this.$refs['claimDropzone'].dropzone;
             dropzone.on("complete", function(file) {

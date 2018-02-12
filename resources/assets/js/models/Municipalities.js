@@ -10,6 +10,7 @@ import {
 } from 'vue-mc/validation'
 
 import {City} from "./Cities";
+import {apiConfig} from "../api-config";
 
 class Municipality extends Model {
 
@@ -49,8 +50,8 @@ class Municipality extends Model {
 
     routes() {
         return {
-            fetch: 'api/v1/municipalities/{id}',
-            save:  'api/v1/municipalities',
+            fetch: apiConfig().apiUrl + 'municipalities/{id}',
+            save:  apiConfig().apiUrl + 'municipalities',
         }
     }
 
@@ -64,7 +65,7 @@ class Municipalities extends Collection {
 
     routes() {
         return {
-            fetch: 'api/v1/municipalities',
+            fetch: apiConfig().apiUrl + 'municipalities',
         }
     }
 }

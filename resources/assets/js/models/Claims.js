@@ -11,6 +11,7 @@ import {
     string,
 } from 'vue-mc/validation'
 import {Municipality} from "./Municipalities";
+import {apiConfig} from "../api-config";
 
 class Claim extends Model {
 
@@ -50,8 +51,8 @@ class Claim extends Model {
 
     routes() {
         return {
-            fetch: 'api/v1/claims/{id}',
-            save:  'api/v1/claims',
+            fetch: apiConfig().apiUrl + 'claims/{id}',
+            save:  apiConfig().apiUrl + 'claims',
         }
     }
 
@@ -65,7 +66,7 @@ class Claims extends Collection {
 
     routes() {
         return {
-            fetch: 'api/v1/claims',
+            fetch: apiConfig().apiUrl + 'claims',
         }
     }
 }

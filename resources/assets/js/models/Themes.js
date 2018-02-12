@@ -1,29 +1,28 @@
+import {apiConfig} from './../api-config'
 import {Model, Collection} from 'vue-mc'
 
 import {
-    boolean,
     equal,
     integer,
     min,
     required,
     string,
 } from 'vue-mc/validation'
-import {apiConfig} from "../api-config";
 
-class Country extends Model {
+class Theme extends Model {
 
     defaults() {
         return {
             id: null,
-            name_en: '',
-            name_fr: '',
-            name_ar: ''
+            name_en: null,
+            name_fr: null,
+            name_ar: null,
         }
     }
 
     mutations() {
         return {
-            id:   (id) => Number(id) || null,
+            id: (id) => Number(id) || null,
             name_en: String,
             name_fr: String,
             name_ar: String,
@@ -32,7 +31,7 @@ class Country extends Model {
 
     validation() {
         return {
-            id: integer.and(min(1)).or(equal(null)),
+            id:   integer.and(min(1)).or(equal(null)),
             name_en: required.and(string),
             name_fr: required.and(string),
             name_ar: required.and(string)
@@ -41,24 +40,24 @@ class Country extends Model {
 
     routes() {
         return {
-            fetch: apiConfig().apiUrl + 'countries/{id}',
-            save:  apiConfig().apiUrl +  'countries',
+            fetch: apiConfig().apiUrl + 'themes/{id}',
+            save:  apiConfig().apiUrl + 'themes'
         }
     }
 
 }
 
-class Countries extends Collection {
+class Themes extends Collection {
 
     model() {
-        return Country;
+        return Theme;
     }
 
     routes() {
         return {
-            fetch: apiConfig().apiUrl + 'countries',
+            fetch: apiConfig().apiUrl + 'themes',
         }
     }
 }
 
-export {Country, Countries}
+export {Theme, Themes}

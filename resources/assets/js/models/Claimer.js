@@ -8,6 +8,7 @@ import {
     required,
     string,
 } from 'vue-mc/validation'
+import {apiConfig} from "../api-config";
 
 class Claimer extends Model {
 
@@ -37,8 +38,8 @@ class Claimer extends Model {
 
     routes() {
         return {
-            fetch: 'api/v1/claimers/{id}',
-            save:  'api/v1/claimers',
+            fetch: apiConfig().apiUrl + 'claimers/{id}',
+            save:  apiConfig().apiUrl + 'claimers',
         }
     }
 
@@ -52,7 +53,7 @@ class Claimers extends Collection {
 
     routes() {
         return {
-            fetch: 'api/v1/claimers',
+            fetch: apiConfig().apiUrl + 'claimers',
         }
     }
 }

@@ -8,6 +8,7 @@ import {
     required,
     string,
 } from 'vue-mc/validation'
+import {apiConfig} from "../api-config";
 
 class City extends Model {
 
@@ -34,8 +35,8 @@ class City extends Model {
 
     routes() {
         return {
-            fetch: 'api/v1/cities/{id}',
-            save:  'api/v1/cities',
+            fetch: apiConfig().apiUrl + 'cities/{id}',
+            save:  apiConfig().apiUrl + 'cities',
         }
     }
 
@@ -49,7 +50,7 @@ class Cities extends Collection {
 
     routes() {
         return {
-            fetch: 'api/v1/cities',
+            fetch: apiConfig().apiUrl + 'cities',
         }
     }
 }
