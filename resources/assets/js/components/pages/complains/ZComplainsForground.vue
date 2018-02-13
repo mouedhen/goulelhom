@@ -1,9 +1,9 @@
 <i18n src='./../../../i18n/locales.json'/>
 <template>
-    <div class="content__foreground">
+    <div class="content__foreground scroll-y">
         <div id="splash" class="foreground__splash foreground__splash--2">
             <nav-splach style="color: #333333"/>
-            <div class="grid">
+            <div class="grid ">
                 <div class="grid__inner">
                     <div class="cell--large-12">
                         <h1 class="form-title">{{ $t('complains-title') }}</h1>

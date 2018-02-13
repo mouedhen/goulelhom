@@ -5691,10 +5691,10 @@ module.exports = {
 /* harmony export (immutable) */ __webpack_exports__["a"] = apiConfig;
 function apiConfig() {
     return {
-        // apiUrl: 'http://localhost:8000/api/v1/public/',
-        // baseUrl: 'http://localhost:8000',
-        apiUrl: 'https://dashboard.goulelhom.org/api/v1/public/',
-        baseUrl: 'https://dashboard.goulelhom.org'
+        apiUrl: 'http://localhost:8000/api/v1/public/',
+        baseUrl: 'http://localhost:8000'
+        // apiUrl: 'https://dashboard.goulelhom.org/api/v1/public/',
+        // baseUrl: 'https://dashboard.goulelhom.org',
     };
 }
 
@@ -48224,7 +48224,7 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _c("div", { staticClass: "content__foreground" }, [
+  return _c("div", { staticClass: "content__foreground scroll-y" }, [
     _c(
       "div",
       {
@@ -48234,7 +48234,7 @@ var render = function() {
       [
         _c("nav-splach", { staticStyle: { color: "#333333" } }),
         _vm._v(" "),
-        _c("div", { staticClass: "grid" }, [
+        _c("div", { staticClass: "grid " }, [
           _c("div", { staticClass: "grid__inner" }, [
             _c("div", { staticClass: "cell--large-12" }, [
               _c("h1", { staticClass: "form-title" }, [
