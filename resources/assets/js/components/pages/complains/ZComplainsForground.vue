@@ -9,7 +9,9 @@
                         <h1 class="form-title">{{ $t('complains-title') }}</h1>
                         <div style="text-align: center" v-if="stepOne">
 
-                            <circular-stats v-for="i in statLenght" :percentage="(themes[i-1].claims_count / claimsLenght) * 100"
+                            <circular-stats v-for="i in statLenght"
+                                            :key="i"
+                                            :percentage="(themes[i-1].claims_count / claimsLenght) * 100"
                                             :color="themes[i-1].color" :title="themes[i-1]['name_'+ $i18n.locale]"
                                             :id="'stat' + themes[i-1].id"/>
                         </div>

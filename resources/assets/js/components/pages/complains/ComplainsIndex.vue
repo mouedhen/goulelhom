@@ -65,6 +65,8 @@
                             text: 'Merci de vérifier vos paramètres...',
                             type: 'error'
                         });
+                        const exception = error.message || error;
+                        this.$ga.exception(exception)
                     })
                 }).catch((error) => {
                     this.$notify({
@@ -73,6 +75,8 @@
                         text: 'Merci de vérifier vos paramètres...',
                         type: 'error'
                     });
+                    const exception = error.message || error;
+                    this.$ga.exception(exception)
                 });
 
             },

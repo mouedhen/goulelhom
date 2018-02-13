@@ -22,24 +22,33 @@ mix.options({
     ]
 })
     .js('resources/assets/js/app.js', 'public/js')
-    .js('resources/assets/js/admin.js', 'public/js')
     .sass('resources/assets/sass/app.scss', 'public/css')
-    .sass('resources/assets/sass/admin.scss', 'public/css')
     .extract([
+        '@finpo/vue2-recaptcha-invisible',
         'animejs',
         'axios',
         'fine-uploader',
+        'flexboxgrid-sass',
+        'flickity',
         'houdinijs',
+        'inputmask',
         'leaflet',
         'leaflet.locatecontrol',
         'lodash',
+        'normalize.css',
         'uppy',
+        'vee-validate',
         'vue',
+        'vue-analytics',
+        'vue-cookie',
         'vue-i18n',
         'vue-mc',
+        'vue-notification',
         'vue-resource',
         'vue-router',
+        'vue2-dropzone',
         'vue2-leaflet',
+        'vue2-leaflet-markercluster',
         'vuex'
     ])
     .webpackConfig({
@@ -50,11 +59,24 @@ mix.options({
         module: {
             rules: [
                 {
+                    test: /\.svg$/,
+                    loader: 'svg-inline-loader!vue-svg-loader',
+                    options: {
+                        // optional [svgo](https://github.com/svg/svgo) options
+                        svgo: {
+                            plugins: [
+                                {removeDoctype: true},
+                                {removeComments: true}
+                            ]
+                        }
+                    }
+                },
+                {
                     test: /\.vue$/,
                     loader: 'vue-loader',
                     exclude: /bower_components/,
                     options: {
-                        // extractCSS: Config.extractVueStyles,
+                        extractCSS: Config.extractVueStyles,
                         loaders: Config.extractVueStyles ? {
                             js: {
                                 loader: 'babel-loader',

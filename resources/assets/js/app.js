@@ -1,8 +1,33 @@
-
-
 import '@babel/polyfill'
 import axios from 'axios'
 import Vue from 'vue'
+
+import VueRouter from 'vue-router'
+import VueResource from 'vue-resource'
+import Vuex from 'vuex'
+import VueI18n from 'vue-i18n'
+import VueAnalytics from 'vue-analytics'
+
+import ar from 'vee-validate/dist/locale/ar';
+import VeeValidate, { Validator } from 'vee-validate';
+
+import Notifications from 'vue-notification'
+
+import router from './routes'
+
+import ZStyle from './components/shared/ZStyle'
+import ZSidebar from './components/shared/ZSidebar'
+import App from './components/App.vue'
+
+Vue.use(VueAnalytics, {
+    id: 'UA-67496136-3',
+    checkDuplicatedScript: true,
+    router,
+    autoTracking: {
+        skipSamePath: true,
+        exception: true,
+    }
+});
 
 window.Vue = Vue;
 window.axios = axios;
@@ -14,11 +39,6 @@ axios.defaults.headers.common = {
     'Access-Control-Allow-Origin': '*',
 };
 
-import VueRouter from 'vue-router'
-import VueResource from 'vue-resource'
-import Vuex from 'vuex'
-import VueI18n from 'vue-i18n'
-
 Vue.use(VueI18n);
 Vue.use(VueRouter);
 Vue.use(VueResource);
@@ -28,24 +48,10 @@ const i18n = new VueI18n({
     locale: 'ar', // set locale
 });
 
-import ar from 'vee-validate/dist/locale/ar';
-import VeeValidate, { Validator } from 'vee-validate';
-
-// Localize takes the locale object as the second argument (optional) and merges it.
 Validator.localize('ar', ar);
-
-import Notifications from 'vue-notification'
-
 
 Vue.use(VeeValidate);
 Vue.use(Notifications);
-
-import router from './routes'
-
-import ZStyle from './components/shared/ZStyle'
-import ZSidebar from './components/shared/ZSidebar'
-import App from './components/App.vue'
-
 
 const appStyle = new Vue({
     components: {
