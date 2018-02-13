@@ -85,6 +85,7 @@ mix.options({
                                 use: 'css-loader!less-loader',
                                 fallback: 'vue-style-loader'
                             }),
+                            i18n: '@kazupon/vue-i18n-loader',
                         } : {
                             js: {
                                 loader: 'babel-loader',

@@ -1,12 +1,12 @@
 <template>
     <v-map :zoom=14 :center="[36.8188, 10.156]" ref="map" class="absolute-map" :minZoom=6>
         <v-tilelayer
-                url='https://api.mapbox.com/styles/v1/mapbox/streets-v10/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibW91ZWRoZW4iLCJhIjoiY2pka2xpZXRvMDFtNjMybnpjMzQ5ajc3YyJ9.cs3V0ODtiQxlpzSN0MJPJQ'/>
+                url='https://api.mapbox.com/styles/v1/mapbox/streets-v10/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoibW91ZWRoZW4iLCJhIjoiY2o1b25ibHdiMDFqeDJ5bWxlZDBrbmJzdiJ9.KWA1osNZi6DEnhK2vBDb8w'/>
 
         <v-marker-cluster>
             <v-marker v-for="claimMarker in claimsList"
                       :key="claimMarker.id"
-                      v-if="claimMarker.latitude !== null"
+                    v-if="claimMarker.latitude !== null"
                       :lat-lng="[claimMarker.latitude, claimMarker.longitude]">
                 <v-popup>
                     <claims-popup :claim="claimMarker" />
@@ -18,11 +18,11 @@
 </template>
 
 <script>
-    import Vue from 'vue'
     import Vue2Leaflet from 'vue2-leaflet'
     import Vue2LeafletMarkerCluster from 'vue2-leaflet-markercluster'
     import ClaimsPopup from './ClaimsPopup'
 
+    import L from 'leaflet'
     require('leaflet.locatecontrol')
 
     export default {
@@ -35,10 +35,7 @@
             'claims-popup': ClaimsPopup,
         },
         props: ['claim', 'claimsList'],
-        methods: {},
         mounted() {
-
-
             let that = this;
             let position = [36.8188, 10.166];
 
@@ -49,7 +46,6 @@
 
             let circle = L.circle(position, 1000);
             let marker = new L.marker(position, {draggable: true})
-
 
             marker.on('dragstart', function (event) {
                 circle.setRadius(0)
@@ -108,7 +104,6 @@
                 that.claim.latitude = position[0];
                 that.claim.longitude = position[1];
             });
-
             lc.start();
         }
     }

@@ -1,0 +1,42 @@
+{
+    "en": {
+        "required_field": "This field is required.",
+        "required_checkbox": "Thank you for approving.",
+        "complain_form_description": "You can complain and provide supporting evidence such as photographs or videos. You can also locate the overflow on the map.",
+        "complains-title": "Complaints",
+        "complains-description": "Here you find a series of complaints classified by categories.",
+        "name-placeholder": "Your name",
+        "phone-placeholder": "Your phone number",
+        "municipality-placeholder": "The municipality",
+        "subject-placeholder": "The subject",
+        "observation-placeholder": "Observations",
+        "attach-placeholder": "Attach files",
+        "honor-placeholder": "I declare and certify the validity of the information provided above",
+        "button-submit": "Send",
+        "button-next": "Next step",
+        "button-reset": "Cancel",
+        "dropzone": "Drop files here to upload"
+    },
+    "fr": {
+        "require_field": "Ce champ est obligatoire.",
+        "required_checkbox": "Merci d'approuver."
+    },
+    "ar": {
+        "required_field": ".هذه الخانة إجبارية ",
+        "required_checkbox": "شكرا للموافقة.",
+        "complain_form_description": "يمكنك تقديم شكوى وتقديم الأدلة الداعمة مثل الصور أو أشرطة الفيديو. يمكنك أيضا تحديد موقع تجاوز على الخريطة.",
+        "complains-title": "تقديم شكوى",
+        "complains-description": "يمكنك تقديم شكوى تخص الإدارات العمومية من مصالح بلدية أو نقل عمومي. وإن لاحظت تجاوزات أو انتهاكات تمس من البيئة والمحيط أو المصلحة الجماعية بإمكانك التشكي وتقديم أدلة للدعم كصور أو فيديو. يمكنك أيضا تحديد موقع التجاوز على الخريطة.",
+        "name-placeholder": "الإسم واللقب",
+        "phone-placeholder": "رقم الهاتف",
+        "municipality-placeholder": "البلدية",
+        "subject-placeholder": "موضوع الشكوى",
+        "observation-placeholder": "الملاحظات",
+        "attach-placeholder": "إرفاق ملفات",
+        "honor-placeholder": "أصرح وأشهد بصحة المعلومات المقدمة أعلاه",
+        "button-submit": "إرسال",
+        "button-next": "الخطوة التالية",
+        "button-reset": "إلغاء",
+        "dropzone": "تحميل الملفات"
+    }
+}

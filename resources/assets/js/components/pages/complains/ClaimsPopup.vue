@@ -3,9 +3,9 @@
         <h4>{{ claim.subject }}</h4>
         <small>{{ claim.claimer.name }}</small>
         <div>
-            <img height="200"
+            <img
             v-if="claim.cover !== null" 
-            :src="assetsBaseUrl + claim.cover.url" :alt="claim.subject">
+            :src="assetsBaseUrl + claim.cover.url" :alt="claim.subject" style="max-width: 200px; max-height: 200px">
             <p>{{ claim.description }}</p>
         </div>
     </div>

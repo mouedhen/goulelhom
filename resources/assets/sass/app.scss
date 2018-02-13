@@ -182,11 +182,11 @@ aside {
         background-color: #fff;
         padding: 1rem;
         .form-group {
-          margin: .5rem 0;
-          input, textarea, label {
-            line-height: 2.5rem;
-            font-size: .9rem;
-          }
+          // margin: .5rem 0;
+          // input, textarea, label {
+          //   line-height: 2.5rem;
+          //   font-size: .9rem;
+          // }
         }
       }
     }
@@ -194,23 +194,24 @@ aside {
 }
 
 .form-group {
-  margin: .5rem 0;
+  margin: 1rem 0;
 
   select {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
     color: #939393;
-    line-height: 2.5rem;
-    font-size: .9rem;
+    line-height: 3rem;
+    font-size: 1rem;
     option {
       color: #222222;
+      font-size: 1rem;
     }
   }
-  input, textarea, label {
-    line-height: 2.5rem;
-    font-size: .9rem;
-  }
+  // input, textarea, label {
+  //   line-height: 2.5rem;
+  //   font-size: .9rem;
+  // }
 }
 
 .scroll-y {
@@ -237,6 +238,7 @@ aside {
 
 .form-title {
   text-align: right;
+  line-height: 4rem;
 }
 
 // TODO get a solution
@@ -337,3 +339,5 @@ aside {
     border-left-color: #42A85F;
   }
 }
+
+@import "./stats";

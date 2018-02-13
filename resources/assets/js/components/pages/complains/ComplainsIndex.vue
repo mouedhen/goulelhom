@@ -8,6 +8,7 @@
         <z-complains-forground
                 :claim="claim"
                 :claimer="claimer"
+                :claims="claimsList.models"
                 :municipalities="municipalities.models"
                 :themes="themes.models"
                 :uploadUrl="uploadUrl"
@@ -18,9 +19,6 @@
 </template>
 
 <script>
-
-    import axios from 'axios'
-
     import ZMobile from './../../shared/ZMobileNavigation.vue'
     import ZComplainsBackground from './ZComplainsBackground'
     import ZComplainsForground from './ZComplainsForground'
@@ -52,9 +50,6 @@
                     this.claim.claimer_id = this.claimer.id;
                     this.claim.save()
                         .then((response) => {
-                            console.log(response.data)
-                            console.log(this.claim)
-                            // this.uploadUrl = this.uploadUrl + '/' + this.claim.id;
                             this.processUpload = this.claim.id;
                             this.reInitClaim();
                             this.$notify({
@@ -64,7 +59,6 @@
                                 type: 'success'
                             });
                         }).catch((error) => {
-                        console.log(error)
                         this.$notify({
                             group: 'foo',
                             title: 'Erreur',
