@@ -9,9 +9,9 @@
                         <h1 class="form-title">{{ $t('complains-title') }}</h1>
                         <div style="text-align: center" v-if="stepOne">
 
-                            <circular-stats v-for="i in statLenght" :percentage="themes[i].claims_count / claims.length"
-                                            :color="themes[i].color" :title="themes[i]['name_'+ $i18n.locale]"
-                                            :id="themes[i].name_en"/>
+                            <circular-stats v-for="i in statLenght" :percentage="(themes[i-1].claims_count / claimsLenght) * 100"
+                                            :color="themes[i-1].color" :title="themes[i-1]['name_'+ $i18n.locale]"
+                                            :id="'stat' + themes[i-1].id"/>
                         </div>
                         <p>{{ $t('complain_form_description') }}</p>
                     </div>
@@ -159,6 +159,10 @@
             statLenght: function () {
                 if (this.themes.length > 2) return 2;
                 return this.themes.length
+            },
+            claimsLenght: function () {
+                if (this.claims.length === 0) return 1;
+                return this.claims.length
             }
         },
         watch: {

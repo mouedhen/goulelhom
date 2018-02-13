@@ -1,7 +1,7 @@
 <template>
     <div>
-        <h4>{{ claim.subject }}</h4>
-        <small>{{ claim.claimer.name }}</small>
+        <h4>{{ claim.theme['name_'+ $i18n.locale] }}</h4>
+        <small>{{ claim.municipality['name_'+ $i18n.locale] }}</small>
         <div>
             <img
             v-if="claim.cover !== null" 

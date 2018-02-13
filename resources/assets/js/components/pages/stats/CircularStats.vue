@@ -4,7 +4,7 @@
             <g>
                 <ellipse ry="50" rx="50" id="svg_1" cy="52" cx="52.5" stroke-width="3" :stroke="color" fill="#fff" stroke-linecap="round" ></ellipse>
                 <text  font-size="14" x="50%" y="60%" class="title" text-anchor="middle" stroke-width="0" stroke="#000" fill="#000000">{{title}}</text>
-                <text font-size="24" x="50%" y="40%" text-anchor="middle">{{percentage.toFixed(2)}}%</text>
+                <text font-size="24" x="50%" y="40%" text-anchor="middle">{{percentage.toFixed(1)}}%</text>
             </g>
         </svg>
     </div>

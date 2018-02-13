@@ -5691,10 +5691,10 @@ module.exports = {
 /* harmony export (immutable) */ __webpack_exports__["a"] = apiConfig;
 function apiConfig() {
     return {
-        apiUrl: 'http://localhost:8000/api/v1/public/',
-        baseUrl: 'http://localhost:8000'
-        // apiUrl: 'https://dashboard.goulelhom.org/api/v1/public/',
-        // baseUrl: 'https://dashboard.goulelhom.org',
+        // apiUrl: 'http://localhost:8000/api/v1/public/',
+        // baseUrl: 'http://localhost:8000',
+        apiUrl: 'https://dashboard.goulelhom.org/api/v1/public/',
+        baseUrl: 'https://dashboard.goulelhom.org'
     };
 }
 
@@ -43274,9 +43274,11 @@ var render = function() {
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
   return _c("div", [
-    _c("h4", [_vm._v(_vm._s(_vm.claim.subject))]),
+    _c("h4", [_vm._v(_vm._s(_vm.claim.theme["name_" + _vm.$i18n.locale]))]),
     _vm._v(" "),
-    _c("small", [_vm._v(_vm._s(_vm.claim.claimer.name))]),
+    _c("small", [
+      _vm._v(_vm._s(_vm.claim.municipality["name_" + _vm.$i18n.locale]))
+    ]),
     _vm._v(" "),
     _c("div", [
       _vm.claim.cover !== null
@@ -43586,6 +43588,10 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         statLenght: function statLenght() {
             if (this.themes.length > 2) return 2;
             return this.themes.length;
+        },
+        claimsLenght: function claimsLenght() {
+            if (this.claims.length === 0) return 1;
+            return this.claims.length;
         }
     },
     watch: {
@@ -48243,10 +48249,12 @@ var render = function() {
                       return _c("circular-stats", {
                         attrs: {
                           percentage:
-                            _vm.themes[i].claims_count / _vm.claims.length,
-                          color: _vm.themes[i].color,
-                          title: _vm.themes[i]["name_" + _vm.$i18n.locale],
-                          id: _vm.themes[i].name_en
+                            _vm.themes[i - 1].claims_count /
+                            _vm.claimsLenght *
+                            100,
+                          color: _vm.themes[i - 1].color,
+                          title: _vm.themes[i - 1]["name_" + _vm.$i18n.locale],
+                          id: "stat" + _vm.themes[i - 1].id
                         }
                       })
                     })
@@ -52851,7 +52859,7 @@ var render = function() {
                 "text-anchor": "middle"
               }
             },
-            [_vm._v(_vm._s(_vm.percentage.toFixed(2)) + "%")]
+            [_vm._v(_vm._s(_vm.percentage.toFixed(1)) + "%")]
           )
         ])
       ]
