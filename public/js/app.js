@@ -43597,10 +43597,21 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
     watch: {
         processUpload: function processUpload(newVal, oldVal) {
             if (newVal !== false && newVal !== -1) {
+
                 var dropzone = this.$refs["claimDropzone"].dropzone;
                 var that = this;
-                dropzone.on("complete", function () {
+
+                console.log(dropzone.getQueuedFiles());
+
+                if (dropzone.getQueuedFiles().length === 0) {
                     that.reInitClaim();
+                    return;
+                }
+
+                dropzone.on("complete", function () {
+                    if (dropzone.getQueuedFiles().length === 0) {
+                        that.reInitClaim();
+                    }
                 });
 
                 dropzone.options.url = this.uploadUrl + "/" + newVal;

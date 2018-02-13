@@ -168,10 +168,21 @@
         watch: {
             processUpload: function (newVal, oldVal) {
                 if (newVal !== false && newVal !== -1) {
+
                     let dropzone = this.$refs["claimDropzone"].dropzone;
                     let that = this;
-                    dropzone.on("complete", function () {
+
+                    console.log(dropzone.getQueuedFiles());
+
+                    if (dropzone.getQueuedFiles().length === 0) {
                         that.reInitClaim();
+                        return;
+                    }
+
+                    dropzone.on("complete", function () {
+                        if (dropzone.getQueuedFiles().length === 0) {
+                            that.reInitClaim();
+                        }
                     });
 
                     dropzone.options.url =
