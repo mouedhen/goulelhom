@@ -25,7 +25,7 @@ Vue.use(VueAnalytics, {
     router,
     autoTracking: {
         skipSamePath: true,
-        exception: true,
+        exception: true
     }
 });
 

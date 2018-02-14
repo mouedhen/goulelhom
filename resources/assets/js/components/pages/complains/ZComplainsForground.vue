@@ -3,7 +3,7 @@
     <div class="content__foreground scroll-y">
         <div id="splash" class="foreground__splash foreground__splash--2">
             <nav-splach style="color: #333333"/>
-            <div class="grid ">
+            <div class="grid">
                 <div class="grid__inner">
                     <div class="cell--large-12">
                         <h1 class="form-title">{{ $t('complains-title') }}</h1>
@@ -173,8 +173,6 @@
 
                     let dropzone = this.$refs["claimDropzone"].dropzone;
                     let that = this;
-
-                    console.log(dropzone.getQueuedFiles());
 
                     if (dropzone.getQueuedFiles().length === 0) {
                         that.reInitClaim();

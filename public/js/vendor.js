@@ -4209,4960 +4209,6 @@ return utils;
 /* 55 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// Flickity main
-( function( window, factory ) {
-  // universal module definition
-  /* jshint strict: false */
-  if ( true ) {
-    // AMD
-    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [
-      __webpack_require__(126),
-      __webpack_require__(189),
-      __webpack_require__(43),
-      __webpack_require__(584),
-      __webpack_require__(585),
-      __webpack_require__(586)
-    ], __WEBPACK_AMD_DEFINE_RESULT__ = (function( EvEmitter, getSize, utils, Cell, Slide, animatePrototype ) {
-      return factory( window, EvEmitter, getSize, utils, Cell, Slide, animatePrototype );
-    }).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
-				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-  } else if ( typeof module == 'object' && module.exports ) {
-    // CommonJS
-    module.exports = factory(
-      window,
-      require('ev-emitter'),
-      require('get-size'),
-      require('fizzy-ui-utils'),
-      require('./cell'),
-      require('./slide'),
-      require('./animate')
-    );
-  } else {
-    // browser global
-    var _Flickity = window.Flickity;
-
-    window.Flickity = factory(
-      window,
-      window.EvEmitter,
-      window.getSize,
-      window.fizzyUIUtils,
-      _Flickity.Cell,
-      _Flickity.Slide,
-      _Flickity.animatePrototype
-    );
-  }
-
-}( window, function factory( window, EvEmitter, getSize,
-  utils, Cell, Slide, animatePrototype ) {
-
-'use strict';
-
-// vars
-var jQuery = window.jQuery;
-var getComputedStyle = window.getComputedStyle;
-var console = window.console;
-
-function moveElements( elems, toElem ) {
-  elems = utils.makeArray( elems );
-  while ( elems.length ) {
-    toElem.appendChild( elems.shift() );
-  }
-}
-
-// -------------------------- Flickity -------------------------- //
-
-// globally unique identifiers
-var GUID = 0;
-// internal store of all Flickity intances
-var instances = {};
-
-function Flickity( element, options ) {
-  var queryElement = utils.getQueryElement( element );
-  if ( !queryElement ) {
-    if ( console ) {
-      console.error( 'Bad element for Flickity: ' + ( queryElement || element ) );
-    }
-    return;
-  }
-  this.element = queryElement;
-  // do not initialize twice on same element
-  if ( this.element.flickityGUID ) {
-    var instance = instances[ this.element.flickityGUID ];
-    instance.option( options );
-    return instance;
-  }
-
-  // add jQuery
-  if ( jQuery ) {
-    this.$element = jQuery( this.element );
-  }
-  // options
-  this.options = utils.extend( {}, this.constructor.defaults );
-  this.option( options );
-
-  // kick things off
-  this._create();
-}
-
-Flickity.defaults = {
-  accessibility: true,
-  // adaptiveHeight: false,
-  cellAlign: 'center',
-  // cellSelector: undefined,
-  // contain: false,
-  freeScrollFriction: 0.075, // friction when free-scrolling
-  friction: 0.28, // friction when selecting
-  namespaceJQueryEvents: true,
-  // initialIndex: 0,
-  percentPosition: true,
-  resize: true,
-  selectedAttraction: 0.025,
-  setGallerySize: true
-  // watchCSS: false,
-  // wrapAround: false
-};
-
-// hash of methods triggered on _create()
-Flickity.createMethods = [];
-
-var proto = Flickity.prototype;
-// inherit EventEmitter
-utils.extend( proto, EvEmitter.prototype );
-
-proto._create = function() {
-  // add id for Flickity.data
-  var id = this.guid = ++GUID;
-  this.element.flickityGUID = id; // expando
-  instances[ id ] = this; // associate via id
-  // initial properties
-  this.selectedIndex = 0;
-  // how many frames slider has been in same position
-  this.restingFrames = 0;
-  // initial physics properties
-  this.x = 0;
-  this.velocity = 0;
-  this.originSide = this.options.rightToLeft ? 'right' : 'left';
-  // create viewport & slider
-  this.viewport = document.createElement('div');
-  this.viewport.className = 'flickity-viewport';
-  this._createSlider();
-
-  if ( this.options.resize || this.options.watchCSS ) {
-    window.addEventListener( 'resize', this );
-  }
-
-  Flickity.createMethods.forEach( function( method ) {
-    this[ method ]();
-  }, this );
-
-  if ( this.options.watchCSS ) {
-    this.watchCSS();
-  } else {
-    this.activate();
-  }
-
-};
-
-/**
- * set options
- * @param {Object} opts
- */
-proto.option = function( opts ) {
-  utils.extend( this.options, opts );
-};
-
-proto.activate = function() {
-  if ( this.isActive ) {
-    return;
-  }
-  this.isActive = true;
-  this.element.classList.add('flickity-enabled');
-  if ( this.options.rightToLeft ) {
-    this.element.classList.add('flickity-rtl');
-  }
-
-  this.getSize();
-  // move initial cell elements so they can be loaded as cells
-  var cellElems = this._filterFindCellElements( this.element.children );
-  moveElements( cellElems, this.slider );
-  this.viewport.appendChild( this.slider );
-  this.element.appendChild( this.viewport );
-  // get cells from children
-  this.reloadCells();
-
-  if ( this.options.accessibility ) {
-    // allow element to focusable
-    this.element.tabIndex = 0;
-    // listen for key presses
-    this.element.addEventListener( 'keydown', this );
-  }
-
-  this.emitEvent('activate');
-
-  var index;
-  var initialIndex = this.options.initialIndex;
-  if ( this.isInitActivated ) {
-    index = this.selectedIndex;
-  } else if ( initialIndex !== undefined ) {
-    index = this.cells[ initialIndex ] ? initialIndex : 0;
-  } else {
-    index = 0;
-  }
-  // select instantly
-  this.select( index, false, true );
-  // flag for initial activation, for using initialIndex
-  this.isInitActivated = true;
-};
-
-// slider positions the cells
-proto._createSlider = function() {
-  // slider element does all the positioning
-  var slider = document.createElement('div');
-  slider.className = 'flickity-slider';
-  slider.style[ this.originSide ] = 0;
-  this.slider = slider;
-};
-
-proto._filterFindCellElements = function( elems ) {
-  return utils.filterFindElements( elems, this.options.cellSelector );
-};
-
-// goes through all children
-proto.reloadCells = function() {
-  // collection of item elements
-  this.cells = this._makeCells( this.slider.children );
-  this.positionCells();
-  this._getWrapShiftCells();
-  this.setGallerySize();
-};
-
-/**
- * turn elements into Flickity.Cells
- * @param {Array or NodeList or HTMLElement} elems
- * @returns {Array} items - collection of new Flickity Cells
- */
-proto._makeCells = function( elems ) {
-  var cellElems = this._filterFindCellElements( elems );
-
-  // create new Flickity for collection
-  var cells = cellElems.map( function( cellElem ) {
-    return new Cell( cellElem, this );
-  }, this );
-
-  return cells;
-};
-
-proto.getLastCell = function() {
-  return this.cells[ this.cells.length - 1 ];
-};
-
-proto.getLastSlide = function() {
-  return this.slides[ this.slides.length - 1 ];
-};
-
-// positions all cells
-proto.positionCells = function() {
-  // size all cells
-  this._sizeCells( this.cells );
-  // position all cells
-  this._positionCells( 0 );
-};
-
-/**
- * position certain cells
- * @param {Integer} index - which cell to start with
- */
-proto._positionCells = function( index ) {
-  index = index || 0;
-  // also measure maxCellHeight
-  // start 0 if positioning all cells
-  this.maxCellHeight = index ? this.maxCellHeight || 0 : 0;
-  var cellX = 0;
-  // get cellX
-  if ( index > 0 ) {
-    var startCell = this.cells[ index - 1 ];
-    cellX = startCell.x + startCell.size.outerWidth;
-  }
-  var len = this.cells.length;
-  for ( var i=index; i < len; i++ ) {
-    var cell = this.cells[i];
-    cell.setPosition( cellX );
-    cellX += cell.size.outerWidth;
-    this.maxCellHeight = Math.max( cell.size.outerHeight, this.maxCellHeight );
-  }
-  // keep track of cellX for wrap-around
-  this.slideableWidth = cellX;
-  // slides
-  this.updateSlides();
-  // contain slides target
-  this._containSlides();
-  // update slidesWidth
-  this.slidesWidth = len ? this.getLastSlide().target - this.slides[0].target : 0;
-};
-
-/**
- * cell.getSize() on multiple cells
- * @param {Array} cells
- */
-proto._sizeCells = function( cells ) {
-  cells.forEach( function( cell ) {
-    cell.getSize();
-  });
-};
-
-// --------------------------  -------------------------- //
-
-proto.updateSlides = function() {
-  this.slides = [];
-  if ( !this.cells.length ) {
-    return;
-  }
-
-  var slide = new Slide( this );
-  this.slides.push( slide );
-  var isOriginLeft = this.originSide == 'left';
-  var nextMargin = isOriginLeft ? 'marginRight' : 'marginLeft';
-
-  var canCellFit = this._getCanCellFit();
-
-  this.cells.forEach( function( cell, i ) {
-    // just add cell if first cell in slide
-    if ( !slide.cells.length ) {
-      slide.addCell( cell );
-      return;
-    }
-
-    var slideWidth = ( slide.outerWidth - slide.firstMargin ) +
-      ( cell.size.outerWidth - cell.size[ nextMargin ] );
-
-    if ( canCellFit.call( this, i, slideWidth ) ) {
-      slide.addCell( cell );
-    } else {
-      // doesn't fit, new slide
-      slide.updateTarget();
-
-      slide = new Slide( this );
-      this.slides.push( slide );
-      slide.addCell( cell );
-    }
-  }, this );
-  // last slide
-  slide.updateTarget();
-  // update .selectedSlide
-  this.updateSelectedSlide();
-};
-
-proto._getCanCellFit = function() {
-  var groupCells = this.options.groupCells;
-  if ( !groupCells ) {
-    return function() {
-      return false;
-    };
-  } else if ( typeof groupCells == 'number' ) {
-    // group by number. 3 -> [0,1,2], [3,4,5], ...
-    var number = parseInt( groupCells, 10 );
-    return function( i ) {
-      return ( i % number ) !== 0;
-    };
-  }
-  // default, group by width of slide
-  // parse '75%
-  var percentMatch = typeof groupCells == 'string' &&
-    groupCells.match(/^(\d+)%$/);
-  var percent = percentMatch ? parseInt( percentMatch[1], 10 ) / 100 : 1;
-  return function( i, slideWidth ) {
-    return slideWidth <= ( this.size.innerWidth + 1 ) * percent;
-  };
-};
-
-// alias _init for jQuery plugin .flickity()
-proto._init =
-proto.reposition = function() {
-  this.positionCells();
-  this.positionSliderAtSelected();
-};
-
-proto.getSize = function() {
-  this.size = getSize( this.element );
-  this.setCellAlign();
-  this.cursorPosition = this.size.innerWidth * this.cellAlign;
-};
-
-var cellAlignShorthands = {
-  // cell align, then based on origin side
-  center: {
-    left: 0.5,
-    right: 0.5
-  },
-  left: {
-    left: 0,
-    right: 1
-  },
-  right: {
-    right: 0,
-    left: 1
-  }
-};
-
-proto.setCellAlign = function() {
-  var shorthand = cellAlignShorthands[ this.options.cellAlign ];
-  this.cellAlign = shorthand ? shorthand[ this.originSide ] : this.options.cellAlign;
-};
-
-proto.setGallerySize = function() {
-  if ( this.options.setGallerySize ) {
-    var height = this.options.adaptiveHeight && this.selectedSlide ?
-      this.selectedSlide.height : this.maxCellHeight;
-    this.viewport.style.height = height + 'px';
-  }
-};
-
-proto._getWrapShiftCells = function() {
-  // only for wrap-around
-  if ( !this.options.wrapAround ) {
-    return;
-  }
-  // unshift previous cells
-  this._unshiftCells( this.beforeShiftCells );
-  this._unshiftCells( this.afterShiftCells );
-  // get before cells
-  // initial gap
-  var gapX = this.cursorPosition;
-  var cellIndex = this.cells.length - 1;
-  this.beforeShiftCells = this._getGapCells( gapX, cellIndex, -1 );
-  // get after cells
-  // ending gap between last cell and end of gallery viewport
-  gapX = this.size.innerWidth - this.cursorPosition;
-  // start cloning at first cell, working forwards
-  this.afterShiftCells = this._getGapCells( gapX, 0, 1 );
-};
-
-proto._getGapCells = function( gapX, cellIndex, increment ) {
-  // keep adding cells until the cover the initial gap
-  var cells = [];
-  while ( gapX > 0 ) {
-    var cell = this.cells[ cellIndex ];
-    if ( !cell ) {
-      break;
-    }
-    cells.push( cell );
-    cellIndex += increment;
-    gapX -= cell.size.outerWidth;
-  }
-  return cells;
-};
-
-// ----- contain ----- //
-
-// contain cell targets so no excess sliding
-proto._containSlides = function() {
-  if ( !this.options.contain || this.options.wrapAround || !this.cells.length ) {
-    return;
-  }
-  var isRightToLeft = this.options.rightToLeft;
-  var beginMargin = isRightToLeft ? 'marginRight' : 'marginLeft';
-  var endMargin = isRightToLeft ? 'marginLeft' : 'marginRight';
-  var contentWidth = this.slideableWidth - this.getLastCell().size[ endMargin ];
-  // content is less than gallery size
-  var isContentSmaller = contentWidth < this.size.innerWidth;
-  // bounds
-  var beginBound = this.cursorPosition + this.cells[0].size[ beginMargin ];
-  var endBound = contentWidth - this.size.innerWidth * ( 1 - this.cellAlign );
-  // contain each cell target
-  this.slides.forEach( function( slide ) {
-    if ( isContentSmaller ) {
-      // all cells fit inside gallery
-      slide.target = contentWidth * this.cellAlign;
-    } else {
-      // contain to bounds
-      slide.target = Math.max( slide.target, beginBound );
-      slide.target = Math.min( slide.target, endBound );
-    }
-  }, this );
-};
-
-// -----  ----- //
-
-/**
- * emits events via eventEmitter and jQuery events
- * @param {String} type - name of event
- * @param {Event} event - original event
- * @param {Array} args - extra arguments
- */
-proto.dispatchEvent = function( type, event, args ) {
-  var emitArgs = event ? [ event ].concat( args ) : args;
-  this.emitEvent( type, emitArgs );
-
-  if ( jQuery && this.$element ) {
-    // default trigger with type if no event
-    type += this.options.namespaceJQueryEvents ? '.flickity' : '';
-    var $event = type;
-    if ( event ) {
-      // create jQuery event
-      var jQEvent = jQuery.Event( event );
-      jQEvent.type = type;
-      $event = jQEvent;
-    }
-    this.$element.trigger( $event, args );
-  }
-};
-
-// -------------------------- select -------------------------- //
-
-/**
- * @param {Integer} index - index of the slide
- * @param {Boolean} isWrap - will wrap-around to last/first if at the end
- * @param {Boolean} isInstant - will immediately set position at selected cell
- */
-proto.select = function( index, isWrap, isInstant ) {
-  if ( !this.isActive ) {
-    return;
-  }
-  index = parseInt( index, 10 );
-  this._wrapSelect( index );
-
-  if ( this.options.wrapAround || isWrap ) {
-    index = utils.modulo( index, this.slides.length );
-  }
-  // bail if invalid index
-  if ( !this.slides[ index ] ) {
-    return;
-  }
-  this.selectedIndex = index;
-  this.updateSelectedSlide();
-  if ( isInstant ) {
-    this.positionSliderAtSelected();
-  } else {
-    this.startAnimation();
-  }
-  if ( this.options.adaptiveHeight ) {
-    this.setGallerySize();
-  }
-
-  this.dispatchEvent('select');
-  // old v1 event name, remove in v3
-  this.dispatchEvent('cellSelect');
-};
-
-// wraps position for wrapAround, to move to closest slide. #113
-proto._wrapSelect = function( index ) {
-  var len = this.slides.length;
-  var isWrapping = this.options.wrapAround && len > 1;
-  if ( !isWrapping ) {
-    return index;
-  }
-  var wrapIndex = utils.modulo( index, len );
-  // go to shortest
-  var delta = Math.abs( wrapIndex - this.selectedIndex );
-  var backWrapDelta = Math.abs( ( wrapIndex + len ) - this.selectedIndex );
-  var forewardWrapDelta = Math.abs( ( wrapIndex - len ) - this.selectedIndex );
-  if ( !this.isDragSelect && backWrapDelta < delta ) {
-    index += len;
-  } else if ( !this.isDragSelect && forewardWrapDelta < delta ) {
-    index -= len;
-  }
-  // wrap position so slider is within normal area
-  if ( index < 0 ) {
-    this.x -= this.slideableWidth;
-  } else if ( index >= len ) {
-    this.x += this.slideableWidth;
-  }
-};
-
-proto.previous = function( isWrap, isInstant ) {
-  this.select( this.selectedIndex - 1, isWrap, isInstant );
-};
-
-proto.next = function( isWrap, isInstant ) {
-  this.select( this.selectedIndex + 1, isWrap, isInstant );
-};
-
-proto.updateSelectedSlide = function() {
-  var slide = this.slides[ this.selectedIndex ];
-  // selectedIndex could be outside of slides, if triggered before resize()
-  if ( !slide ) {
-    return;
-  }
-  // unselect previous selected slide
-  this.unselectSelectedSlide();
-  // update new selected slide
-  this.selectedSlide = slide;
-  slide.select();
-  this.selectedCells = slide.cells;
-  this.selectedElements = slide.getCellElements();
-  // HACK: selectedCell & selectedElement is first cell in slide, backwards compatibility
-  // Remove in v3?
-  this.selectedCell = slide.cells[0];
-  this.selectedElement = this.selectedElements[0];
-};
-
-proto.unselectSelectedSlide = function() {
-  if ( this.selectedSlide ) {
-    this.selectedSlide.unselect();
-  }
-};
-
-/**
- * select slide from number or cell element
- * @param {Element or Number} elem
- */
-proto.selectCell = function( value, isWrap, isInstant ) {
-  // get cell
-  var cell;
-  if ( typeof value == 'number' ) {
-    cell = this.cells[ value ];
-  } else {
-    // use string as selector
-    if ( typeof value == 'string' ) {
-      value = this.element.querySelector( value );
-    }
-    // get cell from element
-    cell = this.getCell( value );
-  }
-  // select slide that has cell
-  for ( var i=0; cell && i < this.slides.length; i++ ) {
-    var slide = this.slides[i];
-    var index = slide.cells.indexOf( cell );
-    if ( index != -1 ) {
-      this.select( i, isWrap, isInstant );
-      return;
-    }
-  }
-};
-
-// -------------------------- get cells -------------------------- //
-
-/**
- * get Flickity.Cell, given an Element
- * @param {Element} elem
- * @returns {Flickity.Cell} item
- */
-proto.getCell = function( elem ) {
-  // loop through cells to get the one that matches
-  for ( var i=0; i < this.cells.length; i++ ) {
-    var cell = this.cells[i];
-    if ( cell.element == elem ) {
-      return cell;
-    }
-  }
-};
-
-/**
- * get collection of Flickity.Cells, given Elements
- * @param {Element, Array, NodeList} elems
- * @returns {Array} cells - Flickity.Cells
- */
-proto.getCells = function( elems ) {
-  elems = utils.makeArray( elems );
-  var cells = [];
-  elems.forEach( function( elem ) {
-    var cell = this.getCell( elem );
-    if ( cell ) {
-      cells.push( cell );
-    }
-  }, this );
-  return cells;
-};
-
-/**
- * get cell elements
- * @returns {Array} cellElems
- */
-proto.getCellElements = function() {
-  return this.cells.map( function( cell ) {
-    return cell.element;
-  });
-};
-
-/**
- * get parent cell from an element
- * @param {Element} elem
- * @returns {Flickit.Cell} cell
- */
-proto.getParentCell = function( elem ) {
-  // first check if elem is cell
-  var cell = this.getCell( elem );
-  if ( cell ) {
-    return cell;
-  }
-  // try to get parent cell elem
-  elem = utils.getParent( elem, '.flickity-slider > *' );
-  return this.getCell( elem );
-};
-
-/**
- * get cells adjacent to a slide
- * @param {Integer} adjCount - number of adjacent slides
- * @param {Integer} index - index of slide to start
- * @returns {Array} cells - array of Flickity.Cells
- */
-proto.getAdjacentCellElements = function( adjCount, index ) {
-  if ( !adjCount ) {
-    return this.selectedSlide.getCellElements();
-  }
-  index = index === undefined ? this.selectedIndex : index;
-
-  var len = this.slides.length;
-  if ( 1 + ( adjCount * 2 ) >= len ) {
-    return this.getCellElements();
-  }
-
-  var cellElems = [];
-  for ( var i = index - adjCount; i <= index + adjCount ; i++ ) {
-    var slideIndex = this.options.wrapAround ? utils.modulo( i, len ) : i;
-    var slide = this.slides[ slideIndex ];
-    if ( slide ) {
-      cellElems = cellElems.concat( slide.getCellElements() );
-    }
-  }
-  return cellElems;
-};
-
-// -------------------------- events -------------------------- //
-
-proto.uiChange = function() {
-  this.emitEvent('uiChange');
-};
-
-proto.childUIPointerDown = function( event ) {
-  this.emitEvent( 'childUIPointerDown', [ event ] );
-};
-
-// ----- resize ----- //
-
-proto.onresize = function() {
-  this.watchCSS();
-  this.resize();
-};
-
-utils.debounceMethod( Flickity, 'onresize', 150 );
-
-proto.resize = function() {
-  if ( !this.isActive ) {
-    return;
-  }
-  this.getSize();
-  // wrap values
-  if ( this.options.wrapAround ) {
-    this.x = utils.modulo( this.x, this.slideableWidth );
-  }
-  this.positionCells();
-  this._getWrapShiftCells();
-  this.setGallerySize();
-  this.emitEvent('resize');
-  // update selected index for group slides, instant
-  // TODO: position can be lost between groups of various numbers
-  var selectedElement = this.selectedElements && this.selectedElements[0];
-  this.selectCell( selectedElement, false, true );
-};
-
-// watches the :after property, activates/deactivates
-proto.watchCSS = function() {
-  var watchOption = this.options.watchCSS;
-  if ( !watchOption ) {
-    return;
-  }
-
-  var afterContent = getComputedStyle( this.element, ':after' ).content;
-  // activate if :after { content: 'flickity' }
-  if ( afterContent.indexOf('flickity') != -1 ) {
-    this.activate();
-  } else {
-    this.deactivate();
-  }
-};
-
-// ----- keydown ----- //
-
-// go previous/next if left/right keys pressed
-proto.onkeydown = function( event ) {
-  // only work if element is in focus
-  if ( !this.options.accessibility ||
-    ( document.activeElement && document.activeElement != this.element ) ) {
-    return;
-  }
-
-  if ( event.keyCode == 37 ) {
-    // go left
-    var leftMethod = this.options.rightToLeft ? 'next' : 'previous';
-    this.uiChange();
-    this[ leftMethod ]();
-  } else if ( event.keyCode == 39 ) {
-    // go right
-    var rightMethod = this.options.rightToLeft ? 'previous' : 'next';
-    this.uiChange();
-    this[ rightMethod ]();
-  }
-};
-
-// -------------------------- destroy -------------------------- //
-
-// deactivate all Flickity functionality, but keep stuff available
-proto.deactivate = function() {
-  if ( !this.isActive ) {
-    return;
-  }
-  this.element.classList.remove('flickity-enabled');
-  this.element.classList.remove('flickity-rtl');
-  // destroy cells
-  this.cells.forEach( function( cell ) {
-    cell.destroy();
-  });
-  this.unselectSelectedSlide();
-  this.element.removeChild( this.viewport );
-  // move child elements back into element
-  moveElements( this.slider.children, this.element );
-  if ( this.options.accessibility ) {
-    this.element.removeAttribute('tabIndex');
-    this.element.removeEventListener( 'keydown', this );
-  }
-  // set flags
-  this.isActive = false;
-  this.emitEvent('deactivate');
-};
-
-proto.destroy = function() {
-  this.deactivate();
-  window.removeEventListener( 'resize', this );
-  this.emitEvent('destroy');
-  if ( jQuery && this.$element ) {
-    jQuery.removeData( this.element, 'flickity' );
-  }
-  delete this.element.flickityGUID;
-  delete instances[ this.guid ];
-};
-
-// -------------------------- prototype -------------------------- //
-
-utils.extend( proto, animatePrototype );
-
-// -------------------------- extras -------------------------- //
-
-/**
- * get Flickity instance from element
- * @param {Element} elem
- * @returns {Flickity}
- */
-Flickity.data = function( elem ) {
-  elem = utils.getQueryElement( elem );
-  var id = elem && elem.flickityGUID;
-  return id && instances[ id ];
-};
-
-utils.htmlInit( Flickity, 'flickity' );
-
-if ( jQuery && jQuery.bridget ) {
-  jQuery.bridget( 'flickity', Flickity );
-}
-
-// set internal jQuery, for Webpack + jQuery v3, #478
-Flickity.setJQuery = function( jq ) {
-  jQuery = jq;
-};
-
-Flickity.Cell = Cell;
-
-return Flickity;
-
-}));
-
-
-/***/ }),
-/* 56 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Model", function() { return Model; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Collection", function() { return Collection; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_lodash__ = __webpack_require__(91);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_lodash___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_lodash__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_axios__ = __webpack_require__(627);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_axios___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_axios__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_vue__ = __webpack_require__(62);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_vue__);
-
-
-
-
-
-var asyncGenerator = function () {
-  function AwaitValue(value) {
-    this.value = value;
-  }
-
-  function AsyncGenerator(gen) {
-    var front, back;
-
-    function send(key, arg) {
-      return new Promise(function (resolve, reject) {
-        var request = {
-          key: key,
-          arg: arg,
-          resolve: resolve,
-          reject: reject,
-          next: null
-        };
-
-        if (back) {
-          back = back.next = request;
-        } else {
-          front = back = request;
-          resume(key, arg);
-        }
-      });
-    }
-
-    function resume(key, arg) {
-      try {
-        var result = gen[key](arg);
-        var value = result.value;
-
-        if (value instanceof AwaitValue) {
-          Promise.resolve(value.value).then(function (arg) {
-            resume("next", arg);
-          }, function (arg) {
-            resume("throw", arg);
-          });
-        } else {
-          settle(result.done ? "return" : "normal", result.value);
-        }
-      } catch (err) {
-        settle("throw", err);
-      }
-    }
-
-    function settle(type, value) {
-      switch (type) {
-        case "return":
-          front.resolve({
-            value: value,
-            done: true
-          });
-          break;
-
-        case "throw":
-          front.reject(value);
-          break;
-
-        default:
-          front.resolve({
-            value: value,
-            done: false
-          });
-          break;
-      }
-
-      front = front.next;
-
-      if (front) {
-        resume(front.key, front.arg);
-      } else {
-        back = null;
-      }
-    }
-
-    this._invoke = send;
-
-    if (typeof gen.return !== "function") {
-      this.return = undefined;
-    }
-  }
-
-  if (typeof Symbol === "function" && Symbol.asyncIterator) {
-    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
-      return this;
-    };
-  }
-
-  AsyncGenerator.prototype.next = function (arg) {
-    return this._invoke("next", arg);
-  };
-
-  AsyncGenerator.prototype.throw = function (arg) {
-    return this._invoke("throw", arg);
-  };
-
-  AsyncGenerator.prototype.return = function (arg) {
-    return this._invoke("return", arg);
-  };
-
-  return {
-    wrap: function (fn) {
-      return function () {
-        return new AsyncGenerator(fn.apply(this, arguments));
-      };
-    },
-    await: function (value) {
-      return new AwaitValue(value);
-    }
-  };
-}();
-
-
-
-
-
-var classCallCheck = function (instance, Constructor) {
-  if (!(instance instanceof Constructor)) {
-    throw new TypeError("Cannot call a class as a function");
-  }
-};
-
-var createClass = function () {
-  function defineProperties(target, props) {
-    for (var i = 0; i < props.length; i++) {
-      var descriptor = props[i];
-      descriptor.enumerable = descriptor.enumerable || false;
-      descriptor.configurable = true;
-      if ("value" in descriptor) descriptor.writable = true;
-      Object.defineProperty(target, descriptor.key, descriptor);
-    }
-  }
-
-  return function (Constructor, protoProps, staticProps) {
-    if (protoProps) defineProperties(Constructor.prototype, protoProps);
-    if (staticProps) defineProperties(Constructor, staticProps);
-    return Constructor;
-  };
-}();
-
-
-
-
-
-var defineProperty = function (obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    });
-  } else {
-    obj[key] = value;
-  }
-
-  return obj;
-};
-
-var get$1 = function get$$1(object, property, receiver) {
-  if (object === null) object = Function.prototype;
-  var desc = Object.getOwnPropertyDescriptor(object, property);
-
-  if (desc === undefined) {
-    var parent = Object.getPrototypeOf(object);
-
-    if (parent === null) {
-      return undefined;
-    } else {
-      return get$$1(parent, property, receiver);
-    }
-  } else if ("value" in desc) {
-    return desc.value;
-  } else {
-    var getter = desc.get;
-
-    if (getter === undefined) {
-      return undefined;
-    }
-
-    return getter.call(receiver);
-  }
-};
-
-var inherits = function (subClass, superClass) {
-  if (typeof superClass !== "function" && superClass !== null) {
-    throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
-  }
-
-  subClass.prototype = Object.create(superClass && superClass.prototype, {
-    constructor: {
-      value: subClass,
-      enumerable: false,
-      writable: true,
-      configurable: true
-    }
-  });
-  if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
-};
-
-
-
-
-
-
-
-
-
-
-
-var possibleConstructorReturn = function (self, call) {
-  if (!self) {
-    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
-  }
-
-  return call && (typeof call === "object" || typeof call === "function") ? call : self;
-};
-
-var Response = function () {
-    function Response(response) {
-        classCallCheck(this, Response);
-
-        this.response = response;
-    }
-
-    createClass(Response, [{
-        key: 'getData',
-        value: function getData() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.response, 'data', null);
-        }
-    }, {
-        key: 'getStatus',
-        value: function getStatus() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.response, 'status');
-        }
-    }, {
-        key: 'getHeaders',
-        value: function getHeaders() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.response, 'headers', {});
-        }
-    }, {
-        key: 'getValidationErrors',
-        value: function getValidationErrors() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.response, 'data', null);
-        }
-    }]);
-    return Response;
-}();
-
-var RequestError = function () {
-    function RequestError(error, response) {
-        classCallCheck(this, RequestError);
-
-        this.error = error;
-        this.response = response;
-        this.stack = new Error().stack;
-        this.message = error.message;
-    }
-
-    createClass(RequestError, [{
-        key: "toString",
-        value: function toString() {
-            return this.message;
-        }
-    }, {
-        key: "getError",
-        value: function getError() {
-            return this.error;
-        }
-    }, {
-        key: "getResponse",
-        value: function getResponse() {
-            return this.response;
-        }
-    }]);
-    return RequestError;
-}();
-
-var Request = function () {
-    function Request(config) {
-        classCallCheck(this, Request);
-
-        this.config = config;
-    }
-
-    /**
-     * @returns {Promise}
-     */
-
-
-    createClass(Request, [{
-        key: 'send',
-        value: function send() {
-            var _this = this;
-
-            return new Promise(function (resolve, reject) {
-                __WEBPACK_IMPORTED_MODULE_1_axios___default.a.request(_this.config).then(function (response) {
-                    return resolve(new Response(response));
-                }).catch(function (error) {
-                    return reject(new RequestError(error, new Response(error.response)));
-                });
-            });
-        }
-    }]);
-    return Request;
-}();
-
-/**
- * Binds all methods of a class instance to itself.
- */
-var autobind = function autobind(instance) {
-    for (var obj = instance; obj; obj = Object.getPrototypeOf(obj)) {
-
-        // We're the end of the inheritance chain if we've reached 'Object'.
-        if (obj.constructor.name === 'Object') {
-            return;
-        }
-
-        var names = Object.getOwnPropertyNames(obj);
-
-        // Bind each function to the instance.
-        for (var i = 0; i < names.length; i++) {
-            var name = names[i];
-
-            // No need to bind getters, as attempting to access them would also
-            // invoke them which is something we don't want to do here.
-            if (Object.getOwnPropertyDescriptor(obj, name).get) {
-                continue;
-            }
-
-            // We're using `defineProperty` here so that we don't make all the
-            // class methods enumerable when we replace them.
-            if (typeof obj[name] === 'function' && name !== 'constructor') {
-                Object.defineProperty(instance, name, {
-                    value: instance[name].bind(instance),
-                    enumerable: false,
-                    configurable: true,
-                    writable: true
-                });
-            }
-        }
-    }
-};
-
-/**
- * Base class for all things common between Model and Collection.
- */
-
-var Base = function () {
-    function Base(options) {
-        classCallCheck(this, Base);
-
-        autobind(this);
-
-        // Define an automatic unique ID. This is primarily to distinguish
-        // between multiple instances of the same name and data.
-        Object.defineProperty(this, '_uid', {
-            value: Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["uniqueId"])(),
-            enumerable: false,
-            configurable: false,
-            writable: false
-        });
-
-        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_listeners', {}); // Event listeners
-        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_options', {}); // Internal option store
-
-        this.setOptions(options);
-        this.boot();
-    }
-
-    /**
-     * @returns {string} The class name of this instance.
-     */
-
-
-    createClass(Base, [{
-        key: 'boot',
-
-
-        /**
-         * Called after construction, this hook allows you to add some extra setup
-         * logic without having to override the constructor.
-         */
-        value: function boot() {}
-
-        /**
-         * Returns a route configuration in the form {key: name}, where key may be
-         * 'save', 'fetch', 'delete' or any other custom key, and the name is what
-         * will be passed to the route resolver to generate the URL. See @getURL
-         *
-         * @returns {Object}
-         */
-
-    }, {
-        key: 'routes',
-        value: function routes() {
-            return {};
-        }
-
-        /**
-         * Returns the default context for all events emitted by this instance.
-         *
-         * @returns {Object}
-         */
-
-    }, {
-        key: 'getDefaultEventContext',
-        value: function getDefaultEventContext() {
-            return { target: this };
-        }
-
-        /**
-         * @returns {string} Default string representation.
-         */
-
-    }, {
-        key: 'toString',
-        value: function toString() {
-            return '<' + this.$class + ' #' + this._uid + '>';
-        }
-
-        /**
-         * Emits an event by name to all registered listeners on that event.
-          * Listeners will be called in the order that they were added. If a listener
-         * returns `false`, no other listeners will be called.
-         *
-         * @param {string} event    The name of the event to emit.
-         * @param {Object} context  The context of the event, passed to listeners.
-         */
-
-    }, {
-        key: 'emit',
-        value: function emit(event) {
-            var context = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-            var listeners = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this._listeners, event);
-
-            if (!listeners) {
-                return;
-            }
-
-            // Create the context for the event.
-            context = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaults"])({}, context, this.getDefaultEventContext());
-
-            // Run through each listener. If any of them return false, stop the
-            // iteration and mark that the event wasn't handled by all listeners.
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(listeners, function (listener) {
-                return listener(context);
-            });
-        }
-
-        /**
-         * Registers an event listener for a given event.
-         *
-         * Event names can be comma-separated to register multiple events.
-         *
-         * @param {string}   event      The name of the event to listen for.
-         * @param {function} listener   The event listener, accepts context.
-         */
-
-    }, {
-        key: 'on',
-        value: function on(event, listener) {
-            var _this = this;
-
-            var events = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["split"])(event, ','), __WEBPACK_IMPORTED_MODULE_0_lodash__["trim"]);
-
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(events, function (event) {
-                _this._listeners[event] = _this._listeners[event] || [];
-                _this._listeners[event].push(listener);
-            });
-        }
-
-        /**
-         * @returns {Object} Parameters to use for replacement in route patterns.
-         */
-
-    }, {
-        key: 'getRouteParameters',
-        value: function getRouteParameters() {
-            return {};
-        }
-
-        /**
-         * @returns {RegExp|string} Pattern to match and group route parameters.
-         */
-
-    }, {
-        key: 'getRouteParameterPattern',
-        value: function getRouteParameterPattern() {
-            return this.getOption('routeParameterPattern');
-        }
-
-        /**
-         * @returns {RegExp} The default route parameter pattern.
-         */
-
-    }, {
-        key: 'getDefaultRouteParameterPattern',
-        value: function getDefaultRouteParameterPattern() {
-            return (/\{([^}]+)\}/
-            );
-        }
-
-        /**
-         * @returns {Object} This class' default options.
-         */
-
-    }, {
-        key: 'getDefaultOptions',
-        value: function getDefaultOptions() {
-            return {
-
-                // Default HTTP methods for requests.
-                methods: this.getDefaultMethods(),
-
-                // Default route parameter interpolation pattern.
-                routeParameterPattern: this.getDefaultRouteParameterPattern(),
-
-                // The HTTP status code to use for indicating a validation error.
-                validationErrorStatus: 422
-            };
-        }
-
-        /**
-         * @param {Array|string} path     Option path resolved by `_.get`
-         * @param {*}            fallback Fallback value if the option is not set.
-         *
-         * @returns {*} The value of the given option path.
-         */
-
-    }, {
-        key: 'getOption',
-        value: function getOption(path) {
-            var fallback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
-
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this._options, path, fallback);
-        }
-
-        /**
-         * @returns {Object} This instance's default options.
-         */
-
-    }, {
-        key: 'options',
-        value: function options() {
-            return {};
-        }
-
-        /**
-         * Sets an option.
-         *
-         * @param {string} path
-         * @param {*}      value
-         */
-
-    }, {
-        key: 'setOption',
-        value: function setOption(path, value) {
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["set"])(this._options, path, value);
-        }
-
-        /**
-         * Sets all given options. Successive values for the same option won't be
-         * overwritten, so this follows the 'defaults' behaviour, and not 'merge'.
-         *
-         * @param {...Object} options One or more objects of options.
-         */
-
-    }, {
-        key: 'setOptions',
-        value: function setOptions() {
-            for (var _len = arguments.length, options = Array(_len), _key = 0; _key < _len; _key++) {
-                options[_key] = arguments[_key];
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_options', __WEBPACK_IMPORTED_MODULE_0_lodash__["defaultsDeep"].apply(__WEBPACK_IMPORTED_MODULE_0_lodash__, [{}].concat(options, [// Given options
-            this.options(), // Instance defaults
-            this.getDefaultOptions() // Class defaults
-            ])));
-        }
-
-        /**
-         * Returns all the options that are currently set on this instance.
-         *
-         * @return {Object}
-         */
-
-    }, {
-        key: 'getOptions',
-        value: function getOptions() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultTo"])(this._options, {});
-        }
-
-        /**
-         * Returns a function that translates a route key and parameters to a URL.
-         *
-         * @returns {Function} Will be passed `route` and `parameters`
-         */
-
-    }, {
-        key: 'getRouteResolver',
-        value: function getRouteResolver() {
-            return this.getDefaultRouteResolver();
-        }
-
-        /**
-         * @returns {Object} An object consisting of all route string replacements.
-         */
-
-    }, {
-        key: 'getRouteReplacements',
-        value: function getRouteReplacements(route) {
-            var parameters = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-            var replace$$1 = {};
-            var pattern = new RegExp(this.getRouteParameterPattern(), 'g');
-
-            for (var parameter; (parameter = pattern.exec(route)) !== null;) {
-                replace$$1[parameter[0]] = parameters[parameter[1]];
-            }
-
-            return replace$$1;
-        }
-
-        /**
-         * Returns the default URL provider, which assumes that route keys are URL's,
-         * and parameter replacement syntax is in the form "{param}".
-         *
-         * @returns {Function}
-         */
-
-    }, {
-        key: 'getDefaultRouteResolver',
-        value: function getDefaultRouteResolver() {
-            var _this2 = this;
-
-            return function (route) {
-                var parameters = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-                var replacements = _this2.getRouteReplacements(route, parameters);
-
-                // Replace all route parameters with their replacement values.
-                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["reduce"])(replacements, function (result, value, parameter) {
-                    return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["replace"])(result, parameter, value);
-                }, route);
-            };
-        }
-
-        /**
-         * @returns {Object} The data to send to the server when saving this model.
-         */
-
-    }, {
-        key: 'getDeleteBody',
-        value: function getDeleteBody() {
-            return {};
-        }
-
-        /**
-         * @returns {Object} Query parameters that will be appended to the `fetch` URL.
-         */
-
-    }, {
-        key: 'getFetchQuery',
-        value: function getFetchQuery() {
-            return {};
-        }
-
-        /**
-         * @returns {Object} Query parameters that will be appended to the `save` URL.
-         */
-
-    }, {
-        key: 'getSaveQuery',
-        value: function getSaveQuery() {
-            return {};
-        }
-
-        /**
-         * @returns {Object} Query parameters that will be appended to the `delete` URL.
-         */
-
-    }, {
-        key: 'getDeleteQuery',
-        value: function getDeleteQuery() {
-            return {};
-        }
-
-        /**
-         * @returns {string} The key to use when generating the `fetch` URL.
-         */
-
-    }, {
-        key: 'getFetchRoute',
-        value: function getFetchRoute() {
-            return this.getRoute('fetch');
-        }
-
-        /**
-         * @returns {string} The key to use when generating the `save` URL.
-         */
-
-    }, {
-        key: 'getSaveRoute',
-        value: function getSaveRoute() {
-            return this.getRoute('save');
-        }
-
-        /**
-         * @returns {string} The key to use when generating the `delete` URL.
-         */
-
-    }, {
-        key: 'getDeleteRoute',
-        value: function getDeleteRoute() {
-            return this.getRoute('delete');
-        }
-
-        /**
-         * @returns {Object} Headers to use when making a save request.
-         */
-
-    }, {
-        key: 'getSaveHeaders',
-        value: function getSaveHeaders() {
-            return {};
-        }
-
-        /**
-         * @returns {Object} Headers to use when making any request.
-         */
-
-    }, {
-        key: 'getDefaultHeaders',
-        value: function getDefaultHeaders() {
-            return {};
-        }
-
-        /**
-         * @returns {Object} Headers to use when making a fetch request.
-         */
-
-    }, {
-        key: 'getFetchHeaders',
-        value: function getFetchHeaders() {
-            return {};
-        }
-
-        /**
-         * @returns {Object} Headers to use when making a delete request.
-         */
-
-    }, {
-        key: 'getDeleteHeaders',
-        value: function getDeleteHeaders() {
-            return {};
-        }
-
-        /**
-         * @returns {Object} Default HTTP methods.
-         */
-
-    }, {
-        key: 'getDefaultMethods',
-        value: function getDefaultMethods() {
-            return {
-                fetch: 'GET',
-                save: 'POST',
-                update: 'POST',
-                create: 'POST',
-                patch: 'PATCH',
-                delete: 'DELETE'
-            };
-        }
-
-        /**
-         * @returns {string} HTTP method to use when making a save request.
-         */
-
-    }, {
-        key: 'getSaveMethod',
-        value: function getSaveMethod() {
-            return this.getOption('methods.save');
-        }
-
-        /**
-         * @returns {string} HTTP method to use when making a fetch request.
-         */
-
-    }, {
-        key: 'getFetchMethod',
-        value: function getFetchMethod() {
-            return this.getOption('methods.fetch');
-        }
-
-        /**
-         * @returns {string} HTTP method to use when updating a resource.
-         */
-
-    }, {
-        key: 'getUpdateMethod',
-        value: function getUpdateMethod() {
-            return this.getOption('methods.update');
-        }
-
-        /**
-         * @returns {string} HTTP method to use when patching a resource.
-         */
-
-    }, {
-        key: 'getPatchMethod',
-        value: function getPatchMethod() {
-            return this.getOption('methods.patch');
-        }
-
-        /**
-         * @returns {string} HTTP method to use when creating a resource.
-         */
-
-    }, {
-        key: 'getCreateMethod',
-        value: function getCreateMethod() {
-            return this.getOption('methods.create');
-        }
-
-        /**
-         * @returns {string} HTTP method to use when deleting a resource.
-         */
-
-    }, {
-        key: 'getDeleteMethod',
-        value: function getDeleteMethod() {
-            return this.getOption('methods.delete');
-        }
-
-        /**
-         * @returns {number} The HTTP status code that indicates a validation error.
-         */
-
-    }, {
-        key: 'getValidationErrorStatus',
-        value: function getValidationErrorStatus() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultTo"])(this.getOption('validationErrorStatus'), 422);
-        }
-
-        /**
-         * @returns {boolean} `true` if the response indicates a validation error.
-         */
-
-    }, {
-        key: 'isBackendValidationError',
-        value: function isBackendValidationError(error) {
-
-            // The error must have a response for it to be a validation error.
-            if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["invoke"])(error, 'getResponse', false)) {
-                return false;
-            }
-
-            var status = error.getResponse().getStatus();
-            var invalid = this.getValidationErrorStatus();
-
-            return status == invalid;
-        }
-
-        /**
-         * @return {string|undefined} Route value by key.
-         */
-
-    }, {
-        key: 'getRoute',
-        value: function getRoute(key, fallback) {
-            var route = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.routes(), key, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.routes(), fallback));
-
-            if (!route) {
-                throw new Error('Invalid or missing route');
-            }
-
-            return route;
-        }
-
-        /**
-         * @returns {string} The full URL to use when making a fetch request.
-         */
-
-    }, {
-        key: 'getFetchURL',
-        value: function getFetchURL() {
-            return this.getURL(this.getFetchRoute(), this.getRouteParameters());
-        }
-
-        /**
-         * @returns {string} The full URL to use when making a save request.
-         */
-
-    }, {
-        key: 'getSaveURL',
-        value: function getSaveURL() {
-            return this.getURL(this.getSaveRoute(), this.getRouteParameters());
-        }
-
-        /**
-         * @returns {string} The full URL to use when making a delete request.
-         */
-
-    }, {
-        key: 'getDeleteURL',
-        value: function getDeleteURL() {
-            return this.getURL(this.getDeleteRoute(), this.getRouteParameters());
-        }
-
-        /**
-         * @param {string} route      The route key to use to generate the URL.
-         * @param {Object} parameters Route parameters.
-         *
-         * @returns {string} A URL that was generated using the given route key.
-         */
-
-    }, {
-        key: 'getURL',
-        value: function getURL(route) {
-            var parameters = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-
-            return this.getRouteResolver()(route, parameters);
-        }
-
-        /**
-         * @returns {Request} A new `Request` using the given configuration.
-         */
-
-    }, {
-        key: 'getRequest',
-        value: function getRequest(config) {
-            return new Request(config);
-        }
-
-        /**
-         * This is the central component for all HTTP requests and handling.
-         *
-         * @param  {Object}     config      Request configuration
-         * @param  {function}   onRequest   Called before the request is made.
-         * @param  {function}   onSuccess   Called when the request was successful.
-         * @param  {function}   onFailure   Called when the request failed.
-         */
-
-    }, {
-        key: 'request',
-        value: function request(config, onRequest, onSuccess, onFailure) {
-            var _this3 = this;
-
-            return new Promise(function (resolve, reject) {
-
-                var check = onRequest();
-
-                // Request should be skipped but the promise should not be resolved.
-                if (check === false) {
-                    return;
-                }
-
-                // Request should be skipped but should be considered successful.
-                if (check === true) {
-                    onSuccess(null);
-                    return resolve(null);
-                }
-
-                // Support passing the request configuration as a function, to allow
-                // for deferred resolution of certain values that may have changed
-                // during the call to "onRequest".
-                if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isFunction"])(config)) {
-                    config = config();
-                }
-
-                // Apply the default headers.
-                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaults"])(config.headers, _this3.getDefaultHeaders());
-
-                // Make the request.
-                return _this3.getRequest(config).send()
-
-                // Success
-                .then(function (response) {
-                    onSuccess(response);
-                    return resolve(response);
-                })
-
-                // Failure
-                .catch(function (error) {
-                    onFailure(error);
-                    return reject(error);
-                })
-
-                // Failure fallback, for errors that occur in `onFailure`.
-                .catch(function (error) {
-                    return reject(error);
-                });
-            });
-        }
-
-        /**
-         * Fetches data from the database/API.
-         *
-         * @returns {Promise}
-         */
-
-    }, {
-        key: 'fetch',
-        value: function fetch() {
-            var _this4 = this;
-
-            var config = function config() {
-                return {
-                    url: _this4.getFetchURL(),
-                    method: _this4.getFetchMethod(),
-                    params: _this4.getFetchQuery(),
-                    headers: _this4.getFetchHeaders()
-                };
-            };
-
-            return this.request(config, this.onFetch, this.onFetchSuccess, this.onFetchFailure);
-        }
-
-        /**
-         * Persists data to the database/API.
-         * @returns {Promise}
-         */
-
-    }, {
-        key: 'save',
-        value: function save() {
-            var _this5 = this;
-
-            var config = function config() {
-                return {
-                    url: _this5.getSaveURL(),
-                    method: _this5.getSaveMethod(),
-                    data: _this5.getSaveData(),
-                    params: _this5.getSaveQuery(),
-                    headers: _this5.getSaveHeaders()
-                };
-            };
-
-            return this.request(config, this.onSave, this.onSaveSuccess, this.onSaveFailure);
-        }
-
-        /**
-         * Removes model or collection data from the database/API.
-         * @returns {Promise}
-         */
-
-    }, {
-        key: 'delete',
-        value: function _delete() {
-            var _this6 = this;
-
-            var config = function config() {
-                return {
-                    url: _this6.getDeleteURL(),
-                    method: _this6.getDeleteMethod(),
-                    data: _this6.getDeleteBody(),
-                    params: _this6.getDeleteQuery(),
-                    headers: _this6.getDeleteHeaders()
-                };
-            };
-
-            return this.request(config, this.onDelete, this.onDeleteSuccess, this.onDeleteFailure);
-        }
-    }, {
-        key: '$class',
-        get: function get$$1() {
-            return Object.getPrototypeOf(this).constructor.name;
-        }
-    }]);
-    return Base;
-}();
-
-var ResponseError = function () {
-    function ResponseError(message, response) {
-        classCallCheck(this, ResponseError);
-
-        this.message = message;
-        this.response = response;
-        this.stack = new Error().stack;
-    }
-
-    createClass(ResponseError, [{
-        key: "toString",
-        value: function toString() {
-            return this.message;
-        }
-    }, {
-        key: "getResponse",
-        value: function getResponse() {
-            return this.response;
-        }
-    }]);
-    return ResponseError;
-}();
-
-var ValidationError = function () {
-    function ValidationError(errors) {
-        var message = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'Model did not pass validation';
-        classCallCheck(this, ValidationError);
-
-        this.message = message;
-        this.errors = errors;
-        this.stack = new Error().stack;
-    }
-
-    createClass(ValidationError, [{
-        key: 'toString',
-        value: function toString() {
-            return this.message;
-        }
-    }, {
-        key: 'getValidationErrors',
-        value: function getValidationErrors() {
-            return this.errors;
-        }
-    }]);
-    return ValidationError;
-}();
-
-var ProxyResponse = function () {
-    function ProxyResponse(status) {
-        var data = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-        var headers = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-        classCallCheck(this, ProxyResponse);
-
-        this.data = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultTo"])(data, {});
-        this.headers = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultTo"])(headers, {});
-        this.status = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["toSafeInteger"])(status);
-    }
-
-    createClass(ProxyResponse, [{
-        key: 'getData',
-        value: function getData() {
-            return this.data;
-        }
-    }, {
-        key: 'getStatus',
-        value: function getStatus() {
-            return this.status;
-        }
-    }, {
-        key: 'getHeaders',
-        value: function getHeaders() {
-            return this.headers;
-        }
-    }, {
-        key: 'getValidationErrors',
-        value: function getValidationErrors() {
-            return this.data;
-        }
-    }]);
-    return ProxyResponse;
-}();
-
-/**
- * Used as a marker to indicate that pagination is not enabled.
- */
-var NO_PAGE = null;
-
-/**
- * Used as a marker to indicate that a collection has paged through all results.
- */
-var LAST_PAGE = 0;
-
-/**
- * Base collection class.
- */
-
-var Collection = function (_Base) {
-    inherits(Collection, _Base);
-    createClass(Collection, [{
-        key: 'length',
-
-
-        /**
-         * Accessor to support Array.length semantics.
-         */
-        get: function get$$1() {
-            return this.size();
-        }
-
-        /**
-         * Creates a new instance, called when using 'new'.
-         *
-         * @param  {Array}  [models]    Models to add to this collection.
-         * @param  {Object} [options]   Extra options to set on this collection.
-         */
-
-    }]);
-
-    function Collection() {
-        var models = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
-        var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-        var attributes = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-        classCallCheck(this, Collection);
-
-        var _this = possibleConstructorReturn(this, (Collection.__proto__ || Object.getPrototypeOf(Collection)).call(this, options));
-
-        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, 'models', []); // Model store.
-        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_attributes', {}); // Property store.
-        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_registry', {}); // Model registry.
-        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_page', NO_PAGE);
-
-        _this.clearState();
-
-        // Set all given attributes.
-        _this.set(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultsDeep"])({}, attributes, _this.defaults()));
-
-        // Add all given models (if any) to this collection. We explicitly ask
-        // for the values here as it's common for some sources to be objects.
-        if (models) {
-            _this.add(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["values"])(models));
-        }
-        return _this;
-    }
-
-    /**
-     * Creates a copy of this collection. Model references are preserved so
-     * changes to the models inside the clone will also affect the subject.
-     *
-     * @returns {Collection}
-     */
-
-
-    createClass(Collection, [{
-        key: 'clone',
-        value: function clone() {
-            var clone = new this.constructor();
-
-            // Add all the existing models.
-            clone.add(this.models);
-
-            // Make sure that the clone has the same existing options.
-            clone.setOptions(this.getOptions());
-
-            return clone;
-        }
-
-        /**
-         * @return {Model} The class/constructor for this collection's model type.
-         */
-
-    }, {
-        key: 'model',
-        value: function model() {
-            return this.getOption('model');
-        }
-
-        /**
-         * @return {Object} Default attributes
-         */
-
-    }, {
-        key: 'defaults',
-        value: function defaults$$1() {
-            return {};
-        }
-
-        /**
-         * @return {*} The value of an attribute, or a given fallback if not set.
-         */
-
-    }, {
-        key: 'get',
-        value: function get$$1(attribute, fallback) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this._attributes, attribute, fallback);
-        }
-
-        /**
-         * Sets an attribute's value, or an object of attributes.
-         *
-         * @param {string|Object} attribute
-         * @param {*}             value
-         */
-
-    }, {
-        key: 'set',
-        value: function set$$1(attribute, value) {
-            var _this2 = this;
-
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(attribute)) {
-                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(attribute, function (value, key) {
-                    _this2.set(key, value);
-                });
-
-                return;
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this._attributes, attribute, value);
-        }
-
-        /**
-         * Returns the default options for this model.
-         *
-         * @returns {Object}
-         */
-
-    }, {
-        key: 'getDefaultOptions',
-        value: function getDefaultOptions() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["merge"])(get$1(Collection.prototype.__proto__ || Object.getPrototypeOf(Collection.prototype), 'getDefaultOptions', this).call(this), {
-
-                // The class/constructor for this collection's model type.
-                model: Model,
-
-                // Whether this collection should send model identifiers as JSON
-                // in the body of a delete request, instead of a query parameter.
-                useDeleteBody: true
-            });
-        }
-
-        /**
-         * @returns {Object} Parameters to use for replacement in route patterns.
-         */
-
-    }, {
-        key: 'getRouteParameters',
-        value: function getRouteParameters() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["merge"])({}, get$1(Collection.prototype.__proto__ || Object.getPrototypeOf(Collection.prototype), 'getRouteParameters', this).call(this), this._attributes, {
-                page: this._page
-            });
-        }
-
-        /**
-         * Removes all errors from the models in this collection.
-         */
-
-    }, {
-        key: 'clearErrors',
-        value: function clearErrors() {
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.models, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["method"])('clearErrors'));
-        }
-
-        /**
-         * Resets model state, ie. `loading`, etc back to their initial states.
-         */
-
-    }, {
-        key: 'clearState',
-        value: function clearState() {
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', true);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
-        }
-
-        /**
-         * Removes all models from this collection.
-         */
-
-    }, {
-        key: 'clearModels',
-        value: function clearModels() {
-            var _this3 = this;
-
-            var models = this.models;
-
-            // Clear the model store, but keep a reference.
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'models', []);
-
-            // Notify each model that it has been removed from this collection.
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(models, function (model) {
-                _this3.onRemove(model);
-            });
-        }
-
-        /**
-         * Removes all models from this collection.
-         */
-
-    }, {
-        key: 'clear',
-        value: function clear() {
-            this.clearModels();
-            this.clearState();
-        }
-
-        /**
-         * Syncs all models in this collection. This method delegates to each model
-         * so follows the same signature and effects as `Model.sync`.
-         */
-
-    }, {
-        key: 'sync',
-        value: function sync() {
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.models, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["method"])('sync'));
-        }
-
-        /**
-         * Resets all models in this collection. This method delegates to each model
-         * so follows the same signature and effects as `Model.reset`.
-         *
-         * @param {string|string[]} attribute
-         */
-
-    }, {
-        key: 'reset',
-        value: function reset() {
-            for (var _len = arguments.length, attribute = Array(_len), _key = 0; _key < _len; _key++) {
-                attribute[_key] = arguments[_key];
-            }
-
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.models, __WEBPACK_IMPORTED_MODULE_0_lodash__["method"].apply(__WEBPACK_IMPORTED_MODULE_0_lodash__, ['reset'].concat(attribute)));
-        }
-
-        /**
-         * Returns the number of models in this collection.
-         */
-
-    }, {
-        key: 'size',
-        value: function size$$1() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["size"])(this.models);
-        }
-
-        /**
-         * @returns {boolean} `true` if the collection is empty, `false` otherwise.
-         */
-
-    }, {
-        key: 'isEmpty',
-        value: function isEmpty$$1() {
-            return this.size() === 0;
-        }
-
-        /**
-         * @returns {Object} A native representation of this collection that will
-         *                   determine the contents of JSON.stringify(collection).
-         */
-
-    }, {
-        key: 'toJSON',
-        value: function toJSON() {
-            return this.models;
-        }
-
-        /**
-         * @returns {bool} Whether all models in this collection have valid data.
-         */
-
-    }, {
-        key: 'validate',
-        value: function validate() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["reduce"])(this.models, function (valid, model) {
-                return model.validate() && valid;
-            }, true);
-        }
-
-        /**
-         * Create a new model of this collection's model type.
-         *
-         * @param {Object} attributes
-         *
-         * @returns {Model} A new instance of this collection's model.
-         */
-
-    }, {
-        key: 'createModel',
-        value: function createModel(attributes) {
-            return new (this.model())(attributes);
-        }
-
-        /**
-         * Removes a model from the model registry.
-         *
-         * @param {Model} model
-         */
-
-    }, {
-        key: 'removeModelFromRegistry',
-        value: function removeModelFromRegistry(model) {
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["unset"])(this._registry, model._uid);
-        }
-
-        /**
-         * @return {Boolean} true if this collection has the model in its registry.
-         */
-
-    }, {
-        key: 'hasModelInRegistry',
-        value: function hasModelInRegistry(model) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["has"])(this._registry, model._uid);
-        }
-
-        /**
-         * Adds a model from the model registry.
-         *
-         * @param {Model} model
-         */
-
-    }, {
-        key: 'addModelToRegistry',
-        value: function addModelToRegistry(model) {
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["set"])(this._registry, model._uid, 1);
-        }
-
-        /**
-         * Called when a model has been added to this collection.
-         *
-         * @param {Model} model
-         */
-
-    }, {
-        key: 'onAdd',
-        value: function onAdd(model) {
-            model.registerCollection(this);
-            this.addModelToRegistry(model);
-            this.emit('add', { model: model });
-        }
-
-        /**
-         * Adds a model to this collection.
-         *
-         * This method returns a single model if only one was given, but will return
-         * an array of all added models if an array was given.
-         *
-         * @param {Model|Array|Object} model Adds a model instance or plain object,
-         *                                   or an array of either, to this collection.
-         *                                   A model instance will be created and
-         *                                   returned if passed a plain object.
-         *
-         * @returns {Model|Array} The added model or array of added models.
-         */
-
-    }, {
-        key: 'add',
-        value: function add() {
-            var model = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-
-            // If given an array, assume an array of models and add them all.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(model)) {
-                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(model, this.add));
-            }
-
-            // Objects should be converted to model instances first, then added.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(model)) {
-                return this.add(this.createModel(model));
-            }
-
-            // This is also just to catch a potential bug. All models should have
-            // an auto id so this would indicate an unexpected state.
-            if (!this.isModel(model)) {
-                throw new Error('Expected a model, plain object, or array of either');
-            }
-
-            // Make sure we don't add the same model twice.
-            if (this.hasModelInRegistry(model)) {
-                return;
-            }
-
-            // Add the model instance to this collection.
-            this.models.push(model);
-            this.onAdd(model);
-
-            // We're assuming that the collection is not loading once a model is added.
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', false);
-
-            return model;
-        }
-
-        /**
-         * Called when a model has been removed from this collection.
-         *
-         * @param {Model} model
-         */
-
-    }, {
-        key: 'onRemove',
-        value: function onRemove(model) {
-            model.unregisterCollection(this);
-            this.removeModelFromRegistry(model);
-            this.emit('remove', { model: model });
-        }
-
-        /**
-         * Removes a model at a given index.
-         *
-         * @param  {number} index
-          * @returns {Model} The model that was removed, or `undefined` if invalid.
-         * @throws  {Error} If a model could not be found at the given index.
-         */
-
-    }, {
-        key: '_removeModelAtIndex',
-        value: function _removeModelAtIndex(index) {
-            if (index < 0) {
-                return;
-            }
-
-            var model = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.models, index);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.delete(this.models, index);
-            this.onRemove(model);
-
-            return model;
-        }
-
-        /**
-         * Removes a `Model` from this collection.
-         *
-         * @param  {Model} model
-         *
-         * @return {Model}
-         */
-
-    }, {
-        key: '_removeModel',
-        value: function _removeModel(model) {
-            return this._removeModelAtIndex(this.indexOf(model));
-        }
-
-        /**
-         * Removes the given model from this collection.
-         *
-         * @param  {Model|Object|Array} model Model to remove, which can be a `Model`
-         *                                    instance, an object to filter by,
-         *                                    a function to filter by, or an array
-         *                                    of any of the above to remove multiple.
-         *
-         * @return {Model|Model[]} The deleted model or an array of models if a filter
-         *                         or array type was given.
-         *
-         * @throws {Error} If the model is an invalid type.
-         */
-
-    }, {
-        key: 'remove',
-        value: function remove(model) {
-            if (!model) {
-                throw new Error('Expected function, object, array, or model to remove');
-            }
-
-            // Support using a predicate to remove all models it returns true for.
-            // Alternatively support an object of values to filter by.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isFunction"])(model) || Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(model)) {
-                return this.remove(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(this.models, model));
-            }
-
-            // Support removing multiple models at the same time if an array was
-            // given. A model would otherwise always be an object so this is safe.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(model)) {
-                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(model, this.remove));
-            }
-
-            // This is just to catch a potential bug. All models should have
-            // an auto id here so this would indicate an unexpected state.
-            if (!this.isModel(model)) {
-                throw new Error('Model to remove is not a valid model');
-            }
-
-            return this._removeModel(model);
-        }
-
-        /**
-         * Determines whether a given value is an instance of a model.
-         *
-         * @param  {*} candidate A model candidate
-         *
-         * @return {boolean} `true` if the given `model` is an instance of Model.
-         */
-
-    }, {
-        key: 'isModel',
-        value: function isModel(candidate) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isObject"])(candidate) && Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["has"])(candidate, '_attributes') && Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["has"])(candidate, '_uid');
-        }
-
-        /**
-         * Returns the zero-based index of the given model in this collection.
-         *
-         * @see {@link https://lodash.com/docs/#findIndex}
-         *
-         * @return {number} the index of a model in this collection, or -1 if not found.
-         */
-
-    }, {
-        key: 'indexOf',
-        value: function indexOf(model) {
-            var filter$$1 = model;
-
-            // Getting the index of a model instance can be optimised.
-            if (this.isModel(filter$$1)) {
-
-                // Constant time check, if the registry doesn't have a record of
-                // the model, we know it's not in the collection.
-                if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["has"])(this._registry, model._uid)) {
-                    return -1;
-                }
-
-                // There is no need to filter on the entire object, because the
-                // unique ID of the model is all we need to identify it.
-                filter$$1 = { _uid: model._uid };
-            }
-
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["findIndex"])(this.models, filter$$1);
-        }
-
-        /**
-         * @param {string|function|Object} where
-         *
-         * @return {Model} The first model that matches the given criteria, or
-         *                 `undefined` if none could be found.
-         *
-         * @see {@link https://lodash.com/docs/#find}
-         */
-
-    }, {
-        key: 'find',
-        value: function find$$1(where) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["find"])(this.models, where);
-        }
-
-        /**
-         * Wraps a new collection instance around some given models.
-         */
-
-    }, {
-        key: 'wrap',
-        value: function wrap(models) {
-            return new this.constructor(models);
-        }
-
-        /**
-         * Creates a new collection of the same type that contains only the models
-         * for which the given predicate returns `true` for, or matches by property.
-         *
-         * @see {@link where}
-         *
-         * Important: Even though this returns a new collection, the references to
-         *            each model are preserved, so changes will propagate to both.
-         *
-         * @param {function|Object|string} predicate Receives `model`.
-         *
-         * @returns {Collection}
-         */
-
-    }, {
-        key: 'filter',
-        value: function filter$$1(predicate) {
-            return this.wrap(this.where(predicate));
-        }
-
-        /**
-         * Returns the models for which the given predicate returns `true` for,
-         * or models that match attributes in an object.
-         *
-         * @see {@link https://lodash.com/docs/#filter}
-         *
-         * @param {function|Object|string} predicate Receives `model`.
-         *
-         * @returns {Model[]}
-         */
-
-    }, {
-        key: 'where',
-        value: function where(predicate) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(this.models, predicate);
-        }
-
-        /**
-         * Returns an array that contains the returned result after applying a
-         * function to each model in this collection.
-         *
-         * @see {@link https://lodash.com/docs/#map}
-         *
-         * @param {function} callback Receives `model`.
-         *
-         * @return {Model[]}
-         */
-
-    }, {
-        key: 'map',
-        value: function map$$1(callback) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(this.models, callback);
-        }
-
-        /**
-         * Iterates through all models, calling a given callback for each one.
-         *
-         * @see {@link https://lodash.com/docs/#each}
-         *
-         * @param {function} callback Receives `model` and `index`.
-         */
-
-    }, {
-        key: 'each',
-        value: function each$$1(callback) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.models, callback);
-        }
-
-        /**
-         * Reduces this collection to a value which is the accumulated result of
-         * running each model through `iteratee`, where each successive invocation
-         * is supplied the return value of the previous.
-         *
-         * If `initial` is not given, the first model of the collection is used
-         * as the initial value.
-         *
-         * @param {function} iteratee Invoked with three arguments:
-         *                            (result, model, index)
-         *
-         * @param {*} [initial] The initial value to use for the `result`.
-         *
-         * @returns {*} The final value of result, after the last iteration.
-         */
-
-    }, {
-        key: 'reduce',
-        value: function reduce$$1(iteratee, initial) {
-
-            // Use the first model as the initial value if an initial was not given.
-            if (arguments.length === 1) {
-                initial = this.first();
-            }
-
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["reduce"])(this.models, iteratee, initial);
-        }
-
-        /**
-         * @param {function|string} iteratee Attribute name or callback to determine
-         *                                   which values to sum by. Invoked with a
-         *                                   single argument `model`.
-         *
-         * @returns {number} Sum of all models, accessed by attribute or callback.
-         */
-
-    }, {
-        key: 'sum',
-        value: function sum(iteratee) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["sumBy"])(this.models, iteratee);
-        }
-
-        /**
-         * Returns an object composed of keys generated from the results of running
-         * each model through `iteratee`. The corresponding value of each key is the
-         * number of times the key was returned by iteratee.
-         *
-         * @see {@link https://lodash.com/docs/#countBy}
-         *
-         * @returns {Object}
-         */
-
-    }, {
-        key: 'count',
-        value: function count(iteratee) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["countBy"])(this.models, iteratee);
-        }
-
-        /**
-         * Sorts this collection's models using a comparator. This method performs
-         * a stable sort (it preserves the original sort order of equal elements).
-         *
-         * @see {@link https://lodash.com/docs/#sortBy}
-         *
-         * @param {function|string} comparator Attribute name or attribute function,
-         *                                     invoked with a single arg `model`.
-         */
-
-    }, {
-        key: 'sort',
-        value: function sort(comparator) {
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'models', Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["sortBy"])(this.models, comparator));
-        }
-
-        /**
-         * @param {Model|Object} model
-         *
-         * @returns {boolean} `true` if this collection contains the given model,
-         *                    `false` otherwise.
-         */
-
-    }, {
-        key: 'has',
-        value: function has$$1(model) {
-            return this.indexOf(model) >= 0;
-        }
-
-        /**
-         * @returns {Model|undefined} The first model of this collection.
-         */
-
-    }, {
-        key: 'first',
-        value: function first$$1() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["first"])(this.models);
-        }
-
-        /**
-         * @returns {Model|undefined} The last model of this collection.
-         */
-
-    }, {
-        key: 'last',
-        value: function last$$1() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["last"])(this.models);
-        }
-
-        /**
-         * Removes and returns the first model of this collection, if there was one.
-         *
-         * @returns {Model|undefined} Removed model or undefined if there were none.
-         */
-
-    }, {
-        key: 'shift',
-        value: function shift() {
-            if (!this.isEmpty()) {
-                return this._removeModelAtIndex(0);
-            }
-        }
-
-        /**
-         * Removes and returns the last model of this collection, if there was one.
-         *
-         * @returns {Model|undefined} Removed model or undefined if there were none.
-         */
-
-    }, {
-        key: 'pop',
-        value: function pop() {
-            if (!this.isEmpty()) {
-                return this._removeModelAtIndex(this.size() - 1);
-            }
-        }
-
-        /**
-         * Replaces all models in this collection with those provided. This is
-         * effectively equivalent to `clear` and `add`, and will result in an empty
-         * collection if no models were provided.
-         *
-         * @param {Model|Model[]} models Models to replace the current models with.
-         */
-
-    }, {
-        key: 'replace',
-        value: function replace$$1(models) {
-            this.clearModels();
-            this.add(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["values"])(models));
-        }
-
-        /**
-         * Returns the query parameters that should be used when paginating.
-         *
-         * @return {Object}
-         */
-
-    }, {
-        key: 'getPaginationQuery',
-        value: function getPaginationQuery() {
-            return {
-                page: this._page
-            };
-        }
-
-        /**
-         * @inheritDoc
-         */
-
-    }, {
-        key: 'getFetchQuery',
-        value: function getFetchQuery() {
-            if (this.isPaginated()) {
-                return this.getPaginationQuery();
-            }
-
-            return get$1(Collection.prototype.__proto__ || Object.getPrototypeOf(Collection.prototype), 'getFetchQuery', this).call(this);
-        }
-
-        /**
-         * @param {Object} response
-         *
-         * @returns {Array|null} Models from the response.
-         */
-
-    }, {
-        key: 'getModelsFromResponse',
-        value: function getModelsFromResponse(response) {
-            var models = response.getData();
-
-            // An empty, non-array response indicates that we didn't intend to send
-            // any models in the response. This means that the current models are
-            // already up to date, as no changes are necessary.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isNil"])(models) || models === '') {
-                return null;
-            }
-
-            // We're making an assumption here that paginated models are returned
-            // within the "data" field of the response.
-            if (this.isPaginated()) {
-                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(models, 'data', models);
-            }
-
-            return models;
-        }
-
-        /**
-         * Called when a save request was successful.
-         *
-         * @param {Object} response
-         */
-
-    }, {
-        key: 'onSaveSuccess',
-        value: function onSaveSuccess(response) {
-
-            // Model data returned in the response.
-            var saved = this.getModelsFromResponse(response);
-
-            // All the models that are currently being saved.
-            var saving = this.getSavingModels();
-
-            // Empty response is similar to an empty response returned when saving
-            // a model: assume that the attributes are the saved state, so sync.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isNil"])(saved)) {
-                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(saving, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["method"])('sync'));
-            } else {
-
-                // There is no sensible alternative to an array here, so anyting else
-                // is considered an exception that indicates an unexpected state.
-                if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(saved)) {
-                    throw new ResponseError('Response data must be an array or empty', response);
-                }
-
-                // Check that the number of models returned in the response matches
-                // the number of models that were saved. If these are not equal, it's
-                // not possible to map saved data to the saving models.
-                if (saved.length !== saving.length) {
-                    throw new ResponseError('Expected the same number of models in the response', response);
-                }
-
-                // Update every model with its respective response data.
-                // A strict requirement and assumption is that the models returned
-                // in the response are in the same order as they are in the collection.
-                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(saved, function (data, index) {
-                    saving[index].onSaveSuccess(new ProxyResponse(200, data, response.getHeaders()));
-                });
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
-
-            this.emit('save', { error: null });
-        }
-
-        /**
-         * @returns {Model[]} Models in this collection that are in a "saving" state.
-         */
-
-    }, {
-        key: 'getSavingModels',
-        value: function getSavingModels() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(this.models, 'saving');
-        }
-
-        /**
-         * @returns {Model[]} Models in this collection that are in a "deleting" state.
-         */
-
-    }, {
-        key: 'getDeletingModels',
-        value: function getDeletingModels() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(this.models, 'deleting');
-        }
-
-        /**
-         * Applies an array of validation errors to this collection's models.
-         *
-         * @param  {Array}   errors
-         * @param  {integer} status Response status
-         */
-
-    }, {
-        key: 'applyValidationErrorArray',
-        value: function applyValidationErrorArray(errors) {
-            var models = this.getSavingModels();
-
-            // To allow matching errors with models, it's a strict requirement and
-            // assumption that the array of errors returned in the response must have
-            // the same number of elements as there are models being saved.
-            if (errors.length !== models.length) {
-                throw new ResponseError('Array of errors must equal the number of models');
-            }
-
-            // Set every model's errors in a way that emulates how saving a model
-            // would fail in the same way.
-            //
-            // A strict requirement and assumption is that the models returned
-            // in the response are in the same order as they are in the collection.
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(models, function (model, index) {
-                model.setErrors(errors[index]);
-                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(model, 'saving', false);
-                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(model, 'fatal', false);
-            });
-        }
-
-        /**
-         * Applies an object of validation errors keyed by model identifiers.
-         *
-         * @param  {Array}   errors
-         * @param  {integer} status Response status
-         */
-
-    }, {
-        key: 'applyValidationErrorObject',
-        value: function applyValidationErrorObject(errors) {
-            var lookup = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["keyBy"])(this.models, function (model) {
-                return model.identifier();
-            });
-
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(errors, function (errors, identifier) {
-                var model = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(lookup, identifier);
-
-                if (model) {
-                    model.setErrors(errors);
-                }
-            });
-        }
-
-        /**
-         * Sets validation errors on this collection's models.
-         *
-         * @param {Array|Object} errors Either an array of length equal to the number
-         *                              of models in this collection, or an object
-         *                              of errors keyed by model identifiers.
-         */
-
-    }, {
-        key: 'setErrors',
-        value: function setErrors(errors) {
-
-            // Support an array of errors, one for each model in the collection.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(errors)) {
-                this.applyValidationErrorArray(errors);
-
-                // Support an object of errors keyed by model identifiers.
-            } else if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(errors)) {
-                this.applyValidationErrorObject(errors);
-            }
-        }
-
-        /**
-         * @returns {Array} An array of this collection's validation errors.
-         */
-
-    }, {
-        key: 'getErrors',
-        value: function getErrors() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(this.models, 'errors');
-        }
-
-        /**
-         * Called when a save request resulted in a validation error.
-         *
-         * @param {Object} response
-         */
-
-    }, {
-        key: 'onSaveValidationFailure',
-        value: function onSaveValidationFailure(error) {
-            var response = error.getResponse();
-            var errors = response.getValidationErrors();
-
-            if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(errors) && !Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(errors)) {
-                throw new ResponseError('Validation errors must be an object or array', response);
-            }
-
-            this.setErrors(errors);
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
-        }
-
-        /**
-         * Called when a save request resulted in an unexpected error,
-         * eg. an internal server error (500)
-         *
-         * @param {Error}  error
-         * @param {Object} response
-         */
-
-    }, {
-        key: 'onFatalSaveFailure',
-        value: function onFatalSaveFailure(error, response) {
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.getSavingModels(), function (model) {
-                model.onFatalSaveFailure(error, response);
-            });
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', true);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
-        }
-
-        /**
-         * Called when a save request failed.
-         *
-         * @param {Error}  error
-         * @param {Object} response
-         */
-
-    }, {
-        key: 'onSaveFailure',
-        value: function onSaveFailure(error) {
-            if (this.isBackendValidationError(error)) {
-                this.onSaveValidationFailure(error);
-
-                // Not a validation error, so something else went wrong.
-            } else {
-                this.onFatalSaveFailure(error);
-            }
-
-            this.emit('save', { error: error });
-        }
-
-        /**
-         * @returns {Array} The data to use for saving.
-         */
-
-    }, {
-        key: 'getSaveData',
-        value: function getSaveData() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(this.getSavingModels(), Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["method"])('getSaveData'));
-        }
-
-        /**
-         * Sets the page on this collection, enabling pagination. To disable
-         * pagination on this collection, pass page as `null` or `undefined`.
-         *
-         * @param {number|boolean} [page] Page number, or `null` to disable.
-         *
-         * @returns {Collection} This collection.
-         */
-
-    }, {
-        key: 'page',
-        value: function page(_page) {
-
-            // Disable pagination if a valid page wasn't provided.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isNil"])(_page)) {
-                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_page', NO_PAGE);
-
-                // Page was provided, so we should either set the page or disable
-                // pagination entirely if the page is `false`.
-            } else {
-                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_page', Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["max"])([1, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["toSafeInteger"])(_page)]));
-            }
-
-            return this;
-        }
-
-        /**
-         * @returns {integer|null} The page that this collection is on.
-         */
-
-    }, {
-        key: 'getPage',
-        value: function getPage() {
-            return this._page;
-        }
-
-        /**
-         * @returns {boolean} Whether this collection is currently paginated.
-         */
-
-    }, {
-        key: 'isPaginated',
-        value: function isPaginated() {
-            return this._page !== NO_PAGE;
-        }
-
-        /**
-         * @returns {boolean} Whether this collection is on the last page,
-         *                            ie. there won't be more results that follow.
-         */
-
-    }, {
-        key: 'isLastPage',
-        value: function isLastPage() {
-            return this._page === LAST_PAGE;
-        }
-
-        /**
-         * Responsible for adjusting the page and appending of models that were
-         * received by a paginated fetch request.
-         *
-         * @param {Model[]} models
-         */
-
-    }, {
-        key: 'applyPagination',
-        value: function applyPagination(models) {
-
-            // If no models were returned in the response we can assume that
-            // we're now on the last page, and we should not continue.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(models)) {
-                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_page', LAST_PAGE);
-
-                // Otherwise, there were at least one model, and we can safely
-                // assume that we want to increment the page number.
-            } else {
-                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_page', this._page + 1);
-                this.add(models);
-            }
-        }
-
-        /**
-         * Called when a fetch request was successful.
-         *
-         * @param {Object} response
-         */
-
-    }, {
-        key: 'onFetchSuccess',
-        value: function onFetchSuccess(response) {
-            var models = this.getModelsFromResponse(response);
-
-            // There is no sensible alternative to an array here, so anyting else
-            // is considered an exception that indicates an unexpected state.
-            if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(models)) {
-                throw new ResponseError('Expected an array of models in fetch response');
-            }
-
-            // Append via pagination.
-            if (this.isPaginated()) {
-                this.applyPagination(models);
-
-                // Replace all current models with the fetched ones.
-            } else {
-                this.replace(models);
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
-
-            this.emit('fetch', { error: null });
-        }
-
-        /**
-         * Called when a fetch request failed.
-         *
-         * @param {Error}  error
-         */
-
-    }, {
-        key: 'onFetchFailure',
-        value: function onFetchFailure(error) {
-            this.clearErrors();
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', true);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', false);
-
-            this.emit('fetch', { error: error });
-        }
-
-        /**
-         * Called before a fetch request is made.
-         *
-         * @returns {boolean|undefined} `false` if the request should not be made.
-         */
-
-    }, {
-        key: 'onFetch',
-        value: function onFetch() {
-
-            // Don't fetch if there are no more results to be fetched.
-            if (this.isPaginated() && this.isLastPage()) {
-                return false;
-            }
-
-            // Because we're fetching new data, we can assume that this collection
-            // is now loading. This allows the template to indicate a loading state.
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', true);
-        }
-
-        /**
-         * Called when a delete request was successful.
-         *
-         * @param {Object} response
-         */
-
-    }, {
-        key: 'onDeleteSuccess',
-        value: function onDeleteSuccess(response) {
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
-
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.getDeletingModels(), function (model) {
-                model.onDeleteSuccess(response);
-            });
-
-            this.emit('delete', { error: null });
-        }
-
-        /**
-         * Called when a delete request resulted in a general error.
-         *
-         * @param {Error}  error
-         * @param {Object} response
-         */
-
-    }, {
-        key: 'onDeleteFailure',
-        value: function onDeleteFailure(error) {
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', true);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', false);
-
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.getDeletingModels(), function (model) {
-                model.onDeleteFailure(error);
-            });
-
-            this.emit('delete', { error: error });
-        }
-
-        /**
-         * Called before a save request is made.
-         *
-         * @returns {boolean} Either `true` or false` if the request should not be
-         *                    made, where `true` indicates that the request should
-         *                    be considered a "success" rather than a "cancel".
-         *
-         */
-
-    }, {
-        key: 'onSave',
-        value: function onSave() {
-
-            // Don't save if we're already busy saving this collection.
-            // This prevents things like accidental double clicks.
-            if (this.saving) {
-                return false;
-            }
-
-            var valid = true;
-
-            // Call 'onSave' on each model so that the models can set their state
-            // accordingly, and indicate whether a validation failure should occur.
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.models, function (model) {
-                try {
-                    model.onSave();
-                } catch (error) {
-                    if (error instanceof ValidationError) {
-                        valid = false;
-                    } else {
-                        throw error;
-                    }
-                }
-            });
-
-            // Throwing a validation error here will cause the save request to be
-            // rejected, because at least one model's data is not valid.
-            if (!valid) {
-                throw new ValidationError(this.getErrors());
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', true);
-        }
-
-        /**
-         * Collect all model identifiers.
-         *
-         * @returns {Array}
-         */
-
-    }, {
-        key: 'getIdentifiers',
-        value: function getIdentifiers(models) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(models, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["method"])('identifier'));
-        }
-
-        /**
-         * @inheritDoc
-         */
-
-    }, {
-        key: 'getDeleteBody',
-        value: function getDeleteBody() {
-            if (this.getOption('useDeleteBody')) {
-                return this.getIdentifiers(this.getDeletingModels());
-            }
-
-            return {};
-        }
-
-        /**
-         * @returns {string} The query parameter key to use for model identifiers.
-         */
-
-    }, {
-        key: 'getDeleteQueryIdenitifierKey',
-        value: function getDeleteQueryIdenitifierKey() {
-            return 'id';
-        }
-
-        /**
-         * @inheritDoc
-         */
-
-    }, {
-        key: 'getDeleteQuery',
-        value: function getDeleteQuery() {
-
-            // Don't use query parameters if we want send the request data in the body.
-            if (this.getOption('useDeleteBody')) {
-                return {};
-            }
-
-            // Collect all the identifiers of the models being deleted.
-            var models = this.getDeletingModels();
-            var identifier = this.getDeleteQueryIdenitifierKey();
-            var identifiers = this.getIdentifiers(models);
-
-            return defineProperty({}, identifier, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["join"])(identifiers, ','));
-        }
-
-        /**
-         * Called before a delete request is made.
-         *
-         * @returns {boolean} `false` if the request should not be made.
-         */
-
-    }, {
-        key: 'onDelete',
-        value: function onDelete() {
-
-            // Don't save if we're already busy saving this collection.
-            // This prevents things like accidental double clicks.
-            if (this.deleting) {
-                return false;
-            }
-
-            // Exclude all models that return `false` on delete.
-            var models = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(this.models, function (model) {
-                return model.onDelete() !== false;
-            });
-
-            // Don't save if there are no models to delete.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(models)) {
-                return true;
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', true);
-        }
-    }]);
-    return Collection;
-}(Base);
-
-/**
- * Reserved keywords that can't be used for attribute or option names.
- */
-var RESERVED = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["invert"])(['_attributes', '_collections', '_errors', '_listeners', '_reference', '_registry', '_uid', 'attributes', 'collections', 'deleting', 'errors', 'fatal', 'loading', 'memoized', 'models', 'saving']);
-
-/**
- * Recursive deep copy helper that honours the "clone" function of models and
- * collections. This is required to support nested instances.
- *
- * @param {Object} source
- * @param {Object} target
- * @param {Array}  keys     Optional
- */
-var copyFrom = function copyFrom(source, target, keys$$1) {
-    if (keys$$1) {
-        source = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["pick"])(source, keys$$1);
-    }
-
-    Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(source, function (value, key) {
-        if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(value)) {
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(target, key, []);
-            copyFrom(value, target[key]);
-        } else if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(value)) {
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(target, key, {});
-            copyFrom(value, target[key]);
-        } else if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isObject"])(value) && Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isFunction"])(value.clone)) {
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(target, key, value.clone());
-        } else {
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(target, key, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["cloneDeep"])(value));
-        }
-    });
-};
-
-/**
- * Base model class.
- */
-
-var Model = function (_Base) {
-    inherits(Model, _Base);
-    createClass(Model, [{
-        key: '$',
-
-
-        /**
-         * A convenience wrapper around the model's attributes that are saved.
-         * This is similar to the `saved` method, but instead of accessing a single
-         * property it returns the whole saved object, so that you can do something
-         * like model.$.attribute when you want to display it somewhere.
-         *
-         * @returns {Object} This model's saved, reference data.
-         */
-        get: function get$$1() {
-            return this._reference;
-        }
-
-        /**
-         * @returns {Object} This model's "active" state attributes.
-         */
-
-    }, {
-        key: 'attributes',
-        get: function get$$1() {
-            return this._attributes;
-        }
-
-        /**
-         * @returns {Object} The collection that this model is registered to.
-         */
-
-    }, {
-        key: 'collections',
-        get: function get$$1() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["values"])(this._collections);
-        }
-
-        /**
-         * @returns {Object} This model's errors, which are cleared automatically.
-         */
-
-    }, {
-        key: 'errors',
-        get: function get$$1() {
-            return this.getErrors();
-        }
-
-        /**
-         * Creates a new instance, called when using 'new'.
-         *
-         * @param  {Object}     [attributes]  Model attributes
-         * @param  {Collection} [collection]  Collection that this model belongs to.
-         * @param  {Object}     [options]     Options to set on the model.
-         */
-
-    }]);
-
-    function Model() {
-        var attributes = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-        var collection = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
-        var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-        classCallCheck(this, Model);
-
-        var _this = possibleConstructorReturn(this, (Model.__proto__ || Object.getPrototypeOf(Model)).call(this, options));
-
-        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_collections', {}); // Collections that contain this model.
-        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_reference', {}); // Saved attribute state.
-        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_attributes', {}); // Active attribute state.
-        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_mutations', {}); // Mutator cache.
-        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_errors', {}); // Validation errors.
-
-        _this.clearState();
-
-        // Cache certain methods that don't need to be evaluated more than once.
-        _this.memoize();
-
-        // Cache mutator pipelines so that they can run as a single function.
-        _this.compileMutators();
-
-        // Assign all given model data to the model's attributes and reference.
-        _this.assign(attributes);
-
-        // Register the given collection (if any) to the model. This is so that
-        // the model can be added to the collection automatically when it is
-        // created on save, or removed on delete.
-        if (collection) {
-            _this.registerCollection(collection);
-        }
-        return _this;
-    }
-
-    /**
-     * Creates a copy of this model, with the same attributes and options. The
-     * clone will also belong to the same collections as the subject.
-     *
-     * @returns {Model}
-     */
-
-
-    createClass(Model, [{
-        key: 'clone',
-        value: function clone() {
-            var attributes = {};
-            var reference = {};
-
-            // Clone all attributes and their descriptors.
-            copyFrom(this._attributes, attributes);
-            copyFrom(this._reference, reference);
-
-            // Create a copy.
-            var clone = new this.constructor();
-
-            // Make sure that the clone belongs to the same collections.
-            clone.registerCollection(this._collections);
-
-            // Make sure that the clone has the same existing options.
-            clone.setOptions(this.getOptions());
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(clone, '_reference', reference);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(clone, '_attributes', attributes);
-
-            return clone;
-        }
-
-        /**
-         * Prepare certain methods to only be called once. These are methods that
-         * are expected to return the same data every time.
-         *
-         * @see {@link https://lodash.com/docs/#once}
-         */
-
-    }, {
-        key: 'memoize',
-        value: function memoize() {
-            var _this2 = this;
-
-            var memoized = ['validation', //   \
-            'defaults', //   | These do not need to be evaluated every time.
-            'routes'];
-
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(memoized, function (name) {
-                return _this2[name] = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["once"])(_this2[name]);
-            });
-        }
-
-        /**
-         * Returns the model's identifier value.
-         */
-
-    }, {
-        key: 'identifier',
-        value: function identifier() {
-            return this.get(this.getOption('identifier'));
-        }
-
-        /**
-         * @returns {Object} An empty representation of this model.
-         *                   It's important that all model attributes have a default
-         *                   value in order to be reactive in Vue.
-         */
-
-    }, {
-        key: 'defaults',
-        value: function defaults$$1() {
-            return {};
-        }
-
-        /**
-         * @returns {Object} Attribute mutations keyed by attribute name.
-         */
-
-    }, {
-        key: 'mutations',
-        value: function mutations() {
-            return {};
-        }
-
-        /**
-         * Add validation rules here, or use option?
-         */
-
-    }, {
-        key: 'validation',
-        value: function validation() {
-            return {};
-        }
-
-        /**
-         * Returns the default options for this model.
-         *
-         * @returns {Object}
-         */
-
-    }, {
-        key: 'getDefaultOptions',
-        value: function getDefaultOptions() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["merge"])({}, get$1(Model.prototype.__proto__ || Object.getPrototypeOf(Model.prototype), 'getDefaultOptions', this).call(this), {
-
-                // The attribute that should be used to uniquely identify this model.
-                identifier: 'id',
-
-                // Whether this model should allow an existing identifier to be
-                // overwritten on update.
-                overwriteIdentifier: false,
-
-                // Whether this model should perform a "patch" on update,
-                // which will only send changed attributes in the request.
-                patch: false,
-
-                // Whether this model should save even if no attributes have changed
-                // since the last time they were synced. If set to `false` and no
-                // changes have been made, the request will be considered a success.
-                saveUnchanged: true,
-
-                // Whether this model should only use the first validation error it
-                // receives, rather than an array of errors.
-                useFirstErrorOnly: false,
-
-                // Whether this model should validate an attribute that has changed.
-                // This would only affect the errors of the changed attribute and
-                // will only be applied if the value is not a blank string.
-                validateOnChange: false,
-
-                // Whether this model should validate models and collections within
-                // its attribute tree. The result is implicit recursion as each of
-                // those instances will also validate their trees, etc.
-                validateRecursively: true,
-
-                // Whether this model should mutate a property as it is changed,
-                // before it is set. This is a rare requirement because you usually
-                // don't  want to mutate something that you are busy editing.
-                mutateOnChange: false,
-
-                // Whether this model should mutate all attributes before they are
-                // synced to the "saved" state. This would include construction,
-                // on fetch, on save, and on assign.
-                mutateBeforeSync: true,
-
-                // Whether this model should use mutated values for the attributes
-                // in "save" request. This will not mutate the active state.
-                mutateBeforeSave: true
-            });
-        }
-
-        /**
-         * Compiles all mutations into pipelines that can be executed quickly.
-         */
-
-    }, {
-        key: 'compileMutators',
-        value: function compileMutators() {
-            this._mutations = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["mapValues"])(this.mutations(), function (m) {
-                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["flow"])(m);
-            });
-        }
-
-        /**
-         * @returns {Object} Parameters to use for replacement in route patterns.
-         */
-
-    }, {
-        key: 'getRouteParameters',
-        value: function getRouteParameters() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["merge"])({}, get$1(Model.prototype.__proto__ || Object.getPrototypeOf(Model.prototype), 'getRouteParameters', this).call(this), this._attributes);
-        }
-
-        /**
-         * Registers a collection on this model. When this model is created it will
-         * automatically be added to the collection. Similarly, when this model is
-         * delete it will be remove from the collection. Registering the same
-         * collection more than once has no effect.
-         *
-         * @param {Collection} collection
-         */
-
-    }, {
-        key: 'registerCollection',
-        value: function registerCollection(collection) {
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(collection)) {
-                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(collection, this.registerCollection);
-                return;
-            }
-
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isNil"])(collection) || Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isUndefined"])(collection._uid)) {
-                throw new Error('Collection is not valid');
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this._collections, collection._uid, collection);
-        }
-
-        /**
-         * Removes a collection from this model's collection registry, removing all
-         * effects that would occur when creating or deleting this model.
-         *
-         * Unregistering a collection that isn't registered has no effect.
-         *
-         * @param {Collection} collection
-         */
-
-    }, {
-        key: 'unregisterCollection',
-        value: function unregisterCollection(collection) {
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(collection)) {
-                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(collection, this.unregisterCollection);
-                return;
-            }
-
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isNil"])(collection) || Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isUndefined"])(collection._uid)) {
-                throw new Error('Collection is not valid');
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.delete(this._collections, collection._uid);
-        }
-
-        /**
-         * Reverts all attributes back to their defaults, and completely removes all
-         * attributes that don't have defaults. This will also sync the reference
-         * attributes, and is not reversable.
-         */
-
-    }, {
-        key: 'clearAttributes',
-        value: function clearAttributes() {
-            var defaults$$1 = this.defaults();
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_attributes', Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["cloneDeep"])(defaults$$1));
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_reference', Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["cloneDeep"])(defaults$$1));
-        }
-
-        /**
-         * Reverts all attributes back to their defaults, and completely removes all
-         * attributes that don't have defaults. This will also sync the reference
-         * attributes, and is not reversable.
-         */
-
-    }, {
-        key: 'clear',
-        value: function clear() {
-            this.clearAttributes();
-            this.clearErrors();
-            this.clearState();
-        }
-
-        /**
-         * Resets model state, ie. `loading`, etc back to their initial states.
-         */
-
-    }, {
-        key: 'clearState',
-        value: function clearState() {
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
-        }
-
-        /**
-         * Assigns all given model data to the model's attributes and reference.
-         * This will also fill any gaps with the model's default attribute.
-         *
-         * @param {Object} attributes
-         *
-         * @returns {Object} The attributes that were assigned to the model.
-         */
-
-    }, {
-        key: 'assign',
-        value: function assign(attributes) {
-            this.set(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultsDeep"])({}, attributes, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["cloneDeep"])(this.defaults())));
-            this.sync();
-        }
-
-        /**
-         * Resets all attributes back to their reference values (source of truth).
-         * A good use case for this is when form fields are bound directly to the
-         * model's attributes. Changing values in the form fields will change the
-         * attributes on the model. On cancel, you can revert the model back to
-         * its saved, original state using reset().
-         *
-         * You can also pass one or an array of attributes to reset.
-         *
-         * @param {string|string[]} attribute
-         */
-
-    }, {
-        key: 'reset',
-        value: function reset(attribute) {
-
-            // Reset specific attributes.
-            if (attribute) {
-                copyFrom(this._reference, this._attributes, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["castArray"])(attribute));
-
-                // Reset all attributes if one or more specific ones were not given.
-            } else {
-                copyFrom(this._reference, this._attributes);
-            }
-
-            this.clearErrors();
-            this.emit('reset');
-        }
-
-        /**
-         * @returns {*} The value of an attribute after applying its mutations.
-         */
-
-    }, {
-        key: 'mutated',
-        value: function mutated(attribute, value) {
-            var mutator = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this._mutations, attribute);
-
-            if (mutator) {
-                return mutator(value);
-            }
-
-            return value;
-        }
-
-        /**
-         * Mutates either specific attributes or all attributes if none provided.
-         * @param {string|string[]|undefined} attribute
-         */
-
-    }, {
-        key: 'mutate',
-        value: function mutate(attribute) {
-            var _this3 = this;
-
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isUndefined"])(attribute)) {
-                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this._attributes, function (value, attribute) {
-                    __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this3._attributes, attribute, _this3.mutated(attribute, value));
-                });
-
-                // Only mutate specific attributes.
-            } else {
-                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["castArray"])(attribute), function (attribute) {
-                    var current = _this3.get(attribute);
-                    var mutated = _this3.mutated(attribute, current);
-
-                    __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this3._attributes, attribute, mutated);
-                });
-            }
-        }
-
-        /**
-         * Sync the current attributes to the reference attributes. This is usually
-         * only called on save. We have to clone the values otherwise we
-         * end up with references to the same object in both attribute sets.
-         *
-         * You can also pass one or an array of attributes to sync.
-         *
-         * @param {string|string[]} attribute
-         */
-
-    }, {
-        key: 'sync',
-        value: function sync(attribute) {
-            var _this4 = this;
-
-            // Mutate all attributes before we sync them, if required to do so.
-            if (this.getOption('mutateBeforeSync')) {
-                this.mutate(attribute);
-            }
-
-            // We're cloning deep to avoid multiple references to the same object,
-            // otherwise updating the attributes will also update the reference.
-            // Set each saved attribute to its active equivalent.
-            var active = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["cloneDeep"])(this._attributes);
-
-            // Sync either specific attributes or all attributes if none provided.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isUndefined"])(attribute)) {
-                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_reference', active);
-            } else {
-                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["castArray"])(attribute), function (attribute) {
-                    __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this4._reference, attribute, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(active, attribute));
-                });
-            }
-
-            this.emit('sync');
-        }
-
-        /**
-         * Registers an attribute on this model so that it can be accessed directly
-         * on the model, passing through `get` and `set`.
-         */
-
-    }, {
-        key: 'registerAttribute',
-        value: function registerAttribute(attribute) {
-            var _this5 = this;
-
-            // Protect against unwillingly using an attribute name that already
-            // exists as an internal property or method name.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["has"])(RESERVED, attribute)) {
-                throw new Error('Can\'t use reserved attribute name \'' + attribute + '\'');
-            }
-
-            // Create dynamic accessors and mutations so that we can update the
-            // model directly while also keeping the model attributes in sync.
-            Object.defineProperty(this, attribute, {
-                get: function get$$1() {
-                    return _this5.get(attribute);
-                },
-                set: function set$$1(value) {
-                    return _this5.set(attribute, value);
-                }
-            });
-        }
-
-        /**
-         * Sets the value of an attribute and registers the magic "getter" in a way
-         * that is compatible with Vue's reactivity. This method should always be
-         * used when setting the value of an attribute.
-         *
-         * @param  {string|Object}  attribute
-         * @param  {*}              value
-         *
-         * @returns {*} The value that was set.
-         */
-
-    }, {
-        key: 'set',
-        value: function set$$1(attribute, value) {
-            var _this6 = this;
-
-            // Allow batch set of multiple attributes at once, ie. set({...});
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(attribute)) {
-                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(attribute, function (value, key) {
-                    _this6.set(key, value);
-                });
-
-                return;
-            }
-
-            var defined = this.has(attribute);
-
-            // Only register the pass-through property if it's not already set up.
-            // If it already exists on the instance, we know it has been.
-            if (!defined) {
-                this.registerAttribute(attribute);
-            }
-
-            // Current value of the attribute, or `undefined` if not set
-            var previous = this.get(attribute);
-
-            // Run the attribute's mutations if required to do so on change.
-            if (this.getOption('mutateOnChange')) {
-                value = this.mutated(attribute, value);
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this._attributes, attribute, value);
-
-            // Only consider a change if the attribute was already defined.
-            var changed = defined && !Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEqual"])(previous, value);
-
-            if (changed) {
-                this.emit('change', { attribute: attribute, previous: previous, value: value });
-
-                // Validate on change only if it's not the first time it's set.
-                if (this.getOption('validateOnChange')) {
-                    __WEBPACK_IMPORTED_MODULE_2_vue___default.a.nextTick(function () {
-                        return _this6.validateAttribute(attribute);
-                    });
-                }
-            }
-
-            return value;
-        }
-
-        /**
-         * Reverts all attributes back to their defaults, or `undefined` if a
-         * default value is not defined.
-         *
-         * You can also pass one or an array of attributes to unset.
-         *
-         * @param {string|string[]} attribute
-         */
-
-    }, {
-        key: 'unset',
-        value: function unset$$1(attribute) {
-            var _this7 = this;
-
-            // We're cloning deep to avoid multiple references to the same object,
-            // otherwise updating the attributes will also update the reference.
-            var defaults$$1 = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["cloneDeep"])(this.defaults());
-
-            // Unset either specific attributes or all attributes if none provided.
-            var attributes = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultTo"])(attribute, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["keys"])(this._attributes));
-
-            // Unset either specific attributes or all attributes if none provided.
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["castArray"])(attributes), function (attribute) {
-                if (_this7.has(attribute)) {
-                    __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this7._attributes, attribute, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(defaults$$1, attribute));
-                }
-            });
-        }
-
-        /**
-         * Similar to `saved`, returns an attribute's value or a fallback value
-         * if this model doesn't have the attribute.
-         *
-         * @param {string} attribute
-         * @param {*}      fallback
-         *
-         * @returns {*} The value of the attribute or `fallback` if not found.
-         */
-
-    }, {
-        key: 'get',
-        value: function get$$1(attribute, fallback) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this._attributes, attribute, fallback);
-        }
-
-        /**
-         * Similar to `get`, but accesses the saved attributes instead.
-         *
-         * This is useful in cases where you want to display an attribute but also
-         * change it. For example, a modal with a title based on a model field, but
-         * you're also editing that field. The title will be updating reactively if
-         * it's bound to the active attribute, so bind to the saved one instead.
-         *
-         * @param {string} attribute
-         * @param {*}      fallback
-         *
-         * @returns {*} The value of the attribute or `fallback` if not found.
-         */
-
-    }, {
-        key: 'saved',
-        value: function saved(attribute, fallback) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this._reference, attribute, fallback);
-        }
-
-        /**
-         * Determines if the model has an attribute.
-         *
-         * @param  {string}  attribute
-         * @returns {boolean} `true` if an attribute exists, `false` otherwise.
-         *                   Will return true if the object exists but is undefined.
-         */
-
-    }, {
-        key: 'has',
-        value: function has$$1(attribute) {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["has"])(this._attributes, attribute);
-        }
-
-        /**
-         * Validates a specific attribute of this model, and sets errors for it.
-         *
-         * @returns {boolean} `true` if valid, `false` otherwise.
-         */
-
-    }, {
-        key: 'validateAttribute',
-        value: function validateAttribute(attribute) {
-            var _this8 = this;
-
-            var value = this.get(attribute);
-            var rules = this.validation();
-            var valid = true;
-            var errors = [];
-
-            if (attribute in rules) {
-                var ruleset = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["castArray"])(rules[attribute]);
-
-                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(ruleset, function (rule) {
-                    var result = rule(value, attribute, _this8);
-
-                    // Rules should return an error message if validation failed.
-                    if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isString"])(result)) {
-                        errors.push(result);
-                        valid = false;
-
-                        // Break early if we're only interested in the first error.
-                        if (_this8.getOption('useFirstErrorOnly')) {
-                            return false;
-                        }
-                    }
-                });
-            }
-
-            // Defer validation if an attribute is an object that has a `validate`
-            // method. The expectation is that the validate function will return
-            // `true` if valid, `false` if not, and handle its own errors.
-            if (this.getOption('validateRecursively')) {
-                if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isFunction"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(value, 'validate'))) {
-                    valid = value.validate() && valid;
-                }
-            }
-
-            // Set the errors for the attribute.
-            this.setAttributeErrors(attribute, errors);
-
-            return valid;
-        }
-
-        /**
-         * Validates all attributes.
-         *
-         * @param {Object} [attributes] One or more attributes to validate.
-         *
-         * @returns {boolean} `true` if the model passes validation.
-         */
-
-    }, {
-        key: 'validate',
-        value: function validate(attributes) {
-            var _this9 = this;
-
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isString"])(attributes)) {
-                return this.validateAttribute(attributes);
-
-                // Only validate the attributes that were specified.
-            } else if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(attributes)) {
-                attributes = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["pick"])(this._attributes, attributes);
-
-                // Or validate all attributes if none were given.
-            } else if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isUndefined"])(attributes)) {
-                attributes = this._attributes;
-            } else {
-                throw new Error('Validation attributes must be an array, a string, or not given');
-            }
-
-            // Validate all attributes if none were given.
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["reduce"])(attributes, function (valid, value, attribute) {
-                return _this9.validateAttribute(attribute) && valid;
-            }, true);
-        }
-
-        /**
-         * @returns {Object} A native representation of this model that will determine
-         *                   the contents of JSON.stringify(model).
-         */
-
-    }, {
-        key: 'toJSON',
-        value: function toJSON() {
-            return this._attributes;
-        }
-
-        /**
-         * Adds this model to all registered collections.
-         */
-
-    }, {
-        key: 'addToAllCollections',
-        value: function addToAllCollections() {
-            var _this10 = this;
-
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this._collections, function (collection, id) {
-                collection.add(_this10);
-            });
-        }
-
-        /**
-         * Removes this model from all registered collections.
-         */
-
-    }, {
-        key: 'removeFromAllCollections',
-        value: function removeFromAllCollections() {
-            var _this11 = this;
-
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this._collections, function (collection, id) {
-                collection.remove(_this11);
-            });
-        }
-
-        /**
-         * Returns an array of attribute names that have changed, or `false` if no
-         * changes have been made since the last time this model was synced.
-         *
-         * @returns {Array|boolean} An array of changed attribute names, or `false`
-         *                         if no attributes have changed since the last sync.
-         */
-
-    }, {
-        key: 'changed',
-        value: function changed() {
-            var _this12 = this;
-
-            var changed = [];
-
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this._attributes, function (value, attribute) {
-                if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEqual"])(value, _this12.saved(attribute))) {
-                    changed.push(attribute);
-                }
-            });
-
-            return !Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(changed) ? changed : false;
-        }
-
-        /**
-         * Called when a fetch request was successful.
-         */
-
-    }, {
-        key: 'onFetchSuccess',
-        value: function onFetchSuccess(response) {
-            var attributes = response.getData();
-
-            // A fetch request must receive *some* data in return.
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(attributes)) {
-                throw new ResponseError("No data in fetch response", response);
-            }
-
-            this.assign(attributes);
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', false);
-
-            this.emit('fetch', { error: null });
-        }
-
-        /**
-         * Called when a fetch request failed.
-         *
-         * @param {Error}  error
-         */
-
-    }, {
-        key: 'onFetchFailure',
-        value: function onFetchFailure(error) {
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', true);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', false);
-
-            this.emit('fetch', { error: error });
-        }
-
-        /**
-         * @returns {string} The key to use when generating the `patch` URL.
-         */
-
-    }, {
-        key: 'getPatchRoute',
-        value: function getPatchRoute() {
-            return this.getRoute('patch', 'save');
-        }
-
-        /**
-         * @returns {string} The key to use when generating the `create` URL.
-         */
-
-    }, {
-        key: 'getCreateRoute',
-        value: function getCreateRoute() {
-            return this.getRoute('create', 'save');
-        }
-
-        /**
-         * @returns {string} The key to use when generating the `update` URL.
-         */
-
-    }, {
-        key: 'getUpdateRoute',
-        value: function getUpdateRoute() {
-            if (this.shouldPatch()) {
-                return this.getPatchRoute();
-            }
-
-            return this.getRoute('update', 'save');
-        }
-
-        /**
-         * @returns {string} The method to use when making an update request.
-         */
-
-    }, {
-        key: 'getUpdateMethod',
-        value: function getUpdateMethod() {
-            return this.shouldPatch() ? this.getPatchMethod() : get$1(Model.prototype.__proto__ || Object.getPrototypeOf(Model.prototype), 'getUpdateMethod', this).call(this);
-        }
-
-        /**
-         * @returns {string} The method to use when making an save request.
-         */
-
-    }, {
-        key: 'getSaveMethod',
-        value: function getSaveMethod() {
-            return this.isNew() ? this.getCreateMethod() : this.getUpdateMethod();
-        }
-
-        /**
-         * @inheritDoc
-         */
-
-    }, {
-        key: 'getSaveRoute',
-        value: function getSaveRoute() {
-            if (this.isNew()) {
-                return this.getCreateRoute();
-            }
-
-            return this.getUpdateRoute();
-        }
-
-        /**
-         * Returns whether this model should perform a "patch" on update, which will
-         * only send changed data in the request, rather than all attributes.
-         *
-         * @returns {boolean} Whether this model should perform a "patch" on update,
-         *                    which will only send changed data in the request,
-         *                    rather than all attributes.
-         */
-
-    }, {
-        key: 'shouldPatch',
-        value: function shouldPatch() {
-            return Boolean(this.getOption('patch'));
-        }
-
-        /**
-         * @returns {Object} The data to send to the server when saving this model.
-         */
-
-    }, {
-        key: 'getSaveData',
-        value: function getSaveData() {
-
-            // Only use changed attributes if patching.
-            if (this.isExisting() && this.shouldPatch()) {
-                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["pick"])(this._attributes, this.changed());
-            }
-
-            return this._attributes;
-        }
-
-        /**
-         * @returns {*} A potential identifier parsed from response data.
-         */
-
-    }, {
-        key: 'parseIdentifier',
-        value: function parseIdentifier(data) {
-            return data;
-        }
-
-        /**
-         * @returns {boolean} Whether the given identifier is considered a valid
-         *                   identifier value for this model.
-         */
-
-    }, {
-        key: 'isValidIdentifier',
-        value: function isValidIdentifier(identifier) {
-            return Boolean(identifier);
-        }
-
-        /**
-         * @returns {boolean} Whether this model allows an existing identifier to be
-         *                    overwritten on update.
-         */
-
-    }, {
-        key: 'shouldAllowIdentifierOverwrite',
-        value: function shouldAllowIdentifierOverwrite() {
-            return Boolean(this.getOption('overwriteIdentifier'));
-        }
-
-        /**
-         * Updates the model data with data returned from the server.
-         *
-         * @param {Object} response
-         */
-
-    }, {
-        key: 'update',
-        value: function update(data) {
-
-            // No content means we don't want to update the model at all.
-            // The attributes that we passed in the request should now be considered
-            // the source of truth, so we should update the reference attributes here.
-            if (!data || Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isObjectLike"])(data) && Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(data)) {
-                this.sync();
-
-                // A plain object implies that we want to update the model data.
-                // It's not a requirement to respond with a complete dataset,
-                // eg. a response to a patch request might return partial data.
-            } else if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(data)) {
-                this.assign(data);
-
-                // There is some data, but it's not an object, so we can assume that the
-                // response only returned an identifier for this model.
-            } else {
-                var identifier = this.parseIdentifier(data);
-
-                // It's possible that the response didn't actually return a valid
-                // identifier, so before we try to use it we should make sure that
-                // we're not accidentially assigning the wrong data as identifiers.
-                if (this.isValidIdentifier(identifier)) {
-
-                    // The current identifier of this model.
-                    var current = this.identifier();
-
-                    // If an identifier already exists on this model and the returned
-                    // identifier is not the same, this almost definitely indicates
-                    // an unexpected state. The default is to protect against this
-                    // and fail hard, but this might not always be what we want.
-                    if (current && identifier !== current) {
-                        if (!this.shouldAllowIdentifierOverwrite()) {
-                            throw new Error('Not allowed to overwrite model identifier');
-                        }
-                    }
-
-                    // Update the identifier and sync the saved data.
-                    this.set(this.getOption('identifier'), identifier);
-                    this.sync();
-                } else {
-                    throw new Error('Expected an empty response, object, or valid identifier');
-                }
-            }
-        }
-
-        /**
-         * Sets errors for a specific attribute. Support the ability to clear error
-         * by passing an empty value.
-         *
-         * @param {string}       attribute
-         * @param {string|array} errors
-         */
-
-    }, {
-        key: 'setAttributeErrors',
-        value: function setAttributeErrors(attribute, errors) {
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(errors)) {
-                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.delete(this._errors, attribute);
-            } else {
-                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this._errors, attribute, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["castArray"])(errors));
-            }
-        }
-
-        /**
-         * Sets the errors on this model.
-         *
-         * @param {Object} errors
-         */
-
-    }, {
-        key: 'setErrors',
-        value: function setErrors(errors) {
-            var _this13 = this;
-
-            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(errors)) {
-                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_errors', {});
-                return;
-            }
-
-            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(errors, function (errors, attribute) {
-                _this13.setAttributeErrors(attribute, errors);
-            });
-        }
-
-        /**
-         * @returns {Object} Validation errors on this model.
-         */
-
-    }, {
-        key: 'getErrors',
-        value: function getErrors() {
-            if (this.getOption('useFirstErrorOnly')) {
-                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["mapValues"])(this._errors, __WEBPACK_IMPORTED_MODULE_0_lodash__["head"]);
-            }
-
-            return this._errors;
-        }
-
-        /**
-         * Clears all errors on this model.
-         */
-
-    }, {
-        key: 'clearErrors',
-        value: function clearErrors() {
-            this.setErrors({});
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
-        }
-
-        /**
-         * Called when a save request was successful.
-         *
-         * @param {Object|null} response
-         */
-
-    }, {
-        key: 'onSaveSuccess',
-        value: function onSaveSuccess(response) {
-
-            // Clear errors because the request was successful.
-            this.clearErrors();
-
-            // Update this model with the data that was returned in the response.
-            if (response) {
-                this.update(response.getData());
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
-
-            // Automatically add to all registered collections.
-            this.addToAllCollections();
-
-            this.emit('save', { error: null });
-        }
-
-        /**
-         * Called when a save request resulted in a validation error.
-         *
-         * @param {Object} errors
-         */
-
-    }, {
-        key: 'onSaveValidationFailure',
-        value: function onSaveValidationFailure(error) {
-            var errors = error.getResponse().getValidationErrors();
-
-            if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(errors)) {
-                throw new ResponseError('Validation errors must be an object', error.getResponse());
-            }
-
-            this.setErrors(errors);
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
-        }
-
-        /**
-         * Called when a save request resulted in an unexpected error,
-         * eg. an internal server error (500)
-         *
-         * @param {Error}  error
-         * @param {Object} response
-         */
-
-    }, {
-        key: 'onFatalSaveFailure',
-        value: function onFatalSaveFailure(error) {
-            this.clearErrors();
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', true);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
-        }
-
-        /**
-         * Called when a save request resulted in a general error.
-         *
-         * @param {Error}  error
-         * @param {Object} response
-         */
-
-    }, {
-        key: 'onSaveFailure',
-        value: function onSaveFailure(error) {
-            if (this.isBackendValidationError(error)) {
-                this.onSaveValidationFailure(error);
-            } else {
-                this.onFatalSaveFailure(error);
-            }
-
-            this.emit('save', { error: error });
-        }
-
-        /**
-         * Called when a delete request was successful.
-         */
-
-    }, {
-        key: 'onDeleteSuccess',
-        value: function onDeleteSuccess(response) {
-            this.clear();
-            this.removeFromAllCollections();
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
-
-            this.emit('delete', { error: null });
-        }
-
-        /**
-         * Called when a delete request resulted in a general error.
-         *
-         * @param {Error}  error
-         */
-
-    }, {
-        key: 'onDeleteFailure',
-        value: function onDeleteFailure(error) {
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', false);
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', true);
-
-            this.emit('delete', { error: error });
-        }
-
-        /**
-         * Called before a fetch request is made.
-         *
-         * @returns {boolean|undefined} `false` if the request should not be made.
-         */
-
-    }, {
-        key: 'onFetch',
-        value: function onFetch() {
-
-            // Don't fetch if already fetching. This prevents accidental requests
-            // that sometimes occur as a result of a double-click.
-            if (this.loading) {
-                return false;
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', true);
-        }
-
-        /**
-         * @returns {boolean} whether this model is not persisted yet, ie. has not
-         *                    been created yet. The default test is to check if the
-         *                    model's identifier is missing.
-         */
-
-    }, {
-        key: 'isNew',
-        value: function isNew() {
-            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isNil"])(this.identifier());
-        }
-
-        /**
-         * @returns {boolean} the opposite of `isNew`, returns `true` if this model
-         *                    is already persisted somewhere else.
-         */
-
-    }, {
-        key: 'isExisting',
-        value: function isExisting() {
-            return !this.isNew();
-        }
-
-        /**
-         * Called before a save request is made.
-         *
-         * @returns {boolean} `false` if the request should not be made.
-         */
-
-    }, {
-        key: 'onSave',
-        value: function onSave() {
-
-            // Don't save if we're already busy saving this model.
-            // This prevents things like accidental double-clicks.
-            if (this.saving) {
-                return false;
-            }
-
-            // Don't save if no data has changed, but consider it a success.
-            if (!this.getOption('saveUnchanged') && !this.changed()) {
-                return true;
-            }
-
-            // Mutate attribute before we save if required to do so.
-            if (this.getOption('mutateBeforeSave')) {
-                this.mutate();
-            }
-
-            // Validate all attributes before saving.
-            if (!this.validate()) {
-                throw new ValidationError(this.errors);
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', true);
-        }
-
-        /**
-         * Called before a delete request is made.
-         *
-         * @returns {boolean} `false` if the request should not be made.
-         */
-
-    }, {
-        key: 'onDelete',
-        value: function onDelete() {
-
-            // Don't save if we're already busy deleting this model.
-            if (this.deleting) {
-                return false;
-            }
-
-            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', true);
-        }
-    }]);
-    return Model;
-}(Base);
-
-/**
- * Models and Collections for Vue.js
- *
- * @version 0.2.3
- *
- * @author Rudi Theunissen <rudi.theunissen@figured.com>
- */
-
-
-
-
-/***/ }),
-/* 57 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _require = __webpack_require__(2),
-    h = _require.h;
-
-// https://css-tricks.com/creating-svg-icon-system-react/
-
-function defaultTabIcon() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", width: "30", height: "30", viewBox: "0 0 30 30" },
-    h("path", { d: "M15 30c8.284 0 15-6.716 15-15 0-8.284-6.716-15-15-15C6.716 0 0 6.716 0 15c0 8.284 6.716 15 15 15zm4.258-12.676v6.846h-8.426v-6.846H5.204l9.82-12.364 9.82 12.364H19.26z" })
-  );
-}
-
-function iconCopy() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", width: "51", height: "51", viewBox: "0 0 51 51" },
-    h("path", { d: "M17.21 45.765a5.394 5.394 0 0 1-7.62 0l-4.12-4.122a5.393 5.393 0 0 1 0-7.618l6.774-6.775-2.404-2.404-6.775 6.776c-3.424 3.427-3.424 9 0 12.426l4.12 4.123a8.766 8.766 0 0 0 6.216 2.57c2.25 0 4.5-.858 6.214-2.57l13.55-13.552a8.72 8.72 0 0 0 2.575-6.213 8.73 8.73 0 0 0-2.575-6.213l-4.123-4.12-2.404 2.404 4.123 4.12a5.352 5.352 0 0 1 1.58 3.81c0 1.438-.562 2.79-1.58 3.808l-13.55 13.55z" }),
-    h("path", { d: "M44.256 2.858A8.728 8.728 0 0 0 38.043.283h-.002a8.73 8.73 0 0 0-6.212 2.574l-13.55 13.55a8.725 8.725 0 0 0-2.575 6.214 8.73 8.73 0 0 0 2.574 6.216l4.12 4.12 2.405-2.403-4.12-4.12a5.357 5.357 0 0 1-1.58-3.812c0-1.437.562-2.79 1.58-3.808l13.55-13.55a5.348 5.348 0 0 1 3.81-1.58c1.44 0 2.792.562 3.81 1.58l4.12 4.12c2.1 2.1 2.1 5.518 0 7.617L39.2 23.775l2.404 2.404 6.775-6.777c3.426-3.427 3.426-9 0-12.426l-4.12-4.12z" })
-  );
-}
-
-function iconResume() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", width: "25", height: "25", viewBox: "0 0 44 44" },
-    h("polygon", { "class": "play", transform: "translate(6, 5.5)", points: "13 21.6666667 13 11 21 16.3333333" })
-  );
-}
-
-function iconPause() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", width: "25px", height: "25px", viewBox: "0 0 44 44" },
-    h(
-      "g",
-      { transform: "translate(18, 17)", "class": "pause" },
-      h("rect", { x: "0", y: "0", width: "2", height: "10", rx: "0" }),
-      h("rect", { x: "6", y: "0", width: "2", height: "10", rx: "0" })
-    )
-  );
-}
-
-function iconEdit() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", width: "28", height: "28", viewBox: "0 0 28 28" },
-    h("path", { d: "M25.436 2.566a7.98 7.98 0 0 0-2.078-1.51C22.638.703 21.906.5 21.198.5a3 3 0 0 0-1.023.17 2.436 2.436 0 0 0-.893.562L2.292 18.217.5 27.5l9.28-1.796 16.99-16.99c.255-.254.444-.56.562-.888a3 3 0 0 0 .17-1.023c0-.708-.205-1.44-.555-2.16a8 8 0 0 0-1.51-2.077zM9.01 24.252l-4.313.834c0-.03.008-.06.012-.09.007-.944-.74-1.715-1.67-1.723-.04 0-.078.007-.118.01l.83-4.29L17.72 5.024l5.264 5.264L9.01 24.252zm16.84-16.96a.818.818 0 0 1-.194.31l-1.57 1.57-5.26-5.26 1.57-1.57a.82.82 0 0 1 .31-.194 1.45 1.45 0 0 1 .492-.074c.397 0 .917.126 1.468.397.55.27 1.13.678 1.656 1.21.53.53.94 1.11 1.208 1.655.272.55.397 1.07.393 1.468.004.193-.027.358-.074.488z" })
-  );
-}
-
-function localIcon() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", width: "27", height: "25", viewBox: "0 0 27 25" },
-    h("path", { d: "M5.586 9.288a.313.313 0 0 0 .282.176h4.84v3.922c0 1.514 1.25 2.24 2.792 2.24 1.54 0 2.79-.726 2.79-2.24V9.464h4.84c.122 0 .23-.068.284-.176a.304.304 0 0 0-.046-.324L13.735.106a.316.316 0 0 0-.472 0l-7.63 8.857a.302.302 0 0 0-.047.325z" }),
-    h("path", { d: "M24.3 5.093c-.218-.76-.54-1.187-1.208-1.187h-4.856l1.018 1.18h3.948l2.043 11.038h-7.193v2.728H9.114v-2.725h-7.36l2.66-11.04h3.33l1.018-1.18H3.907c-.668 0-1.06.46-1.21 1.186L0 16.456v7.062C0 24.338.676 25 1.51 25h23.98c.833 0 1.51-.663 1.51-1.482v-7.062L24.3 5.093z" })
-  );
-}
-
-function closeIcon() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", width: "14px", height: "14px", viewBox: "0 0 19 19" },
-    h("path", { d: "M17.318 17.232L9.94 9.854 9.586 9.5l-.354.354-7.378 7.378h.707l-.62-.62v.706L9.318 9.94l.354-.354-.354-.354L1.94 1.854v.707l.62-.62h-.706l7.378 7.378.354.354.354-.354 7.378-7.378h-.707l.622.62v-.706L9.854 9.232l-.354.354.354.354 7.378 7.378.708-.707-7.38-7.378v.708l7.38-7.38.353-.353-.353-.353-.622-.622-.353-.353-.354.352-7.378 7.38h.708L2.56 1.23 2.208.88l-.353.353-.622.62-.353.355.352.353 7.38 7.38v-.708l-7.38 7.38-.353.353.352.353.622.622.353.353.354-.353 7.38-7.38h-.708l7.38 7.38z" })
-  );
-}
-
-function iconRetry() {
-  return h(
-    "svg",
-    { "class": "UppyIcon retry", width: "28", height: "31", viewBox: "0 0 16 19", xmlns: "http://www.w3.org/2000/svg" },
-    h("path", { d: "M16 11a8 8 0 1 1-8-8v2a6 6 0 1 0 6 6h2z" }),
-    h("path", { d: "M7.9 3H10v2H7.9z" }),
-    h("path", { d: "M8.536.5l3.535 3.536-1.414 1.414L7.12 1.914z" }),
-    h("path", { d: "M10.657 2.621l1.414 1.415L8.536 7.57 7.12 6.157z" })
-  );
-}
-
-function pluginIcon() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", width: "16px", height: "16px", viewBox: "0 0 32 30" },
-    h("path", { d: "M6.6209894,11.1451162 C6.6823051,11.2751669 6.81374248,11.3572188 6.95463813,11.3572188 L12.6925482,11.3572188 L12.6925482,16.0630427 C12.6925482,17.880509 14.1726048,18.75 16.0000083,18.75 C17.8261072,18.75 19.3074684,17.8801847 19.3074684,16.0630427 L19.3074684,11.3572188 L25.0437478,11.3572188 C25.1875787,11.3572188 25.3164069,11.2751669 25.3790272,11.1451162 C25.4370814,11.0173358 25.4171865,10.8642587 25.3252129,10.7562615 L16.278212,0.127131837 C16.2093949,0.0463771751 16.1069846,0 15.9996822,0 C15.8910751,0 15.7886648,0.0463771751 15.718217,0.127131837 L6.6761083,10.7559371 C6.58250402,10.8642587 6.56293518,11.0173358 6.6209894,11.1451162 L6.6209894,11.1451162 Z" }),
-    h("path", { d: "M28.8008722,6.11142645 C28.5417891,5.19831555 28.1583331,4.6875 27.3684848,4.6875 L21.6124454,4.6875 L22.8190234,6.10307874 L27.4986725,6.10307874 L29.9195817,19.3486449 L21.3943891,19.3502502 L21.3943891,22.622552 L10.8023461,22.622552 L10.8023461,19.3524977 L2.07815702,19.3534609 L5.22979699,6.10307874 L9.17871529,6.10307874 L10.3840011,4.6875 L4.6308691,4.6875 C3.83940559,4.6875 3.37421888,5.2390909 3.19815864,6.11142645 L0,19.7470874 L0,28.2212959 C0,29.2043992 0.801477937,30 1.78870751,30 L30.2096773,30 C31.198199,30 32,29.2043992 32,28.2212959 L32,19.7470874 L28.8008722,6.11142645 L28.8008722,6.11142645 Z" })
-  );
-}
-
-function checkIcon() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon UppyIcon-check", width: "13px", height: "9px", viewBox: "0 0 13 9" },
-    h("polygon", { points: "5 7.293 1.354 3.647 0.646 4.354 5 8.707 12.354 1.354 11.646 0.647" })
-  );
-}
-
-function iconAudio() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", viewBox: "0 0 55 55" },
-    h("path", { d: "M52.66.25c-.216-.19-.5-.276-.79-.242l-31 4.01a1 1 0 0 0-.87.992V40.622C18.174 38.428 15.273 37 12 37c-5.514 0-10 4.037-10 9s4.486 9 10 9 10-4.037 10-9c0-.232-.02-.46-.04-.687.014-.065.04-.124.04-.192V16.12l29-3.753v18.257C49.174 28.428 46.273 27 43 27c-5.514 0-10 4.037-10 9s4.486 9 10 9c5.464 0 9.913-3.966 9.993-8.867 0-.013.007-.024.007-.037V1a.998.998 0 0 0-.34-.75zM12 53c-4.41 0-8-3.14-8-7s3.59-7 8-7 8 3.14 8 7-3.59 7-8 7zm31-10c-4.41 0-8-3.14-8-7s3.59-7 8-7 8 3.14 8 7-3.59 7-8 7zM22 14.1V5.89l29-3.753v8.21l-29 3.754z" })
-  );
-}
-
-function iconVideo() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", viewBox: "0 0 58 58" },
-    h("path", { d: "M36.537 28.156l-11-7a1.005 1.005 0 0 0-1.02-.033C24.2 21.3 24 21.635 24 22v14a1 1 0 0 0 1.537.844l11-7a1.002 1.002 0 0 0 0-1.688zM26 34.18V23.82L34.137 29 26 34.18z" }),
-    h("path", { d: "M57 6H1a1 1 0 0 0-1 1v44a1 1 0 0 0 1 1h56a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1zM10 28H2v-9h8v9zm-8 2h8v9H2v-9zm10 10V8h34v42H12V40zm44-12h-8v-9h8v9zm-8 2h8v9h-8v-9zm8-22v9h-8V8h8zM2 8h8v9H2V8zm0 42v-9h8v9H2zm54 0h-8v-9h8v9z" })
-  );
-}
-
-function iconPDF() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", viewBox: "0 0 342 335" },
-    h("path", { d: "M329.337 227.84c-2.1 1.3-8.1 2.1-11.9 2.1-12.4 0-27.6-5.7-49.1-14.9 8.3-.6 15.8-.9 22.6-.9 12.4 0 16 0 28.2 3.1 12.1 3 12.2 9.3 10.2 10.6zm-215.1 1.9c4.8-8.4 9.7-17.3 14.7-26.8 12.2-23.1 20-41.3 25.7-56.2 11.5 20.9 25.8 38.6 42.5 52.8 2.1 1.8 4.3 3.5 6.7 5.3-34.1 6.8-63.6 15-89.6 24.9zm39.8-218.9c6.8 0 10.7 17.06 11 33.16.3 16-3.4 27.2-8.1 35.6-3.9-12.4-5.7-31.8-5.7-44.5 0 0-.3-24.26 2.8-24.26zm-133.4 307.2c3.9-10.5 19.1-31.3 41.6-49.8 1.4-1.1 4.9-4.4 8.1-7.4-23.5 37.6-39.3 52.5-49.7 57.2zm315.2-112.3c-6.8-6.7-22-10.2-45-10.5-15.6-.2-34.3 1.2-54.1 3.9-8.8-5.1-17.9-10.6-25.1-17.3-19.2-18-35.2-42.9-45.2-70.3.6-2.6 1.2-4.8 1.7-7.1 0 0 10.8-61.5 7.9-82.3-.4-2.9-.6-3.7-1.4-5.9l-.9-2.5c-2.9-6.76-8.7-13.96-17.8-13.57l-5.3-.17h-.1c-10.1 0-18.4 5.17-20.5 12.84-6.6 24.3.2 60.5 12.5 107.4l-3.2 7.7c-8.8 21.4-19.8 43-29.5 62l-1.3 2.5c-10.2 20-19.5 37-27.9 51.4l-8.7 4.6c-.6.4-15.5 8.2-19 10.3-29.6 17.7-49.28 37.8-52.54 53.8-1.04 5-.26 11.5 5.01 14.6l8.4 4.2c3.63 1.8 7.53 2.7 11.43 2.7 21.1 0 45.6-26.2 79.3-85.1 39-12.7 83.4-23.3 122.3-29.1 29.6 16.7 66 28.3 89 28.3 4.1 0 7.6-.4 10.5-1.2 4.4-1.1 8.1-3.6 10.4-7.1 4.4-6.7 5.4-15.9 4.1-25.4-.3-2.8-2.6-6.3-5-8.7z" })
-  );
-}
-
-function iconFile() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", width: "44", height: "58", viewBox: "0 0 44 58" },
-    h("path", { d: "M27.437.517a1 1 0 0 0-.094.03H4.25C2.037.548.217 2.368.217 4.58v48.405c0 2.212 1.82 4.03 4.03 4.03H39.03c2.21 0 4.03-1.818 4.03-4.03V15.61a1 1 0 0 0-.03-.28 1 1 0 0 0 0-.093 1 1 0 0 0-.03-.032 1 1 0 0 0 0-.03 1 1 0 0 0-.032-.063 1 1 0 0 0-.03-.063 1 1 0 0 0-.032 0 1 1 0 0 0-.03-.063 1 1 0 0 0-.032-.03 1 1 0 0 0-.03-.063 1 1 0 0 0-.063-.062l-14.593-14a1 1 0 0 0-.062-.062A1 1 0 0 0 28 .708a1 1 0 0 0-.374-.157 1 1 0 0 0-.156 0 1 1 0 0 0-.03-.03l-.003-.003zM4.25 2.547h22.218v9.97c0 2.21 1.82 4.03 4.03 4.03h10.564v36.438a2.02 2.02 0 0 1-2.032 2.032H4.25c-1.13 0-2.032-.9-2.032-2.032V4.58c0-1.13.902-2.032 2.03-2.032zm24.218 1.345l10.375 9.937.75.718H30.5c-1.13 0-2.032-.9-2.032-2.03V3.89z" })
-  );
-}
-
-function iconText() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", width: "62", height: "62", viewBox: "0 0 62 62", xmlns: "http://www.w3.org/2000/svg" },
-    h("path", { d: "M4.309 4.309h24.912v53.382h-6.525v3.559h16.608v-3.559h-6.525V4.309h24.912v10.676h3.559V.75H.75v14.235h3.559z", "fill-rule": "nonzero", fill: "#000" })
-  );
-}
-
-function uploadIcon() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", width: "37", height: "33", viewBox: "0 0 37 33" },
-    h("path", { d: "M29.107 24.5c4.07 0 7.393-3.355 7.393-7.442 0-3.994-3.105-7.307-7.012-7.502l.468.415C29.02 4.52 24.34.5 18.886.5c-4.348 0-8.27 2.522-10.138 6.506l.446-.288C4.394 6.782.5 10.758.5 15.608c0 4.924 3.906 8.892 8.76 8.892h4.872c.635 0 1.095-.467 1.095-1.104 0-.636-.46-1.103-1.095-1.103H9.26c-3.644 0-6.63-3.035-6.63-6.744 0-3.71 2.926-6.685 6.57-6.685h.964l.14-.28.177-.362c1.477-3.4 4.744-5.576 8.347-5.576 4.58 0 8.45 3.452 9.01 8.072l.06.536.05.446h1.101c2.87 0 5.204 2.37 5.204 5.295s-2.333 5.296-5.204 5.296h-6.062c-.634 0-1.094.467-1.094 1.103 0 .637.46 1.104 1.094 1.104h6.12z" }),
-    h("path", { d: "M23.196 18.92l-4.828-5.258-.366-.4-.368.398-4.828 5.196a1.13 1.13 0 0 0 0 1.546c.428.46 1.11.46 1.537 0l3.45-3.71-.868-.34v15.03c0 .64.445 1.118 1.075 1.118.63 0 1.075-.48 1.075-1.12V16.35l-.867.34 3.45 3.712a1 1 0 0 0 .767.345 1 1 0 0 0 .77-.345c.416-.33.416-1.036 0-1.485v.003z" })
-  );
-}
-
-function dashboardBgIcon() {
-  return h(
-    "svg",
-    { "aria-hidden": "true", "class": "UppyIcon", width: "48", height: "69", viewBox: "0 0 48 69" },
-    h("path", { d: "M.5 1.5h5zM10.5 1.5h5zM20.5 1.5h5zM30.504 1.5h5zM45.5 11.5v5zM45.5 21.5v5zM45.5 31.5v5zM45.5 41.502v5zM45.5 51.502v5zM45.5 61.5v5zM45.5 66.502h-4.998zM35.503 66.502h-5zM25.5 66.502h-5zM15.5 66.502h-5zM5.5 66.502h-5zM.5 66.502v-5zM.5 56.502v-5zM.5 46.503V41.5zM.5 36.5v-5zM.5 26.5v-5zM.5 16.5v-5zM.5 6.5V1.498zM44.807 11H36V2.195z" })
-  );
-}
-
-module.exports = {
-  defaultTabIcon: defaultTabIcon,
-  iconCopy: iconCopy,
-  iconResume: iconResume,
-  iconPause: iconPause,
-  iconRetry: iconRetry,
-  iconEdit: iconEdit,
-  localIcon: localIcon,
-  closeIcon: closeIcon,
-  pluginIcon: pluginIcon,
-  checkIcon: checkIcon,
-  iconAudio: iconAudio,
-  iconVideo: iconVideo,
-  iconPDF: iconPDF,
-  iconFile: iconFile,
-  iconText: iconText,
-  uploadIcon: uploadIcon,
-  dashboardBgIcon: dashboardBgIcon
-};
-//# sourceMappingURL=icons.js.map
-
-/***/ }),
-/* 58 */,
-/* 59 */,
-/* 60 */,
-/* 61 */,
-/* 62 */
-/***/ (function(module, exports, __webpack_require__) {
-
 "use strict";
 /* WEBPACK VAR INJECTION */(function(global, setImmediate) {/*!
  * Vue.js v2.5.13
@@ -19977,6 +15023,4960 @@ module.exports = Vue$3;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8), __webpack_require__(569).setImmediate))
 
 /***/ }),
+/* 56 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// Flickity main
+( function( window, factory ) {
+  // universal module definition
+  /* jshint strict: false */
+  if ( true ) {
+    // AMD
+    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [
+      __webpack_require__(126),
+      __webpack_require__(189),
+      __webpack_require__(43),
+      __webpack_require__(584),
+      __webpack_require__(585),
+      __webpack_require__(586)
+    ], __WEBPACK_AMD_DEFINE_RESULT__ = (function( EvEmitter, getSize, utils, Cell, Slide, animatePrototype ) {
+      return factory( window, EvEmitter, getSize, utils, Cell, Slide, animatePrototype );
+    }).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+  } else if ( typeof module == 'object' && module.exports ) {
+    // CommonJS
+    module.exports = factory(
+      window,
+      require('ev-emitter'),
+      require('get-size'),
+      require('fizzy-ui-utils'),
+      require('./cell'),
+      require('./slide'),
+      require('./animate')
+    );
+  } else {
+    // browser global
+    var _Flickity = window.Flickity;
+
+    window.Flickity = factory(
+      window,
+      window.EvEmitter,
+      window.getSize,
+      window.fizzyUIUtils,
+      _Flickity.Cell,
+      _Flickity.Slide,
+      _Flickity.animatePrototype
+    );
+  }
+
+}( window, function factory( window, EvEmitter, getSize,
+  utils, Cell, Slide, animatePrototype ) {
+
+'use strict';
+
+// vars
+var jQuery = window.jQuery;
+var getComputedStyle = window.getComputedStyle;
+var console = window.console;
+
+function moveElements( elems, toElem ) {
+  elems = utils.makeArray( elems );
+  while ( elems.length ) {
+    toElem.appendChild( elems.shift() );
+  }
+}
+
+// -------------------------- Flickity -------------------------- //
+
+// globally unique identifiers
+var GUID = 0;
+// internal store of all Flickity intances
+var instances = {};
+
+function Flickity( element, options ) {
+  var queryElement = utils.getQueryElement( element );
+  if ( !queryElement ) {
+    if ( console ) {
+      console.error( 'Bad element for Flickity: ' + ( queryElement || element ) );
+    }
+    return;
+  }
+  this.element = queryElement;
+  // do not initialize twice on same element
+  if ( this.element.flickityGUID ) {
+    var instance = instances[ this.element.flickityGUID ];
+    instance.option( options );
+    return instance;
+  }
+
+  // add jQuery
+  if ( jQuery ) {
+    this.$element = jQuery( this.element );
+  }
+  // options
+  this.options = utils.extend( {}, this.constructor.defaults );
+  this.option( options );
+
+  // kick things off
+  this._create();
+}
+
+Flickity.defaults = {
+  accessibility: true,
+  // adaptiveHeight: false,
+  cellAlign: 'center',
+  // cellSelector: undefined,
+  // contain: false,
+  freeScrollFriction: 0.075, // friction when free-scrolling
+  friction: 0.28, // friction when selecting
+  namespaceJQueryEvents: true,
+  // initialIndex: 0,
+  percentPosition: true,
+  resize: true,
+  selectedAttraction: 0.025,
+  setGallerySize: true
+  // watchCSS: false,
+  // wrapAround: false
+};
+
+// hash of methods triggered on _create()
+Flickity.createMethods = [];
+
+var proto = Flickity.prototype;
+// inherit EventEmitter
+utils.extend( proto, EvEmitter.prototype );
+
+proto._create = function() {
+  // add id for Flickity.data
+  var id = this.guid = ++GUID;
+  this.element.flickityGUID = id; // expando
+  instances[ id ] = this; // associate via id
+  // initial properties
+  this.selectedIndex = 0;
+  // how many frames slider has been in same position
+  this.restingFrames = 0;
+  // initial physics properties
+  this.x = 0;
+  this.velocity = 0;
+  this.originSide = this.options.rightToLeft ? 'right' : 'left';
+  // create viewport & slider
+  this.viewport = document.createElement('div');
+  this.viewport.className = 'flickity-viewport';
+  this._createSlider();
+
+  if ( this.options.resize || this.options.watchCSS ) {
+    window.addEventListener( 'resize', this );
+  }
+
+  Flickity.createMethods.forEach( function( method ) {
+    this[ method ]();
+  }, this );
+
+  if ( this.options.watchCSS ) {
+    this.watchCSS();
+  } else {
+    this.activate();
+  }
+
+};
+
+/**
+ * set options
+ * @param {Object} opts
+ */
+proto.option = function( opts ) {
+  utils.extend( this.options, opts );
+};
+
+proto.activate = function() {
+  if ( this.isActive ) {
+    return;
+  }
+  this.isActive = true;
+  this.element.classList.add('flickity-enabled');
+  if ( this.options.rightToLeft ) {
+    this.element.classList.add('flickity-rtl');
+  }
+
+  this.getSize();
+  // move initial cell elements so they can be loaded as cells
+  var cellElems = this._filterFindCellElements( this.element.children );
+  moveElements( cellElems, this.slider );
+  this.viewport.appendChild( this.slider );
+  this.element.appendChild( this.viewport );
+  // get cells from children
+  this.reloadCells();
+
+  if ( this.options.accessibility ) {
+    // allow element to focusable
+    this.element.tabIndex = 0;
+    // listen for key presses
+    this.element.addEventListener( 'keydown', this );
+  }
+
+  this.emitEvent('activate');
+
+  var index;
+  var initialIndex = this.options.initialIndex;
+  if ( this.isInitActivated ) {
+    index = this.selectedIndex;
+  } else if ( initialIndex !== undefined ) {
+    index = this.cells[ initialIndex ] ? initialIndex : 0;
+  } else {
+    index = 0;
+  }
+  // select instantly
+  this.select( index, false, true );
+  // flag for initial activation, for using initialIndex
+  this.isInitActivated = true;
+};
+
+// slider positions the cells
+proto._createSlider = function() {
+  // slider element does all the positioning
+  var slider = document.createElement('div');
+  slider.className = 'flickity-slider';
+  slider.style[ this.originSide ] = 0;
+  this.slider = slider;
+};
+
+proto._filterFindCellElements = function( elems ) {
+  return utils.filterFindElements( elems, this.options.cellSelector );
+};
+
+// goes through all children
+proto.reloadCells = function() {
+  // collection of item elements
+  this.cells = this._makeCells( this.slider.children );
+  this.positionCells();
+  this._getWrapShiftCells();
+  this.setGallerySize();
+};
+
+/**
+ * turn elements into Flickity.Cells
+ * @param {Array or NodeList or HTMLElement} elems
+ * @returns {Array} items - collection of new Flickity Cells
+ */
+proto._makeCells = function( elems ) {
+  var cellElems = this._filterFindCellElements( elems );
+
+  // create new Flickity for collection
+  var cells = cellElems.map( function( cellElem ) {
+    return new Cell( cellElem, this );
+  }, this );
+
+  return cells;
+};
+
+proto.getLastCell = function() {
+  return this.cells[ this.cells.length - 1 ];
+};
+
+proto.getLastSlide = function() {
+  return this.slides[ this.slides.length - 1 ];
+};
+
+// positions all cells
+proto.positionCells = function() {
+  // size all cells
+  this._sizeCells( this.cells );
+  // position all cells
+  this._positionCells( 0 );
+};
+
+/**
+ * position certain cells
+ * @param {Integer} index - which cell to start with
+ */
+proto._positionCells = function( index ) {
+  index = index || 0;
+  // also measure maxCellHeight
+  // start 0 if positioning all cells
+  this.maxCellHeight = index ? this.maxCellHeight || 0 : 0;
+  var cellX = 0;
+  // get cellX
+  if ( index > 0 ) {
+    var startCell = this.cells[ index - 1 ];
+    cellX = startCell.x + startCell.size.outerWidth;
+  }
+  var len = this.cells.length;
+  for ( var i=index; i < len; i++ ) {
+    var cell = this.cells[i];
+    cell.setPosition( cellX );
+    cellX += cell.size.outerWidth;
+    this.maxCellHeight = Math.max( cell.size.outerHeight, this.maxCellHeight );
+  }
+  // keep track of cellX for wrap-around
+  this.slideableWidth = cellX;
+  // slides
+  this.updateSlides();
+  // contain slides target
+  this._containSlides();
+  // update slidesWidth
+  this.slidesWidth = len ? this.getLastSlide().target - this.slides[0].target : 0;
+};
+
+/**
+ * cell.getSize() on multiple cells
+ * @param {Array} cells
+ */
+proto._sizeCells = function( cells ) {
+  cells.forEach( function( cell ) {
+    cell.getSize();
+  });
+};
+
+// --------------------------  -------------------------- //
+
+proto.updateSlides = function() {
+  this.slides = [];
+  if ( !this.cells.length ) {
+    return;
+  }
+
+  var slide = new Slide( this );
+  this.slides.push( slide );
+  var isOriginLeft = this.originSide == 'left';
+  var nextMargin = isOriginLeft ? 'marginRight' : 'marginLeft';
+
+  var canCellFit = this._getCanCellFit();
+
+  this.cells.forEach( function( cell, i ) {
+    // just add cell if first cell in slide
+    if ( !slide.cells.length ) {
+      slide.addCell( cell );
+      return;
+    }
+
+    var slideWidth = ( slide.outerWidth - slide.firstMargin ) +
+      ( cell.size.outerWidth - cell.size[ nextMargin ] );
+
+    if ( canCellFit.call( this, i, slideWidth ) ) {
+      slide.addCell( cell );
+    } else {
+      // doesn't fit, new slide
+      slide.updateTarget();
+
+      slide = new Slide( this );
+      this.slides.push( slide );
+      slide.addCell( cell );
+    }
+  }, this );
+  // last slide
+  slide.updateTarget();
+  // update .selectedSlide
+  this.updateSelectedSlide();
+};
+
+proto._getCanCellFit = function() {
+  var groupCells = this.options.groupCells;
+  if ( !groupCells ) {
+    return function() {
+      return false;
+    };
+  } else if ( typeof groupCells == 'number' ) {
+    // group by number. 3 -> [0,1,2], [3,4,5], ...
+    var number = parseInt( groupCells, 10 );
+    return function( i ) {
+      return ( i % number ) !== 0;
+    };
+  }
+  // default, group by width of slide
+  // parse '75%
+  var percentMatch = typeof groupCells == 'string' &&
+    groupCells.match(/^(\d+)%$/);
+  var percent = percentMatch ? parseInt( percentMatch[1], 10 ) / 100 : 1;
+  return function( i, slideWidth ) {
+    return slideWidth <= ( this.size.innerWidth + 1 ) * percent;
+  };
+};
+
+// alias _init for jQuery plugin .flickity()
+proto._init =
+proto.reposition = function() {
+  this.positionCells();
+  this.positionSliderAtSelected();
+};
+
+proto.getSize = function() {
+  this.size = getSize( this.element );
+  this.setCellAlign();
+  this.cursorPosition = this.size.innerWidth * this.cellAlign;
+};
+
+var cellAlignShorthands = {
+  // cell align, then based on origin side
+  center: {
+    left: 0.5,
+    right: 0.5
+  },
+  left: {
+    left: 0,
+    right: 1
+  },
+  right: {
+    right: 0,
+    left: 1
+  }
+};
+
+proto.setCellAlign = function() {
+  var shorthand = cellAlignShorthands[ this.options.cellAlign ];
+  this.cellAlign = shorthand ? shorthand[ this.originSide ] : this.options.cellAlign;
+};
+
+proto.setGallerySize = function() {
+  if ( this.options.setGallerySize ) {
+    var height = this.options.adaptiveHeight && this.selectedSlide ?
+      this.selectedSlide.height : this.maxCellHeight;
+    this.viewport.style.height = height + 'px';
+  }
+};
+
+proto._getWrapShiftCells = function() {
+  // only for wrap-around
+  if ( !this.options.wrapAround ) {
+    return;
+  }
+  // unshift previous cells
+  this._unshiftCells( this.beforeShiftCells );
+  this._unshiftCells( this.afterShiftCells );
+  // get before cells
+  // initial gap
+  var gapX = this.cursorPosition;
+  var cellIndex = this.cells.length - 1;
+  this.beforeShiftCells = this._getGapCells( gapX, cellIndex, -1 );
+  // get after cells
+  // ending gap between last cell and end of gallery viewport
+  gapX = this.size.innerWidth - this.cursorPosition;
+  // start cloning at first cell, working forwards
+  this.afterShiftCells = this._getGapCells( gapX, 0, 1 );
+};
+
+proto._getGapCells = function( gapX, cellIndex, increment ) {
+  // keep adding cells until the cover the initial gap
+  var cells = [];
+  while ( gapX > 0 ) {
+    var cell = this.cells[ cellIndex ];
+    if ( !cell ) {
+      break;
+    }
+    cells.push( cell );
+    cellIndex += increment;
+    gapX -= cell.size.outerWidth;
+  }
+  return cells;
+};
+
+// ----- contain ----- //
+
+// contain cell targets so no excess sliding
+proto._containSlides = function() {
+  if ( !this.options.contain || this.options.wrapAround || !this.cells.length ) {
+    return;
+  }
+  var isRightToLeft = this.options.rightToLeft;
+  var beginMargin = isRightToLeft ? 'marginRight' : 'marginLeft';
+  var endMargin = isRightToLeft ? 'marginLeft' : 'marginRight';
+  var contentWidth = this.slideableWidth - this.getLastCell().size[ endMargin ];
+  // content is less than gallery size
+  var isContentSmaller = contentWidth < this.size.innerWidth;
+  // bounds
+  var beginBound = this.cursorPosition + this.cells[0].size[ beginMargin ];
+  var endBound = contentWidth - this.size.innerWidth * ( 1 - this.cellAlign );
+  // contain each cell target
+  this.slides.forEach( function( slide ) {
+    if ( isContentSmaller ) {
+      // all cells fit inside gallery
+      slide.target = contentWidth * this.cellAlign;
+    } else {
+      // contain to bounds
+      slide.target = Math.max( slide.target, beginBound );
+      slide.target = Math.min( slide.target, endBound );
+    }
+  }, this );
+};
+
+// -----  ----- //
+
+/**
+ * emits events via eventEmitter and jQuery events
+ * @param {String} type - name of event
+ * @param {Event} event - original event
+ * @param {Array} args - extra arguments
+ */
+proto.dispatchEvent = function( type, event, args ) {
+  var emitArgs = event ? [ event ].concat( args ) : args;
+  this.emitEvent( type, emitArgs );
+
+  if ( jQuery && this.$element ) {
+    // default trigger with type if no event
+    type += this.options.namespaceJQueryEvents ? '.flickity' : '';
+    var $event = type;
+    if ( event ) {
+      // create jQuery event
+      var jQEvent = jQuery.Event( event );
+      jQEvent.type = type;
+      $event = jQEvent;
+    }
+    this.$element.trigger( $event, args );
+  }
+};
+
+// -------------------------- select -------------------------- //
+
+/**
+ * @param {Integer} index - index of the slide
+ * @param {Boolean} isWrap - will wrap-around to last/first if at the end
+ * @param {Boolean} isInstant - will immediately set position at selected cell
+ */
+proto.select = function( index, isWrap, isInstant ) {
+  if ( !this.isActive ) {
+    return;
+  }
+  index = parseInt( index, 10 );
+  this._wrapSelect( index );
+
+  if ( this.options.wrapAround || isWrap ) {
+    index = utils.modulo( index, this.slides.length );
+  }
+  // bail if invalid index
+  if ( !this.slides[ index ] ) {
+    return;
+  }
+  this.selectedIndex = index;
+  this.updateSelectedSlide();
+  if ( isInstant ) {
+    this.positionSliderAtSelected();
+  } else {
+    this.startAnimation();
+  }
+  if ( this.options.adaptiveHeight ) {
+    this.setGallerySize();
+  }
+
+  this.dispatchEvent('select');
+  // old v1 event name, remove in v3
+  this.dispatchEvent('cellSelect');
+};
+
+// wraps position for wrapAround, to move to closest slide. #113
+proto._wrapSelect = function( index ) {
+  var len = this.slides.length;
+  var isWrapping = this.options.wrapAround && len > 1;
+  if ( !isWrapping ) {
+    return index;
+  }
+  var wrapIndex = utils.modulo( index, len );
+  // go to shortest
+  var delta = Math.abs( wrapIndex - this.selectedIndex );
+  var backWrapDelta = Math.abs( ( wrapIndex + len ) - this.selectedIndex );
+  var forewardWrapDelta = Math.abs( ( wrapIndex - len ) - this.selectedIndex );
+  if ( !this.isDragSelect && backWrapDelta < delta ) {
+    index += len;
+  } else if ( !this.isDragSelect && forewardWrapDelta < delta ) {
+    index -= len;
+  }
+  // wrap position so slider is within normal area
+  if ( index < 0 ) {
+    this.x -= this.slideableWidth;
+  } else if ( index >= len ) {
+    this.x += this.slideableWidth;
+  }
+};
+
+proto.previous = function( isWrap, isInstant ) {
+  this.select( this.selectedIndex - 1, isWrap, isInstant );
+};
+
+proto.next = function( isWrap, isInstant ) {
+  this.select( this.selectedIndex + 1, isWrap, isInstant );
+};
+
+proto.updateSelectedSlide = function() {
+  var slide = this.slides[ this.selectedIndex ];
+  // selectedIndex could be outside of slides, if triggered before resize()
+  if ( !slide ) {
+    return;
+  }
+  // unselect previous selected slide
+  this.unselectSelectedSlide();
+  // update new selected slide
+  this.selectedSlide = slide;
+  slide.select();
+  this.selectedCells = slide.cells;
+  this.selectedElements = slide.getCellElements();
+  // HACK: selectedCell & selectedElement is first cell in slide, backwards compatibility
+  // Remove in v3?
+  this.selectedCell = slide.cells[0];
+  this.selectedElement = this.selectedElements[0];
+};
+
+proto.unselectSelectedSlide = function() {
+  if ( this.selectedSlide ) {
+    this.selectedSlide.unselect();
+  }
+};
+
+/**
+ * select slide from number or cell element
+ * @param {Element or Number} elem
+ */
+proto.selectCell = function( value, isWrap, isInstant ) {
+  // get cell
+  var cell;
+  if ( typeof value == 'number' ) {
+    cell = this.cells[ value ];
+  } else {
+    // use string as selector
+    if ( typeof value == 'string' ) {
+      value = this.element.querySelector( value );
+    }
+    // get cell from element
+    cell = this.getCell( value );
+  }
+  // select slide that has cell
+  for ( var i=0; cell && i < this.slides.length; i++ ) {
+    var slide = this.slides[i];
+    var index = slide.cells.indexOf( cell );
+    if ( index != -1 ) {
+      this.select( i, isWrap, isInstant );
+      return;
+    }
+  }
+};
+
+// -------------------------- get cells -------------------------- //
+
+/**
+ * get Flickity.Cell, given an Element
+ * @param {Element} elem
+ * @returns {Flickity.Cell} item
+ */
+proto.getCell = function( elem ) {
+  // loop through cells to get the one that matches
+  for ( var i=0; i < this.cells.length; i++ ) {
+    var cell = this.cells[i];
+    if ( cell.element == elem ) {
+      return cell;
+    }
+  }
+};
+
+/**
+ * get collection of Flickity.Cells, given Elements
+ * @param {Element, Array, NodeList} elems
+ * @returns {Array} cells - Flickity.Cells
+ */
+proto.getCells = function( elems ) {
+  elems = utils.makeArray( elems );
+  var cells = [];
+  elems.forEach( function( elem ) {
+    var cell = this.getCell( elem );
+    if ( cell ) {
+      cells.push( cell );
+    }
+  }, this );
+  return cells;
+};
+
+/**
+ * get cell elements
+ * @returns {Array} cellElems
+ */
+proto.getCellElements = function() {
+  return this.cells.map( function( cell ) {
+    return cell.element;
+  });
+};
+
+/**
+ * get parent cell from an element
+ * @param {Element} elem
+ * @returns {Flickit.Cell} cell
+ */
+proto.getParentCell = function( elem ) {
+  // first check if elem is cell
+  var cell = this.getCell( elem );
+  if ( cell ) {
+    return cell;
+  }
+  // try to get parent cell elem
+  elem = utils.getParent( elem, '.flickity-slider > *' );
+  return this.getCell( elem );
+};
+
+/**
+ * get cells adjacent to a slide
+ * @param {Integer} adjCount - number of adjacent slides
+ * @param {Integer} index - index of slide to start
+ * @returns {Array} cells - array of Flickity.Cells
+ */
+proto.getAdjacentCellElements = function( adjCount, index ) {
+  if ( !adjCount ) {
+    return this.selectedSlide.getCellElements();
+  }
+  index = index === undefined ? this.selectedIndex : index;
+
+  var len = this.slides.length;
+  if ( 1 + ( adjCount * 2 ) >= len ) {
+    return this.getCellElements();
+  }
+
+  var cellElems = [];
+  for ( var i = index - adjCount; i <= index + adjCount ; i++ ) {
+    var slideIndex = this.options.wrapAround ? utils.modulo( i, len ) : i;
+    var slide = this.slides[ slideIndex ];
+    if ( slide ) {
+      cellElems = cellElems.concat( slide.getCellElements() );
+    }
+  }
+  return cellElems;
+};
+
+// -------------------------- events -------------------------- //
+
+proto.uiChange = function() {
+  this.emitEvent('uiChange');
+};
+
+proto.childUIPointerDown = function( event ) {
+  this.emitEvent( 'childUIPointerDown', [ event ] );
+};
+
+// ----- resize ----- //
+
+proto.onresize = function() {
+  this.watchCSS();
+  this.resize();
+};
+
+utils.debounceMethod( Flickity, 'onresize', 150 );
+
+proto.resize = function() {
+  if ( !this.isActive ) {
+    return;
+  }
+  this.getSize();
+  // wrap values
+  if ( this.options.wrapAround ) {
+    this.x = utils.modulo( this.x, this.slideableWidth );
+  }
+  this.positionCells();
+  this._getWrapShiftCells();
+  this.setGallerySize();
+  this.emitEvent('resize');
+  // update selected index for group slides, instant
+  // TODO: position can be lost between groups of various numbers
+  var selectedElement = this.selectedElements && this.selectedElements[0];
+  this.selectCell( selectedElement, false, true );
+};
+
+// watches the :after property, activates/deactivates
+proto.watchCSS = function() {
+  var watchOption = this.options.watchCSS;
+  if ( !watchOption ) {
+    return;
+  }
+
+  var afterContent = getComputedStyle( this.element, ':after' ).content;
+  // activate if :after { content: 'flickity' }
+  if ( afterContent.indexOf('flickity') != -1 ) {
+    this.activate();
+  } else {
+    this.deactivate();
+  }
+};
+
+// ----- keydown ----- //
+
+// go previous/next if left/right keys pressed
+proto.onkeydown = function( event ) {
+  // only work if element is in focus
+  if ( !this.options.accessibility ||
+    ( document.activeElement && document.activeElement != this.element ) ) {
+    return;
+  }
+
+  if ( event.keyCode == 37 ) {
+    // go left
+    var leftMethod = this.options.rightToLeft ? 'next' : 'previous';
+    this.uiChange();
+    this[ leftMethod ]();
+  } else if ( event.keyCode == 39 ) {
+    // go right
+    var rightMethod = this.options.rightToLeft ? 'previous' : 'next';
+    this.uiChange();
+    this[ rightMethod ]();
+  }
+};
+
+// -------------------------- destroy -------------------------- //
+
+// deactivate all Flickity functionality, but keep stuff available
+proto.deactivate = function() {
+  if ( !this.isActive ) {
+    return;
+  }
+  this.element.classList.remove('flickity-enabled');
+  this.element.classList.remove('flickity-rtl');
+  // destroy cells
+  this.cells.forEach( function( cell ) {
+    cell.destroy();
+  });
+  this.unselectSelectedSlide();
+  this.element.removeChild( this.viewport );
+  // move child elements back into element
+  moveElements( this.slider.children, this.element );
+  if ( this.options.accessibility ) {
+    this.element.removeAttribute('tabIndex');
+    this.element.removeEventListener( 'keydown', this );
+  }
+  // set flags
+  this.isActive = false;
+  this.emitEvent('deactivate');
+};
+
+proto.destroy = function() {
+  this.deactivate();
+  window.removeEventListener( 'resize', this );
+  this.emitEvent('destroy');
+  if ( jQuery && this.$element ) {
+    jQuery.removeData( this.element, 'flickity' );
+  }
+  delete this.element.flickityGUID;
+  delete instances[ this.guid ];
+};
+
+// -------------------------- prototype -------------------------- //
+
+utils.extend( proto, animatePrototype );
+
+// -------------------------- extras -------------------------- //
+
+/**
+ * get Flickity instance from element
+ * @param {Element} elem
+ * @returns {Flickity}
+ */
+Flickity.data = function( elem ) {
+  elem = utils.getQueryElement( elem );
+  var id = elem && elem.flickityGUID;
+  return id && instances[ id ];
+};
+
+utils.htmlInit( Flickity, 'flickity' );
+
+if ( jQuery && jQuery.bridget ) {
+  jQuery.bridget( 'flickity', Flickity );
+}
+
+// set internal jQuery, for Webpack + jQuery v3, #478
+Flickity.setJQuery = function( jq ) {
+  jQuery = jq;
+};
+
+Flickity.Cell = Cell;
+
+return Flickity;
+
+}));
+
+
+/***/ }),
+/* 57 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Model", function() { return Model; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Collection", function() { return Collection; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_lodash__ = __webpack_require__(91);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_lodash___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_lodash__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_axios__ = __webpack_require__(627);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_axios___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_axios__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_vue__ = __webpack_require__(55);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_vue__);
+
+
+
+
+
+var asyncGenerator = function () {
+  function AwaitValue(value) {
+    this.value = value;
+  }
+
+  function AsyncGenerator(gen) {
+    var front, back;
+
+    function send(key, arg) {
+      return new Promise(function (resolve, reject) {
+        var request = {
+          key: key,
+          arg: arg,
+          resolve: resolve,
+          reject: reject,
+          next: null
+        };
+
+        if (back) {
+          back = back.next = request;
+        } else {
+          front = back = request;
+          resume(key, arg);
+        }
+      });
+    }
+
+    function resume(key, arg) {
+      try {
+        var result = gen[key](arg);
+        var value = result.value;
+
+        if (value instanceof AwaitValue) {
+          Promise.resolve(value.value).then(function (arg) {
+            resume("next", arg);
+          }, function (arg) {
+            resume("throw", arg);
+          });
+        } else {
+          settle(result.done ? "return" : "normal", result.value);
+        }
+      } catch (err) {
+        settle("throw", err);
+      }
+    }
+
+    function settle(type, value) {
+      switch (type) {
+        case "return":
+          front.resolve({
+            value: value,
+            done: true
+          });
+          break;
+
+        case "throw":
+          front.reject(value);
+          break;
+
+        default:
+          front.resolve({
+            value: value,
+            done: false
+          });
+          break;
+      }
+
+      front = front.next;
+
+      if (front) {
+        resume(front.key, front.arg);
+      } else {
+        back = null;
+      }
+    }
+
+    this._invoke = send;
+
+    if (typeof gen.return !== "function") {
+      this.return = undefined;
+    }
+  }
+
+  if (typeof Symbol === "function" && Symbol.asyncIterator) {
+    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
+      return this;
+    };
+  }
+
+  AsyncGenerator.prototype.next = function (arg) {
+    return this._invoke("next", arg);
+  };
+
+  AsyncGenerator.prototype.throw = function (arg) {
+    return this._invoke("throw", arg);
+  };
+
+  AsyncGenerator.prototype.return = function (arg) {
+    return this._invoke("return", arg);
+  };
+
+  return {
+    wrap: function (fn) {
+      return function () {
+        return new AsyncGenerator(fn.apply(this, arguments));
+      };
+    },
+    await: function (value) {
+      return new AwaitValue(value);
+    }
+  };
+}();
+
+
+
+
+
+var classCallCheck = function (instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+};
+
+var createClass = function () {
+  function defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }
+
+  return function (Constructor, protoProps, staticProps) {
+    if (protoProps) defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) defineProperties(Constructor, staticProps);
+    return Constructor;
+  };
+}();
+
+
+
+
+
+var defineProperty = function (obj, key, value) {
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+
+  return obj;
+};
+
+var get$1 = function get$$1(object, property, receiver) {
+  if (object === null) object = Function.prototype;
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent === null) {
+      return undefined;
+    } else {
+      return get$$1(parent, property, receiver);
+    }
+  } else if ("value" in desc) {
+    return desc.value;
+  } else {
+    var getter = desc.get;
+
+    if (getter === undefined) {
+      return undefined;
+    }
+
+    return getter.call(receiver);
+  }
+};
+
+var inherits = function (subClass, superClass) {
+  if (typeof superClass !== "function" && superClass !== null) {
+    throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
+  }
+
+  subClass.prototype = Object.create(superClass && superClass.prototype, {
+    constructor: {
+      value: subClass,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    }
+  });
+  if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+};
+
+
+
+
+
+
+
+
+
+
+
+var possibleConstructorReturn = function (self, call) {
+  if (!self) {
+    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+  }
+
+  return call && (typeof call === "object" || typeof call === "function") ? call : self;
+};
+
+var Response = function () {
+    function Response(response) {
+        classCallCheck(this, Response);
+
+        this.response = response;
+    }
+
+    createClass(Response, [{
+        key: 'getData',
+        value: function getData() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.response, 'data', null);
+        }
+    }, {
+        key: 'getStatus',
+        value: function getStatus() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.response, 'status');
+        }
+    }, {
+        key: 'getHeaders',
+        value: function getHeaders() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.response, 'headers', {});
+        }
+    }, {
+        key: 'getValidationErrors',
+        value: function getValidationErrors() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.response, 'data', null);
+        }
+    }]);
+    return Response;
+}();
+
+var RequestError = function () {
+    function RequestError(error, response) {
+        classCallCheck(this, RequestError);
+
+        this.error = error;
+        this.response = response;
+        this.stack = new Error().stack;
+        this.message = error.message;
+    }
+
+    createClass(RequestError, [{
+        key: "toString",
+        value: function toString() {
+            return this.message;
+        }
+    }, {
+        key: "getError",
+        value: function getError() {
+            return this.error;
+        }
+    }, {
+        key: "getResponse",
+        value: function getResponse() {
+            return this.response;
+        }
+    }]);
+    return RequestError;
+}();
+
+var Request = function () {
+    function Request(config) {
+        classCallCheck(this, Request);
+
+        this.config = config;
+    }
+
+    /**
+     * @returns {Promise}
+     */
+
+
+    createClass(Request, [{
+        key: 'send',
+        value: function send() {
+            var _this = this;
+
+            return new Promise(function (resolve, reject) {
+                __WEBPACK_IMPORTED_MODULE_1_axios___default.a.request(_this.config).then(function (response) {
+                    return resolve(new Response(response));
+                }).catch(function (error) {
+                    return reject(new RequestError(error, new Response(error.response)));
+                });
+            });
+        }
+    }]);
+    return Request;
+}();
+
+/**
+ * Binds all methods of a class instance to itself.
+ */
+var autobind = function autobind(instance) {
+    for (var obj = instance; obj; obj = Object.getPrototypeOf(obj)) {
+
+        // We're the end of the inheritance chain if we've reached 'Object'.
+        if (obj.constructor.name === 'Object') {
+            return;
+        }
+
+        var names = Object.getOwnPropertyNames(obj);
+
+        // Bind each function to the instance.
+        for (var i = 0; i < names.length; i++) {
+            var name = names[i];
+
+            // No need to bind getters, as attempting to access them would also
+            // invoke them which is something we don't want to do here.
+            if (Object.getOwnPropertyDescriptor(obj, name).get) {
+                continue;
+            }
+
+            // We're using `defineProperty` here so that we don't make all the
+            // class methods enumerable when we replace them.
+            if (typeof obj[name] === 'function' && name !== 'constructor') {
+                Object.defineProperty(instance, name, {
+                    value: instance[name].bind(instance),
+                    enumerable: false,
+                    configurable: true,
+                    writable: true
+                });
+            }
+        }
+    }
+};
+
+/**
+ * Base class for all things common between Model and Collection.
+ */
+
+var Base = function () {
+    function Base(options) {
+        classCallCheck(this, Base);
+
+        autobind(this);
+
+        // Define an automatic unique ID. This is primarily to distinguish
+        // between multiple instances of the same name and data.
+        Object.defineProperty(this, '_uid', {
+            value: Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["uniqueId"])(),
+            enumerable: false,
+            configurable: false,
+            writable: false
+        });
+
+        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_listeners', {}); // Event listeners
+        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_options', {}); // Internal option store
+
+        this.setOptions(options);
+        this.boot();
+    }
+
+    /**
+     * @returns {string} The class name of this instance.
+     */
+
+
+    createClass(Base, [{
+        key: 'boot',
+
+
+        /**
+         * Called after construction, this hook allows you to add some extra setup
+         * logic without having to override the constructor.
+         */
+        value: function boot() {}
+
+        /**
+         * Returns a route configuration in the form {key: name}, where key may be
+         * 'save', 'fetch', 'delete' or any other custom key, and the name is what
+         * will be passed to the route resolver to generate the URL. See @getURL
+         *
+         * @returns {Object}
+         */
+
+    }, {
+        key: 'routes',
+        value: function routes() {
+            return {};
+        }
+
+        /**
+         * Returns the default context for all events emitted by this instance.
+         *
+         * @returns {Object}
+         */
+
+    }, {
+        key: 'getDefaultEventContext',
+        value: function getDefaultEventContext() {
+            return { target: this };
+        }
+
+        /**
+         * @returns {string} Default string representation.
+         */
+
+    }, {
+        key: 'toString',
+        value: function toString() {
+            return '<' + this.$class + ' #' + this._uid + '>';
+        }
+
+        /**
+         * Emits an event by name to all registered listeners on that event.
+          * Listeners will be called in the order that they were added. If a listener
+         * returns `false`, no other listeners will be called.
+         *
+         * @param {string} event    The name of the event to emit.
+         * @param {Object} context  The context of the event, passed to listeners.
+         */
+
+    }, {
+        key: 'emit',
+        value: function emit(event) {
+            var context = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+            var listeners = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this._listeners, event);
+
+            if (!listeners) {
+                return;
+            }
+
+            // Create the context for the event.
+            context = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaults"])({}, context, this.getDefaultEventContext());
+
+            // Run through each listener. If any of them return false, stop the
+            // iteration and mark that the event wasn't handled by all listeners.
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(listeners, function (listener) {
+                return listener(context);
+            });
+        }
+
+        /**
+         * Registers an event listener for a given event.
+         *
+         * Event names can be comma-separated to register multiple events.
+         *
+         * @param {string}   event      The name of the event to listen for.
+         * @param {function} listener   The event listener, accepts context.
+         */
+
+    }, {
+        key: 'on',
+        value: function on(event, listener) {
+            var _this = this;
+
+            var events = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["split"])(event, ','), __WEBPACK_IMPORTED_MODULE_0_lodash__["trim"]);
+
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(events, function (event) {
+                _this._listeners[event] = _this._listeners[event] || [];
+                _this._listeners[event].push(listener);
+            });
+        }
+
+        /**
+         * @returns {Object} Parameters to use for replacement in route patterns.
+         */
+
+    }, {
+        key: 'getRouteParameters',
+        value: function getRouteParameters() {
+            return {};
+        }
+
+        /**
+         * @returns {RegExp|string} Pattern to match and group route parameters.
+         */
+
+    }, {
+        key: 'getRouteParameterPattern',
+        value: function getRouteParameterPattern() {
+            return this.getOption('routeParameterPattern');
+        }
+
+        /**
+         * @returns {RegExp} The default route parameter pattern.
+         */
+
+    }, {
+        key: 'getDefaultRouteParameterPattern',
+        value: function getDefaultRouteParameterPattern() {
+            return (/\{([^}]+)\}/
+            );
+        }
+
+        /**
+         * @returns {Object} This class' default options.
+         */
+
+    }, {
+        key: 'getDefaultOptions',
+        value: function getDefaultOptions() {
+            return {
+
+                // Default HTTP methods for requests.
+                methods: this.getDefaultMethods(),
+
+                // Default route parameter interpolation pattern.
+                routeParameterPattern: this.getDefaultRouteParameterPattern(),
+
+                // The HTTP status code to use for indicating a validation error.
+                validationErrorStatus: 422
+            };
+        }
+
+        /**
+         * @param {Array|string} path     Option path resolved by `_.get`
+         * @param {*}            fallback Fallback value if the option is not set.
+         *
+         * @returns {*} The value of the given option path.
+         */
+
+    }, {
+        key: 'getOption',
+        value: function getOption(path) {
+            var fallback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this._options, path, fallback);
+        }
+
+        /**
+         * @returns {Object} This instance's default options.
+         */
+
+    }, {
+        key: 'options',
+        value: function options() {
+            return {};
+        }
+
+        /**
+         * Sets an option.
+         *
+         * @param {string} path
+         * @param {*}      value
+         */
+
+    }, {
+        key: 'setOption',
+        value: function setOption(path, value) {
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["set"])(this._options, path, value);
+        }
+
+        /**
+         * Sets all given options. Successive values for the same option won't be
+         * overwritten, so this follows the 'defaults' behaviour, and not 'merge'.
+         *
+         * @param {...Object} options One or more objects of options.
+         */
+
+    }, {
+        key: 'setOptions',
+        value: function setOptions() {
+            for (var _len = arguments.length, options = Array(_len), _key = 0; _key < _len; _key++) {
+                options[_key] = arguments[_key];
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_options', __WEBPACK_IMPORTED_MODULE_0_lodash__["defaultsDeep"].apply(__WEBPACK_IMPORTED_MODULE_0_lodash__, [{}].concat(options, [// Given options
+            this.options(), // Instance defaults
+            this.getDefaultOptions() // Class defaults
+            ])));
+        }
+
+        /**
+         * Returns all the options that are currently set on this instance.
+         *
+         * @return {Object}
+         */
+
+    }, {
+        key: 'getOptions',
+        value: function getOptions() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultTo"])(this._options, {});
+        }
+
+        /**
+         * Returns a function that translates a route key and parameters to a URL.
+         *
+         * @returns {Function} Will be passed `route` and `parameters`
+         */
+
+    }, {
+        key: 'getRouteResolver',
+        value: function getRouteResolver() {
+            return this.getDefaultRouteResolver();
+        }
+
+        /**
+         * @returns {Object} An object consisting of all route string replacements.
+         */
+
+    }, {
+        key: 'getRouteReplacements',
+        value: function getRouteReplacements(route) {
+            var parameters = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+            var replace$$1 = {};
+            var pattern = new RegExp(this.getRouteParameterPattern(), 'g');
+
+            for (var parameter; (parameter = pattern.exec(route)) !== null;) {
+                replace$$1[parameter[0]] = parameters[parameter[1]];
+            }
+
+            return replace$$1;
+        }
+
+        /**
+         * Returns the default URL provider, which assumes that route keys are URL's,
+         * and parameter replacement syntax is in the form "{param}".
+         *
+         * @returns {Function}
+         */
+
+    }, {
+        key: 'getDefaultRouteResolver',
+        value: function getDefaultRouteResolver() {
+            var _this2 = this;
+
+            return function (route) {
+                var parameters = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+                var replacements = _this2.getRouteReplacements(route, parameters);
+
+                // Replace all route parameters with their replacement values.
+                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["reduce"])(replacements, function (result, value, parameter) {
+                    return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["replace"])(result, parameter, value);
+                }, route);
+            };
+        }
+
+        /**
+         * @returns {Object} The data to send to the server when saving this model.
+         */
+
+    }, {
+        key: 'getDeleteBody',
+        value: function getDeleteBody() {
+            return {};
+        }
+
+        /**
+         * @returns {Object} Query parameters that will be appended to the `fetch` URL.
+         */
+
+    }, {
+        key: 'getFetchQuery',
+        value: function getFetchQuery() {
+            return {};
+        }
+
+        /**
+         * @returns {Object} Query parameters that will be appended to the `save` URL.
+         */
+
+    }, {
+        key: 'getSaveQuery',
+        value: function getSaveQuery() {
+            return {};
+        }
+
+        /**
+         * @returns {Object} Query parameters that will be appended to the `delete` URL.
+         */
+
+    }, {
+        key: 'getDeleteQuery',
+        value: function getDeleteQuery() {
+            return {};
+        }
+
+        /**
+         * @returns {string} The key to use when generating the `fetch` URL.
+         */
+
+    }, {
+        key: 'getFetchRoute',
+        value: function getFetchRoute() {
+            return this.getRoute('fetch');
+        }
+
+        /**
+         * @returns {string} The key to use when generating the `save` URL.
+         */
+
+    }, {
+        key: 'getSaveRoute',
+        value: function getSaveRoute() {
+            return this.getRoute('save');
+        }
+
+        /**
+         * @returns {string} The key to use when generating the `delete` URL.
+         */
+
+    }, {
+        key: 'getDeleteRoute',
+        value: function getDeleteRoute() {
+            return this.getRoute('delete');
+        }
+
+        /**
+         * @returns {Object} Headers to use when making a save request.
+         */
+
+    }, {
+        key: 'getSaveHeaders',
+        value: function getSaveHeaders() {
+            return {};
+        }
+
+        /**
+         * @returns {Object} Headers to use when making any request.
+         */
+
+    }, {
+        key: 'getDefaultHeaders',
+        value: function getDefaultHeaders() {
+            return {};
+        }
+
+        /**
+         * @returns {Object} Headers to use when making a fetch request.
+         */
+
+    }, {
+        key: 'getFetchHeaders',
+        value: function getFetchHeaders() {
+            return {};
+        }
+
+        /**
+         * @returns {Object} Headers to use when making a delete request.
+         */
+
+    }, {
+        key: 'getDeleteHeaders',
+        value: function getDeleteHeaders() {
+            return {};
+        }
+
+        /**
+         * @returns {Object} Default HTTP methods.
+         */
+
+    }, {
+        key: 'getDefaultMethods',
+        value: function getDefaultMethods() {
+            return {
+                fetch: 'GET',
+                save: 'POST',
+                update: 'POST',
+                create: 'POST',
+                patch: 'PATCH',
+                delete: 'DELETE'
+            };
+        }
+
+        /**
+         * @returns {string} HTTP method to use when making a save request.
+         */
+
+    }, {
+        key: 'getSaveMethod',
+        value: function getSaveMethod() {
+            return this.getOption('methods.save');
+        }
+
+        /**
+         * @returns {string} HTTP method to use when making a fetch request.
+         */
+
+    }, {
+        key: 'getFetchMethod',
+        value: function getFetchMethod() {
+            return this.getOption('methods.fetch');
+        }
+
+        /**
+         * @returns {string} HTTP method to use when updating a resource.
+         */
+
+    }, {
+        key: 'getUpdateMethod',
+        value: function getUpdateMethod() {
+            return this.getOption('methods.update');
+        }
+
+        /**
+         * @returns {string} HTTP method to use when patching a resource.
+         */
+
+    }, {
+        key: 'getPatchMethod',
+        value: function getPatchMethod() {
+            return this.getOption('methods.patch');
+        }
+
+        /**
+         * @returns {string} HTTP method to use when creating a resource.
+         */
+
+    }, {
+        key: 'getCreateMethod',
+        value: function getCreateMethod() {
+            return this.getOption('methods.create');
+        }
+
+        /**
+         * @returns {string} HTTP method to use when deleting a resource.
+         */
+
+    }, {
+        key: 'getDeleteMethod',
+        value: function getDeleteMethod() {
+            return this.getOption('methods.delete');
+        }
+
+        /**
+         * @returns {number} The HTTP status code that indicates a validation error.
+         */
+
+    }, {
+        key: 'getValidationErrorStatus',
+        value: function getValidationErrorStatus() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultTo"])(this.getOption('validationErrorStatus'), 422);
+        }
+
+        /**
+         * @returns {boolean} `true` if the response indicates a validation error.
+         */
+
+    }, {
+        key: 'isBackendValidationError',
+        value: function isBackendValidationError(error) {
+
+            // The error must have a response for it to be a validation error.
+            if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["invoke"])(error, 'getResponse', false)) {
+                return false;
+            }
+
+            var status = error.getResponse().getStatus();
+            var invalid = this.getValidationErrorStatus();
+
+            return status == invalid;
+        }
+
+        /**
+         * @return {string|undefined} Route value by key.
+         */
+
+    }, {
+        key: 'getRoute',
+        value: function getRoute(key, fallback) {
+            var route = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.routes(), key, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.routes(), fallback));
+
+            if (!route) {
+                throw new Error('Invalid or missing route');
+            }
+
+            return route;
+        }
+
+        /**
+         * @returns {string} The full URL to use when making a fetch request.
+         */
+
+    }, {
+        key: 'getFetchURL',
+        value: function getFetchURL() {
+            return this.getURL(this.getFetchRoute(), this.getRouteParameters());
+        }
+
+        /**
+         * @returns {string} The full URL to use when making a save request.
+         */
+
+    }, {
+        key: 'getSaveURL',
+        value: function getSaveURL() {
+            return this.getURL(this.getSaveRoute(), this.getRouteParameters());
+        }
+
+        /**
+         * @returns {string} The full URL to use when making a delete request.
+         */
+
+    }, {
+        key: 'getDeleteURL',
+        value: function getDeleteURL() {
+            return this.getURL(this.getDeleteRoute(), this.getRouteParameters());
+        }
+
+        /**
+         * @param {string} route      The route key to use to generate the URL.
+         * @param {Object} parameters Route parameters.
+         *
+         * @returns {string} A URL that was generated using the given route key.
+         */
+
+    }, {
+        key: 'getURL',
+        value: function getURL(route) {
+            var parameters = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+            return this.getRouteResolver()(route, parameters);
+        }
+
+        /**
+         * @returns {Request} A new `Request` using the given configuration.
+         */
+
+    }, {
+        key: 'getRequest',
+        value: function getRequest(config) {
+            return new Request(config);
+        }
+
+        /**
+         * This is the central component for all HTTP requests and handling.
+         *
+         * @param  {Object}     config      Request configuration
+         * @param  {function}   onRequest   Called before the request is made.
+         * @param  {function}   onSuccess   Called when the request was successful.
+         * @param  {function}   onFailure   Called when the request failed.
+         */
+
+    }, {
+        key: 'request',
+        value: function request(config, onRequest, onSuccess, onFailure) {
+            var _this3 = this;
+
+            return new Promise(function (resolve, reject) {
+
+                var check = onRequest();
+
+                // Request should be skipped but the promise should not be resolved.
+                if (check === false) {
+                    return;
+                }
+
+                // Request should be skipped but should be considered successful.
+                if (check === true) {
+                    onSuccess(null);
+                    return resolve(null);
+                }
+
+                // Support passing the request configuration as a function, to allow
+                // for deferred resolution of certain values that may have changed
+                // during the call to "onRequest".
+                if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isFunction"])(config)) {
+                    config = config();
+                }
+
+                // Apply the default headers.
+                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaults"])(config.headers, _this3.getDefaultHeaders());
+
+                // Make the request.
+                return _this3.getRequest(config).send()
+
+                // Success
+                .then(function (response) {
+                    onSuccess(response);
+                    return resolve(response);
+                })
+
+                // Failure
+                .catch(function (error) {
+                    onFailure(error);
+                    return reject(error);
+                })
+
+                // Failure fallback, for errors that occur in `onFailure`.
+                .catch(function (error) {
+                    return reject(error);
+                });
+            });
+        }
+
+        /**
+         * Fetches data from the database/API.
+         *
+         * @returns {Promise}
+         */
+
+    }, {
+        key: 'fetch',
+        value: function fetch() {
+            var _this4 = this;
+
+            var config = function config() {
+                return {
+                    url: _this4.getFetchURL(),
+                    method: _this4.getFetchMethod(),
+                    params: _this4.getFetchQuery(),
+                    headers: _this4.getFetchHeaders()
+                };
+            };
+
+            return this.request(config, this.onFetch, this.onFetchSuccess, this.onFetchFailure);
+        }
+
+        /**
+         * Persists data to the database/API.
+         * @returns {Promise}
+         */
+
+    }, {
+        key: 'save',
+        value: function save() {
+            var _this5 = this;
+
+            var config = function config() {
+                return {
+                    url: _this5.getSaveURL(),
+                    method: _this5.getSaveMethod(),
+                    data: _this5.getSaveData(),
+                    params: _this5.getSaveQuery(),
+                    headers: _this5.getSaveHeaders()
+                };
+            };
+
+            return this.request(config, this.onSave, this.onSaveSuccess, this.onSaveFailure);
+        }
+
+        /**
+         * Removes model or collection data from the database/API.
+         * @returns {Promise}
+         */
+
+    }, {
+        key: 'delete',
+        value: function _delete() {
+            var _this6 = this;
+
+            var config = function config() {
+                return {
+                    url: _this6.getDeleteURL(),
+                    method: _this6.getDeleteMethod(),
+                    data: _this6.getDeleteBody(),
+                    params: _this6.getDeleteQuery(),
+                    headers: _this6.getDeleteHeaders()
+                };
+            };
+
+            return this.request(config, this.onDelete, this.onDeleteSuccess, this.onDeleteFailure);
+        }
+    }, {
+        key: '$class',
+        get: function get$$1() {
+            return Object.getPrototypeOf(this).constructor.name;
+        }
+    }]);
+    return Base;
+}();
+
+var ResponseError = function () {
+    function ResponseError(message, response) {
+        classCallCheck(this, ResponseError);
+
+        this.message = message;
+        this.response = response;
+        this.stack = new Error().stack;
+    }
+
+    createClass(ResponseError, [{
+        key: "toString",
+        value: function toString() {
+            return this.message;
+        }
+    }, {
+        key: "getResponse",
+        value: function getResponse() {
+            return this.response;
+        }
+    }]);
+    return ResponseError;
+}();
+
+var ValidationError = function () {
+    function ValidationError(errors) {
+        var message = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'Model did not pass validation';
+        classCallCheck(this, ValidationError);
+
+        this.message = message;
+        this.errors = errors;
+        this.stack = new Error().stack;
+    }
+
+    createClass(ValidationError, [{
+        key: 'toString',
+        value: function toString() {
+            return this.message;
+        }
+    }, {
+        key: 'getValidationErrors',
+        value: function getValidationErrors() {
+            return this.errors;
+        }
+    }]);
+    return ValidationError;
+}();
+
+var ProxyResponse = function () {
+    function ProxyResponse(status) {
+        var data = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+        var headers = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+        classCallCheck(this, ProxyResponse);
+
+        this.data = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultTo"])(data, {});
+        this.headers = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultTo"])(headers, {});
+        this.status = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["toSafeInteger"])(status);
+    }
+
+    createClass(ProxyResponse, [{
+        key: 'getData',
+        value: function getData() {
+            return this.data;
+        }
+    }, {
+        key: 'getStatus',
+        value: function getStatus() {
+            return this.status;
+        }
+    }, {
+        key: 'getHeaders',
+        value: function getHeaders() {
+            return this.headers;
+        }
+    }, {
+        key: 'getValidationErrors',
+        value: function getValidationErrors() {
+            return this.data;
+        }
+    }]);
+    return ProxyResponse;
+}();
+
+/**
+ * Used as a marker to indicate that pagination is not enabled.
+ */
+var NO_PAGE = null;
+
+/**
+ * Used as a marker to indicate that a collection has paged through all results.
+ */
+var LAST_PAGE = 0;
+
+/**
+ * Base collection class.
+ */
+
+var Collection = function (_Base) {
+    inherits(Collection, _Base);
+    createClass(Collection, [{
+        key: 'length',
+
+
+        /**
+         * Accessor to support Array.length semantics.
+         */
+        get: function get$$1() {
+            return this.size();
+        }
+
+        /**
+         * Creates a new instance, called when using 'new'.
+         *
+         * @param  {Array}  [models]    Models to add to this collection.
+         * @param  {Object} [options]   Extra options to set on this collection.
+         */
+
+    }]);
+
+    function Collection() {
+        var models = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+        var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+        var attributes = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+        classCallCheck(this, Collection);
+
+        var _this = possibleConstructorReturn(this, (Collection.__proto__ || Object.getPrototypeOf(Collection)).call(this, options));
+
+        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, 'models', []); // Model store.
+        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_attributes', {}); // Property store.
+        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_registry', {}); // Model registry.
+        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_page', NO_PAGE);
+
+        _this.clearState();
+
+        // Set all given attributes.
+        _this.set(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultsDeep"])({}, attributes, _this.defaults()));
+
+        // Add all given models (if any) to this collection. We explicitly ask
+        // for the values here as it's common for some sources to be objects.
+        if (models) {
+            _this.add(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["values"])(models));
+        }
+        return _this;
+    }
+
+    /**
+     * Creates a copy of this collection. Model references are preserved so
+     * changes to the models inside the clone will also affect the subject.
+     *
+     * @returns {Collection}
+     */
+
+
+    createClass(Collection, [{
+        key: 'clone',
+        value: function clone() {
+            var clone = new this.constructor();
+
+            // Add all the existing models.
+            clone.add(this.models);
+
+            // Make sure that the clone has the same existing options.
+            clone.setOptions(this.getOptions());
+
+            return clone;
+        }
+
+        /**
+         * @return {Model} The class/constructor for this collection's model type.
+         */
+
+    }, {
+        key: 'model',
+        value: function model() {
+            return this.getOption('model');
+        }
+
+        /**
+         * @return {Object} Default attributes
+         */
+
+    }, {
+        key: 'defaults',
+        value: function defaults$$1() {
+            return {};
+        }
+
+        /**
+         * @return {*} The value of an attribute, or a given fallback if not set.
+         */
+
+    }, {
+        key: 'get',
+        value: function get$$1(attribute, fallback) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this._attributes, attribute, fallback);
+        }
+
+        /**
+         * Sets an attribute's value, or an object of attributes.
+         *
+         * @param {string|Object} attribute
+         * @param {*}             value
+         */
+
+    }, {
+        key: 'set',
+        value: function set$$1(attribute, value) {
+            var _this2 = this;
+
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(attribute)) {
+                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(attribute, function (value, key) {
+                    _this2.set(key, value);
+                });
+
+                return;
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this._attributes, attribute, value);
+        }
+
+        /**
+         * Returns the default options for this model.
+         *
+         * @returns {Object}
+         */
+
+    }, {
+        key: 'getDefaultOptions',
+        value: function getDefaultOptions() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["merge"])(get$1(Collection.prototype.__proto__ || Object.getPrototypeOf(Collection.prototype), 'getDefaultOptions', this).call(this), {
+
+                // The class/constructor for this collection's model type.
+                model: Model,
+
+                // Whether this collection should send model identifiers as JSON
+                // in the body of a delete request, instead of a query parameter.
+                useDeleteBody: true
+            });
+        }
+
+        /**
+         * @returns {Object} Parameters to use for replacement in route patterns.
+         */
+
+    }, {
+        key: 'getRouteParameters',
+        value: function getRouteParameters() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["merge"])({}, get$1(Collection.prototype.__proto__ || Object.getPrototypeOf(Collection.prototype), 'getRouteParameters', this).call(this), this._attributes, {
+                page: this._page
+            });
+        }
+
+        /**
+         * Removes all errors from the models in this collection.
+         */
+
+    }, {
+        key: 'clearErrors',
+        value: function clearErrors() {
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.models, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["method"])('clearErrors'));
+        }
+
+        /**
+         * Resets model state, ie. `loading`, etc back to their initial states.
+         */
+
+    }, {
+        key: 'clearState',
+        value: function clearState() {
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', true);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
+        }
+
+        /**
+         * Removes all models from this collection.
+         */
+
+    }, {
+        key: 'clearModels',
+        value: function clearModels() {
+            var _this3 = this;
+
+            var models = this.models;
+
+            // Clear the model store, but keep a reference.
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'models', []);
+
+            // Notify each model that it has been removed from this collection.
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(models, function (model) {
+                _this3.onRemove(model);
+            });
+        }
+
+        /**
+         * Removes all models from this collection.
+         */
+
+    }, {
+        key: 'clear',
+        value: function clear() {
+            this.clearModels();
+            this.clearState();
+        }
+
+        /**
+         * Syncs all models in this collection. This method delegates to each model
+         * so follows the same signature and effects as `Model.sync`.
+         */
+
+    }, {
+        key: 'sync',
+        value: function sync() {
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.models, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["method"])('sync'));
+        }
+
+        /**
+         * Resets all models in this collection. This method delegates to each model
+         * so follows the same signature and effects as `Model.reset`.
+         *
+         * @param {string|string[]} attribute
+         */
+
+    }, {
+        key: 'reset',
+        value: function reset() {
+            for (var _len = arguments.length, attribute = Array(_len), _key = 0; _key < _len; _key++) {
+                attribute[_key] = arguments[_key];
+            }
+
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.models, __WEBPACK_IMPORTED_MODULE_0_lodash__["method"].apply(__WEBPACK_IMPORTED_MODULE_0_lodash__, ['reset'].concat(attribute)));
+        }
+
+        /**
+         * Returns the number of models in this collection.
+         */
+
+    }, {
+        key: 'size',
+        value: function size$$1() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["size"])(this.models);
+        }
+
+        /**
+         * @returns {boolean} `true` if the collection is empty, `false` otherwise.
+         */
+
+    }, {
+        key: 'isEmpty',
+        value: function isEmpty$$1() {
+            return this.size() === 0;
+        }
+
+        /**
+         * @returns {Object} A native representation of this collection that will
+         *                   determine the contents of JSON.stringify(collection).
+         */
+
+    }, {
+        key: 'toJSON',
+        value: function toJSON() {
+            return this.models;
+        }
+
+        /**
+         * @returns {bool} Whether all models in this collection have valid data.
+         */
+
+    }, {
+        key: 'validate',
+        value: function validate() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["reduce"])(this.models, function (valid, model) {
+                return model.validate() && valid;
+            }, true);
+        }
+
+        /**
+         * Create a new model of this collection's model type.
+         *
+         * @param {Object} attributes
+         *
+         * @returns {Model} A new instance of this collection's model.
+         */
+
+    }, {
+        key: 'createModel',
+        value: function createModel(attributes) {
+            return new (this.model())(attributes);
+        }
+
+        /**
+         * Removes a model from the model registry.
+         *
+         * @param {Model} model
+         */
+
+    }, {
+        key: 'removeModelFromRegistry',
+        value: function removeModelFromRegistry(model) {
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["unset"])(this._registry, model._uid);
+        }
+
+        /**
+         * @return {Boolean} true if this collection has the model in its registry.
+         */
+
+    }, {
+        key: 'hasModelInRegistry',
+        value: function hasModelInRegistry(model) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["has"])(this._registry, model._uid);
+        }
+
+        /**
+         * Adds a model from the model registry.
+         *
+         * @param {Model} model
+         */
+
+    }, {
+        key: 'addModelToRegistry',
+        value: function addModelToRegistry(model) {
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["set"])(this._registry, model._uid, 1);
+        }
+
+        /**
+         * Called when a model has been added to this collection.
+         *
+         * @param {Model} model
+         */
+
+    }, {
+        key: 'onAdd',
+        value: function onAdd(model) {
+            model.registerCollection(this);
+            this.addModelToRegistry(model);
+            this.emit('add', { model: model });
+        }
+
+        /**
+         * Adds a model to this collection.
+         *
+         * This method returns a single model if only one was given, but will return
+         * an array of all added models if an array was given.
+         *
+         * @param {Model|Array|Object} model Adds a model instance or plain object,
+         *                                   or an array of either, to this collection.
+         *                                   A model instance will be created and
+         *                                   returned if passed a plain object.
+         *
+         * @returns {Model|Array} The added model or array of added models.
+         */
+
+    }, {
+        key: 'add',
+        value: function add() {
+            var model = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+
+            // If given an array, assume an array of models and add them all.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(model)) {
+                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(model, this.add));
+            }
+
+            // Objects should be converted to model instances first, then added.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(model)) {
+                return this.add(this.createModel(model));
+            }
+
+            // This is also just to catch a potential bug. All models should have
+            // an auto id so this would indicate an unexpected state.
+            if (!this.isModel(model)) {
+                throw new Error('Expected a model, plain object, or array of either');
+            }
+
+            // Make sure we don't add the same model twice.
+            if (this.hasModelInRegistry(model)) {
+                return;
+            }
+
+            // Add the model instance to this collection.
+            this.models.push(model);
+            this.onAdd(model);
+
+            // We're assuming that the collection is not loading once a model is added.
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', false);
+
+            return model;
+        }
+
+        /**
+         * Called when a model has been removed from this collection.
+         *
+         * @param {Model} model
+         */
+
+    }, {
+        key: 'onRemove',
+        value: function onRemove(model) {
+            model.unregisterCollection(this);
+            this.removeModelFromRegistry(model);
+            this.emit('remove', { model: model });
+        }
+
+        /**
+         * Removes a model at a given index.
+         *
+         * @param  {number} index
+          * @returns {Model} The model that was removed, or `undefined` if invalid.
+         * @throws  {Error} If a model could not be found at the given index.
+         */
+
+    }, {
+        key: '_removeModelAtIndex',
+        value: function _removeModelAtIndex(index) {
+            if (index < 0) {
+                return;
+            }
+
+            var model = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this.models, index);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.delete(this.models, index);
+            this.onRemove(model);
+
+            return model;
+        }
+
+        /**
+         * Removes a `Model` from this collection.
+         *
+         * @param  {Model} model
+         *
+         * @return {Model}
+         */
+
+    }, {
+        key: '_removeModel',
+        value: function _removeModel(model) {
+            return this._removeModelAtIndex(this.indexOf(model));
+        }
+
+        /**
+         * Removes the given model from this collection.
+         *
+         * @param  {Model|Object|Array} model Model to remove, which can be a `Model`
+         *                                    instance, an object to filter by,
+         *                                    a function to filter by, or an array
+         *                                    of any of the above to remove multiple.
+         *
+         * @return {Model|Model[]} The deleted model or an array of models if a filter
+         *                         or array type was given.
+         *
+         * @throws {Error} If the model is an invalid type.
+         */
+
+    }, {
+        key: 'remove',
+        value: function remove(model) {
+            if (!model) {
+                throw new Error('Expected function, object, array, or model to remove');
+            }
+
+            // Support using a predicate to remove all models it returns true for.
+            // Alternatively support an object of values to filter by.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isFunction"])(model) || Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(model)) {
+                return this.remove(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(this.models, model));
+            }
+
+            // Support removing multiple models at the same time if an array was
+            // given. A model would otherwise always be an object so this is safe.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(model)) {
+                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(model, this.remove));
+            }
+
+            // This is just to catch a potential bug. All models should have
+            // an auto id here so this would indicate an unexpected state.
+            if (!this.isModel(model)) {
+                throw new Error('Model to remove is not a valid model');
+            }
+
+            return this._removeModel(model);
+        }
+
+        /**
+         * Determines whether a given value is an instance of a model.
+         *
+         * @param  {*} candidate A model candidate
+         *
+         * @return {boolean} `true` if the given `model` is an instance of Model.
+         */
+
+    }, {
+        key: 'isModel',
+        value: function isModel(candidate) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isObject"])(candidate) && Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["has"])(candidate, '_attributes') && Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["has"])(candidate, '_uid');
+        }
+
+        /**
+         * Returns the zero-based index of the given model in this collection.
+         *
+         * @see {@link https://lodash.com/docs/#findIndex}
+         *
+         * @return {number} the index of a model in this collection, or -1 if not found.
+         */
+
+    }, {
+        key: 'indexOf',
+        value: function indexOf(model) {
+            var filter$$1 = model;
+
+            // Getting the index of a model instance can be optimised.
+            if (this.isModel(filter$$1)) {
+
+                // Constant time check, if the registry doesn't have a record of
+                // the model, we know it's not in the collection.
+                if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["has"])(this._registry, model._uid)) {
+                    return -1;
+                }
+
+                // There is no need to filter on the entire object, because the
+                // unique ID of the model is all we need to identify it.
+                filter$$1 = { _uid: model._uid };
+            }
+
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["findIndex"])(this.models, filter$$1);
+        }
+
+        /**
+         * @param {string|function|Object} where
+         *
+         * @return {Model} The first model that matches the given criteria, or
+         *                 `undefined` if none could be found.
+         *
+         * @see {@link https://lodash.com/docs/#find}
+         */
+
+    }, {
+        key: 'find',
+        value: function find$$1(where) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["find"])(this.models, where);
+        }
+
+        /**
+         * Wraps a new collection instance around some given models.
+         */
+
+    }, {
+        key: 'wrap',
+        value: function wrap(models) {
+            return new this.constructor(models);
+        }
+
+        /**
+         * Creates a new collection of the same type that contains only the models
+         * for which the given predicate returns `true` for, or matches by property.
+         *
+         * @see {@link where}
+         *
+         * Important: Even though this returns a new collection, the references to
+         *            each model are preserved, so changes will propagate to both.
+         *
+         * @param {function|Object|string} predicate Receives `model`.
+         *
+         * @returns {Collection}
+         */
+
+    }, {
+        key: 'filter',
+        value: function filter$$1(predicate) {
+            return this.wrap(this.where(predicate));
+        }
+
+        /**
+         * Returns the models for which the given predicate returns `true` for,
+         * or models that match attributes in an object.
+         *
+         * @see {@link https://lodash.com/docs/#filter}
+         *
+         * @param {function|Object|string} predicate Receives `model`.
+         *
+         * @returns {Model[]}
+         */
+
+    }, {
+        key: 'where',
+        value: function where(predicate) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(this.models, predicate);
+        }
+
+        /**
+         * Returns an array that contains the returned result after applying a
+         * function to each model in this collection.
+         *
+         * @see {@link https://lodash.com/docs/#map}
+         *
+         * @param {function} callback Receives `model`.
+         *
+         * @return {Model[]}
+         */
+
+    }, {
+        key: 'map',
+        value: function map$$1(callback) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(this.models, callback);
+        }
+
+        /**
+         * Iterates through all models, calling a given callback for each one.
+         *
+         * @see {@link https://lodash.com/docs/#each}
+         *
+         * @param {function} callback Receives `model` and `index`.
+         */
+
+    }, {
+        key: 'each',
+        value: function each$$1(callback) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.models, callback);
+        }
+
+        /**
+         * Reduces this collection to a value which is the accumulated result of
+         * running each model through `iteratee`, where each successive invocation
+         * is supplied the return value of the previous.
+         *
+         * If `initial` is not given, the first model of the collection is used
+         * as the initial value.
+         *
+         * @param {function} iteratee Invoked with three arguments:
+         *                            (result, model, index)
+         *
+         * @param {*} [initial] The initial value to use for the `result`.
+         *
+         * @returns {*} The final value of result, after the last iteration.
+         */
+
+    }, {
+        key: 'reduce',
+        value: function reduce$$1(iteratee, initial) {
+
+            // Use the first model as the initial value if an initial was not given.
+            if (arguments.length === 1) {
+                initial = this.first();
+            }
+
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["reduce"])(this.models, iteratee, initial);
+        }
+
+        /**
+         * @param {function|string} iteratee Attribute name or callback to determine
+         *                                   which values to sum by. Invoked with a
+         *                                   single argument `model`.
+         *
+         * @returns {number} Sum of all models, accessed by attribute or callback.
+         */
+
+    }, {
+        key: 'sum',
+        value: function sum(iteratee) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["sumBy"])(this.models, iteratee);
+        }
+
+        /**
+         * Returns an object composed of keys generated from the results of running
+         * each model through `iteratee`. The corresponding value of each key is the
+         * number of times the key was returned by iteratee.
+         *
+         * @see {@link https://lodash.com/docs/#countBy}
+         *
+         * @returns {Object}
+         */
+
+    }, {
+        key: 'count',
+        value: function count(iteratee) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["countBy"])(this.models, iteratee);
+        }
+
+        /**
+         * Sorts this collection's models using a comparator. This method performs
+         * a stable sort (it preserves the original sort order of equal elements).
+         *
+         * @see {@link https://lodash.com/docs/#sortBy}
+         *
+         * @param {function|string} comparator Attribute name or attribute function,
+         *                                     invoked with a single arg `model`.
+         */
+
+    }, {
+        key: 'sort',
+        value: function sort(comparator) {
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'models', Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["sortBy"])(this.models, comparator));
+        }
+
+        /**
+         * @param {Model|Object} model
+         *
+         * @returns {boolean} `true` if this collection contains the given model,
+         *                    `false` otherwise.
+         */
+
+    }, {
+        key: 'has',
+        value: function has$$1(model) {
+            return this.indexOf(model) >= 0;
+        }
+
+        /**
+         * @returns {Model|undefined} The first model of this collection.
+         */
+
+    }, {
+        key: 'first',
+        value: function first$$1() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["first"])(this.models);
+        }
+
+        /**
+         * @returns {Model|undefined} The last model of this collection.
+         */
+
+    }, {
+        key: 'last',
+        value: function last$$1() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["last"])(this.models);
+        }
+
+        /**
+         * Removes and returns the first model of this collection, if there was one.
+         *
+         * @returns {Model|undefined} Removed model or undefined if there were none.
+         */
+
+    }, {
+        key: 'shift',
+        value: function shift() {
+            if (!this.isEmpty()) {
+                return this._removeModelAtIndex(0);
+            }
+        }
+
+        /**
+         * Removes and returns the last model of this collection, if there was one.
+         *
+         * @returns {Model|undefined} Removed model or undefined if there were none.
+         */
+
+    }, {
+        key: 'pop',
+        value: function pop() {
+            if (!this.isEmpty()) {
+                return this._removeModelAtIndex(this.size() - 1);
+            }
+        }
+
+        /**
+         * Replaces all models in this collection with those provided. This is
+         * effectively equivalent to `clear` and `add`, and will result in an empty
+         * collection if no models were provided.
+         *
+         * @param {Model|Model[]} models Models to replace the current models with.
+         */
+
+    }, {
+        key: 'replace',
+        value: function replace$$1(models) {
+            this.clearModels();
+            this.add(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["values"])(models));
+        }
+
+        /**
+         * Returns the query parameters that should be used when paginating.
+         *
+         * @return {Object}
+         */
+
+    }, {
+        key: 'getPaginationQuery',
+        value: function getPaginationQuery() {
+            return {
+                page: this._page
+            };
+        }
+
+        /**
+         * @inheritDoc
+         */
+
+    }, {
+        key: 'getFetchQuery',
+        value: function getFetchQuery() {
+            if (this.isPaginated()) {
+                return this.getPaginationQuery();
+            }
+
+            return get$1(Collection.prototype.__proto__ || Object.getPrototypeOf(Collection.prototype), 'getFetchQuery', this).call(this);
+        }
+
+        /**
+         * @param {Object} response
+         *
+         * @returns {Array|null} Models from the response.
+         */
+
+    }, {
+        key: 'getModelsFromResponse',
+        value: function getModelsFromResponse(response) {
+            var models = response.getData();
+
+            // An empty, non-array response indicates that we didn't intend to send
+            // any models in the response. This means that the current models are
+            // already up to date, as no changes are necessary.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isNil"])(models) || models === '') {
+                return null;
+            }
+
+            // We're making an assumption here that paginated models are returned
+            // within the "data" field of the response.
+            if (this.isPaginated()) {
+                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(models, 'data', models);
+            }
+
+            return models;
+        }
+
+        /**
+         * Called when a save request was successful.
+         *
+         * @param {Object} response
+         */
+
+    }, {
+        key: 'onSaveSuccess',
+        value: function onSaveSuccess(response) {
+
+            // Model data returned in the response.
+            var saved = this.getModelsFromResponse(response);
+
+            // All the models that are currently being saved.
+            var saving = this.getSavingModels();
+
+            // Empty response is similar to an empty response returned when saving
+            // a model: assume that the attributes are the saved state, so sync.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isNil"])(saved)) {
+                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(saving, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["method"])('sync'));
+            } else {
+
+                // There is no sensible alternative to an array here, so anyting else
+                // is considered an exception that indicates an unexpected state.
+                if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(saved)) {
+                    throw new ResponseError('Response data must be an array or empty', response);
+                }
+
+                // Check that the number of models returned in the response matches
+                // the number of models that were saved. If these are not equal, it's
+                // not possible to map saved data to the saving models.
+                if (saved.length !== saving.length) {
+                    throw new ResponseError('Expected the same number of models in the response', response);
+                }
+
+                // Update every model with its respective response data.
+                // A strict requirement and assumption is that the models returned
+                // in the response are in the same order as they are in the collection.
+                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(saved, function (data, index) {
+                    saving[index].onSaveSuccess(new ProxyResponse(200, data, response.getHeaders()));
+                });
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
+
+            this.emit('save', { error: null });
+        }
+
+        /**
+         * @returns {Model[]} Models in this collection that are in a "saving" state.
+         */
+
+    }, {
+        key: 'getSavingModels',
+        value: function getSavingModels() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(this.models, 'saving');
+        }
+
+        /**
+         * @returns {Model[]} Models in this collection that are in a "deleting" state.
+         */
+
+    }, {
+        key: 'getDeletingModels',
+        value: function getDeletingModels() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(this.models, 'deleting');
+        }
+
+        /**
+         * Applies an array of validation errors to this collection's models.
+         *
+         * @param  {Array}   errors
+         * @param  {integer} status Response status
+         */
+
+    }, {
+        key: 'applyValidationErrorArray',
+        value: function applyValidationErrorArray(errors) {
+            var models = this.getSavingModels();
+
+            // To allow matching errors with models, it's a strict requirement and
+            // assumption that the array of errors returned in the response must have
+            // the same number of elements as there are models being saved.
+            if (errors.length !== models.length) {
+                throw new ResponseError('Array of errors must equal the number of models');
+            }
+
+            // Set every model's errors in a way that emulates how saving a model
+            // would fail in the same way.
+            //
+            // A strict requirement and assumption is that the models returned
+            // in the response are in the same order as they are in the collection.
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(models, function (model, index) {
+                model.setErrors(errors[index]);
+                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(model, 'saving', false);
+                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(model, 'fatal', false);
+            });
+        }
+
+        /**
+         * Applies an object of validation errors keyed by model identifiers.
+         *
+         * @param  {Array}   errors
+         * @param  {integer} status Response status
+         */
+
+    }, {
+        key: 'applyValidationErrorObject',
+        value: function applyValidationErrorObject(errors) {
+            var lookup = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["keyBy"])(this.models, function (model) {
+                return model.identifier();
+            });
+
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(errors, function (errors, identifier) {
+                var model = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(lookup, identifier);
+
+                if (model) {
+                    model.setErrors(errors);
+                }
+            });
+        }
+
+        /**
+         * Sets validation errors on this collection's models.
+         *
+         * @param {Array|Object} errors Either an array of length equal to the number
+         *                              of models in this collection, or an object
+         *                              of errors keyed by model identifiers.
+         */
+
+    }, {
+        key: 'setErrors',
+        value: function setErrors(errors) {
+
+            // Support an array of errors, one for each model in the collection.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(errors)) {
+                this.applyValidationErrorArray(errors);
+
+                // Support an object of errors keyed by model identifiers.
+            } else if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(errors)) {
+                this.applyValidationErrorObject(errors);
+            }
+        }
+
+        /**
+         * @returns {Array} An array of this collection's validation errors.
+         */
+
+    }, {
+        key: 'getErrors',
+        value: function getErrors() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(this.models, 'errors');
+        }
+
+        /**
+         * Called when a save request resulted in a validation error.
+         *
+         * @param {Object} response
+         */
+
+    }, {
+        key: 'onSaveValidationFailure',
+        value: function onSaveValidationFailure(error) {
+            var response = error.getResponse();
+            var errors = response.getValidationErrors();
+
+            if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(errors) && !Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(errors)) {
+                throw new ResponseError('Validation errors must be an object or array', response);
+            }
+
+            this.setErrors(errors);
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
+        }
+
+        /**
+         * Called when a save request resulted in an unexpected error,
+         * eg. an internal server error (500)
+         *
+         * @param {Error}  error
+         * @param {Object} response
+         */
+
+    }, {
+        key: 'onFatalSaveFailure',
+        value: function onFatalSaveFailure(error, response) {
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.getSavingModels(), function (model) {
+                model.onFatalSaveFailure(error, response);
+            });
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', true);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
+        }
+
+        /**
+         * Called when a save request failed.
+         *
+         * @param {Error}  error
+         * @param {Object} response
+         */
+
+    }, {
+        key: 'onSaveFailure',
+        value: function onSaveFailure(error) {
+            if (this.isBackendValidationError(error)) {
+                this.onSaveValidationFailure(error);
+
+                // Not a validation error, so something else went wrong.
+            } else {
+                this.onFatalSaveFailure(error);
+            }
+
+            this.emit('save', { error: error });
+        }
+
+        /**
+         * @returns {Array} The data to use for saving.
+         */
+
+    }, {
+        key: 'getSaveData',
+        value: function getSaveData() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(this.getSavingModels(), Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["method"])('getSaveData'));
+        }
+
+        /**
+         * Sets the page on this collection, enabling pagination. To disable
+         * pagination on this collection, pass page as `null` or `undefined`.
+         *
+         * @param {number|boolean} [page] Page number, or `null` to disable.
+         *
+         * @returns {Collection} This collection.
+         */
+
+    }, {
+        key: 'page',
+        value: function page(_page) {
+
+            // Disable pagination if a valid page wasn't provided.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isNil"])(_page)) {
+                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_page', NO_PAGE);
+
+                // Page was provided, so we should either set the page or disable
+                // pagination entirely if the page is `false`.
+            } else {
+                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_page', Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["max"])([1, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["toSafeInteger"])(_page)]));
+            }
+
+            return this;
+        }
+
+        /**
+         * @returns {integer|null} The page that this collection is on.
+         */
+
+    }, {
+        key: 'getPage',
+        value: function getPage() {
+            return this._page;
+        }
+
+        /**
+         * @returns {boolean} Whether this collection is currently paginated.
+         */
+
+    }, {
+        key: 'isPaginated',
+        value: function isPaginated() {
+            return this._page !== NO_PAGE;
+        }
+
+        /**
+         * @returns {boolean} Whether this collection is on the last page,
+         *                            ie. there won't be more results that follow.
+         */
+
+    }, {
+        key: 'isLastPage',
+        value: function isLastPage() {
+            return this._page === LAST_PAGE;
+        }
+
+        /**
+         * Responsible for adjusting the page and appending of models that were
+         * received by a paginated fetch request.
+         *
+         * @param {Model[]} models
+         */
+
+    }, {
+        key: 'applyPagination',
+        value: function applyPagination(models) {
+
+            // If no models were returned in the response we can assume that
+            // we're now on the last page, and we should not continue.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(models)) {
+                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_page', LAST_PAGE);
+
+                // Otherwise, there were at least one model, and we can safely
+                // assume that we want to increment the page number.
+            } else {
+                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_page', this._page + 1);
+                this.add(models);
+            }
+        }
+
+        /**
+         * Called when a fetch request was successful.
+         *
+         * @param {Object} response
+         */
+
+    }, {
+        key: 'onFetchSuccess',
+        value: function onFetchSuccess(response) {
+            var models = this.getModelsFromResponse(response);
+
+            // There is no sensible alternative to an array here, so anyting else
+            // is considered an exception that indicates an unexpected state.
+            if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(models)) {
+                throw new ResponseError('Expected an array of models in fetch response');
+            }
+
+            // Append via pagination.
+            if (this.isPaginated()) {
+                this.applyPagination(models);
+
+                // Replace all current models with the fetched ones.
+            } else {
+                this.replace(models);
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
+
+            this.emit('fetch', { error: null });
+        }
+
+        /**
+         * Called when a fetch request failed.
+         *
+         * @param {Error}  error
+         */
+
+    }, {
+        key: 'onFetchFailure',
+        value: function onFetchFailure(error) {
+            this.clearErrors();
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', true);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', false);
+
+            this.emit('fetch', { error: error });
+        }
+
+        /**
+         * Called before a fetch request is made.
+         *
+         * @returns {boolean|undefined} `false` if the request should not be made.
+         */
+
+    }, {
+        key: 'onFetch',
+        value: function onFetch() {
+
+            // Don't fetch if there are no more results to be fetched.
+            if (this.isPaginated() && this.isLastPage()) {
+                return false;
+            }
+
+            // Because we're fetching new data, we can assume that this collection
+            // is now loading. This allows the template to indicate a loading state.
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', true);
+        }
+
+        /**
+         * Called when a delete request was successful.
+         *
+         * @param {Object} response
+         */
+
+    }, {
+        key: 'onDeleteSuccess',
+        value: function onDeleteSuccess(response) {
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
+
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.getDeletingModels(), function (model) {
+                model.onDeleteSuccess(response);
+            });
+
+            this.emit('delete', { error: null });
+        }
+
+        /**
+         * Called when a delete request resulted in a general error.
+         *
+         * @param {Error}  error
+         * @param {Object} response
+         */
+
+    }, {
+        key: 'onDeleteFailure',
+        value: function onDeleteFailure(error) {
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', true);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', false);
+
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.getDeletingModels(), function (model) {
+                model.onDeleteFailure(error);
+            });
+
+            this.emit('delete', { error: error });
+        }
+
+        /**
+         * Called before a save request is made.
+         *
+         * @returns {boolean} Either `true` or false` if the request should not be
+         *                    made, where `true` indicates that the request should
+         *                    be considered a "success" rather than a "cancel".
+         *
+         */
+
+    }, {
+        key: 'onSave',
+        value: function onSave() {
+
+            // Don't save if we're already busy saving this collection.
+            // This prevents things like accidental double clicks.
+            if (this.saving) {
+                return false;
+            }
+
+            var valid = true;
+
+            // Call 'onSave' on each model so that the models can set their state
+            // accordingly, and indicate whether a validation failure should occur.
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this.models, function (model) {
+                try {
+                    model.onSave();
+                } catch (error) {
+                    if (error instanceof ValidationError) {
+                        valid = false;
+                    } else {
+                        throw error;
+                    }
+                }
+            });
+
+            // Throwing a validation error here will cause the save request to be
+            // rejected, because at least one model's data is not valid.
+            if (!valid) {
+                throw new ValidationError(this.getErrors());
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', true);
+        }
+
+        /**
+         * Collect all model identifiers.
+         *
+         * @returns {Array}
+         */
+
+    }, {
+        key: 'getIdentifiers',
+        value: function getIdentifiers(models) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["map"])(models, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["method"])('identifier'));
+        }
+
+        /**
+         * @inheritDoc
+         */
+
+    }, {
+        key: 'getDeleteBody',
+        value: function getDeleteBody() {
+            if (this.getOption('useDeleteBody')) {
+                return this.getIdentifiers(this.getDeletingModels());
+            }
+
+            return {};
+        }
+
+        /**
+         * @returns {string} The query parameter key to use for model identifiers.
+         */
+
+    }, {
+        key: 'getDeleteQueryIdenitifierKey',
+        value: function getDeleteQueryIdenitifierKey() {
+            return 'id';
+        }
+
+        /**
+         * @inheritDoc
+         */
+
+    }, {
+        key: 'getDeleteQuery',
+        value: function getDeleteQuery() {
+
+            // Don't use query parameters if we want send the request data in the body.
+            if (this.getOption('useDeleteBody')) {
+                return {};
+            }
+
+            // Collect all the identifiers of the models being deleted.
+            var models = this.getDeletingModels();
+            var identifier = this.getDeleteQueryIdenitifierKey();
+            var identifiers = this.getIdentifiers(models);
+
+            return defineProperty({}, identifier, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["join"])(identifiers, ','));
+        }
+
+        /**
+         * Called before a delete request is made.
+         *
+         * @returns {boolean} `false` if the request should not be made.
+         */
+
+    }, {
+        key: 'onDelete',
+        value: function onDelete() {
+
+            // Don't save if we're already busy saving this collection.
+            // This prevents things like accidental double clicks.
+            if (this.deleting) {
+                return false;
+            }
+
+            // Exclude all models that return `false` on delete.
+            var models = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["filter"])(this.models, function (model) {
+                return model.onDelete() !== false;
+            });
+
+            // Don't save if there are no models to delete.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(models)) {
+                return true;
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', true);
+        }
+    }]);
+    return Collection;
+}(Base);
+
+/**
+ * Reserved keywords that can't be used for attribute or option names.
+ */
+var RESERVED = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["invert"])(['_attributes', '_collections', '_errors', '_listeners', '_reference', '_registry', '_uid', 'attributes', 'collections', 'deleting', 'errors', 'fatal', 'loading', 'memoized', 'models', 'saving']);
+
+/**
+ * Recursive deep copy helper that honours the "clone" function of models and
+ * collections. This is required to support nested instances.
+ *
+ * @param {Object} source
+ * @param {Object} target
+ * @param {Array}  keys     Optional
+ */
+var copyFrom = function copyFrom(source, target, keys$$1) {
+    if (keys$$1) {
+        source = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["pick"])(source, keys$$1);
+    }
+
+    Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(source, function (value, key) {
+        if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(value)) {
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(target, key, []);
+            copyFrom(value, target[key]);
+        } else if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(value)) {
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(target, key, {});
+            copyFrom(value, target[key]);
+        } else if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isObject"])(value) && Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isFunction"])(value.clone)) {
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(target, key, value.clone());
+        } else {
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(target, key, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["cloneDeep"])(value));
+        }
+    });
+};
+
+/**
+ * Base model class.
+ */
+
+var Model = function (_Base) {
+    inherits(Model, _Base);
+    createClass(Model, [{
+        key: '$',
+
+
+        /**
+         * A convenience wrapper around the model's attributes that are saved.
+         * This is similar to the `saved` method, but instead of accessing a single
+         * property it returns the whole saved object, so that you can do something
+         * like model.$.attribute when you want to display it somewhere.
+         *
+         * @returns {Object} This model's saved, reference data.
+         */
+        get: function get$$1() {
+            return this._reference;
+        }
+
+        /**
+         * @returns {Object} This model's "active" state attributes.
+         */
+
+    }, {
+        key: 'attributes',
+        get: function get$$1() {
+            return this._attributes;
+        }
+
+        /**
+         * @returns {Object} The collection that this model is registered to.
+         */
+
+    }, {
+        key: 'collections',
+        get: function get$$1() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["values"])(this._collections);
+        }
+
+        /**
+         * @returns {Object} This model's errors, which are cleared automatically.
+         */
+
+    }, {
+        key: 'errors',
+        get: function get$$1() {
+            return this.getErrors();
+        }
+
+        /**
+         * Creates a new instance, called when using 'new'.
+         *
+         * @param  {Object}     [attributes]  Model attributes
+         * @param  {Collection} [collection]  Collection that this model belongs to.
+         * @param  {Object}     [options]     Options to set on the model.
+         */
+
+    }]);
+
+    function Model() {
+        var attributes = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+        var collection = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+        var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+        classCallCheck(this, Model);
+
+        var _this = possibleConstructorReturn(this, (Model.__proto__ || Object.getPrototypeOf(Model)).call(this, options));
+
+        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_collections', {}); // Collections that contain this model.
+        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_reference', {}); // Saved attribute state.
+        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_attributes', {}); // Active attribute state.
+        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_mutations', {}); // Mutator cache.
+        __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this, '_errors', {}); // Validation errors.
+
+        _this.clearState();
+
+        // Cache certain methods that don't need to be evaluated more than once.
+        _this.memoize();
+
+        // Cache mutator pipelines so that they can run as a single function.
+        _this.compileMutators();
+
+        // Assign all given model data to the model's attributes and reference.
+        _this.assign(attributes);
+
+        // Register the given collection (if any) to the model. This is so that
+        // the model can be added to the collection automatically when it is
+        // created on save, or removed on delete.
+        if (collection) {
+            _this.registerCollection(collection);
+        }
+        return _this;
+    }
+
+    /**
+     * Creates a copy of this model, with the same attributes and options. The
+     * clone will also belong to the same collections as the subject.
+     *
+     * @returns {Model}
+     */
+
+
+    createClass(Model, [{
+        key: 'clone',
+        value: function clone() {
+            var attributes = {};
+            var reference = {};
+
+            // Clone all attributes and their descriptors.
+            copyFrom(this._attributes, attributes);
+            copyFrom(this._reference, reference);
+
+            // Create a copy.
+            var clone = new this.constructor();
+
+            // Make sure that the clone belongs to the same collections.
+            clone.registerCollection(this._collections);
+
+            // Make sure that the clone has the same existing options.
+            clone.setOptions(this.getOptions());
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(clone, '_reference', reference);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(clone, '_attributes', attributes);
+
+            return clone;
+        }
+
+        /**
+         * Prepare certain methods to only be called once. These are methods that
+         * are expected to return the same data every time.
+         *
+         * @see {@link https://lodash.com/docs/#once}
+         */
+
+    }, {
+        key: 'memoize',
+        value: function memoize() {
+            var _this2 = this;
+
+            var memoized = ['validation', //   \
+            'defaults', //   | These do not need to be evaluated every time.
+            'routes'];
+
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(memoized, function (name) {
+                return _this2[name] = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["once"])(_this2[name]);
+            });
+        }
+
+        /**
+         * Returns the model's identifier value.
+         */
+
+    }, {
+        key: 'identifier',
+        value: function identifier() {
+            return this.get(this.getOption('identifier'));
+        }
+
+        /**
+         * @returns {Object} An empty representation of this model.
+         *                   It's important that all model attributes have a default
+         *                   value in order to be reactive in Vue.
+         */
+
+    }, {
+        key: 'defaults',
+        value: function defaults$$1() {
+            return {};
+        }
+
+        /**
+         * @returns {Object} Attribute mutations keyed by attribute name.
+         */
+
+    }, {
+        key: 'mutations',
+        value: function mutations() {
+            return {};
+        }
+
+        /**
+         * Add validation rules here, or use option?
+         */
+
+    }, {
+        key: 'validation',
+        value: function validation() {
+            return {};
+        }
+
+        /**
+         * Returns the default options for this model.
+         *
+         * @returns {Object}
+         */
+
+    }, {
+        key: 'getDefaultOptions',
+        value: function getDefaultOptions() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["merge"])({}, get$1(Model.prototype.__proto__ || Object.getPrototypeOf(Model.prototype), 'getDefaultOptions', this).call(this), {
+
+                // The attribute that should be used to uniquely identify this model.
+                identifier: 'id',
+
+                // Whether this model should allow an existing identifier to be
+                // overwritten on update.
+                overwriteIdentifier: false,
+
+                // Whether this model should perform a "patch" on update,
+                // which will only send changed attributes in the request.
+                patch: false,
+
+                // Whether this model should save even if no attributes have changed
+                // since the last time they were synced. If set to `false` and no
+                // changes have been made, the request will be considered a success.
+                saveUnchanged: true,
+
+                // Whether this model should only use the first validation error it
+                // receives, rather than an array of errors.
+                useFirstErrorOnly: false,
+
+                // Whether this model should validate an attribute that has changed.
+                // This would only affect the errors of the changed attribute and
+                // will only be applied if the value is not a blank string.
+                validateOnChange: false,
+
+                // Whether this model should validate models and collections within
+                // its attribute tree. The result is implicit recursion as each of
+                // those instances will also validate their trees, etc.
+                validateRecursively: true,
+
+                // Whether this model should mutate a property as it is changed,
+                // before it is set. This is a rare requirement because you usually
+                // don't  want to mutate something that you are busy editing.
+                mutateOnChange: false,
+
+                // Whether this model should mutate all attributes before they are
+                // synced to the "saved" state. This would include construction,
+                // on fetch, on save, and on assign.
+                mutateBeforeSync: true,
+
+                // Whether this model should use mutated values for the attributes
+                // in "save" request. This will not mutate the active state.
+                mutateBeforeSave: true
+            });
+        }
+
+        /**
+         * Compiles all mutations into pipelines that can be executed quickly.
+         */
+
+    }, {
+        key: 'compileMutators',
+        value: function compileMutators() {
+            this._mutations = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["mapValues"])(this.mutations(), function (m) {
+                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["flow"])(m);
+            });
+        }
+
+        /**
+         * @returns {Object} Parameters to use for replacement in route patterns.
+         */
+
+    }, {
+        key: 'getRouteParameters',
+        value: function getRouteParameters() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["merge"])({}, get$1(Model.prototype.__proto__ || Object.getPrototypeOf(Model.prototype), 'getRouteParameters', this).call(this), this._attributes);
+        }
+
+        /**
+         * Registers a collection on this model. When this model is created it will
+         * automatically be added to the collection. Similarly, when this model is
+         * delete it will be remove from the collection. Registering the same
+         * collection more than once has no effect.
+         *
+         * @param {Collection} collection
+         */
+
+    }, {
+        key: 'registerCollection',
+        value: function registerCollection(collection) {
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(collection)) {
+                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(collection, this.registerCollection);
+                return;
+            }
+
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isNil"])(collection) || Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isUndefined"])(collection._uid)) {
+                throw new Error('Collection is not valid');
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this._collections, collection._uid, collection);
+        }
+
+        /**
+         * Removes a collection from this model's collection registry, removing all
+         * effects that would occur when creating or deleting this model.
+         *
+         * Unregistering a collection that isn't registered has no effect.
+         *
+         * @param {Collection} collection
+         */
+
+    }, {
+        key: 'unregisterCollection',
+        value: function unregisterCollection(collection) {
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(collection)) {
+                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(collection, this.unregisterCollection);
+                return;
+            }
+
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isNil"])(collection) || Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isUndefined"])(collection._uid)) {
+                throw new Error('Collection is not valid');
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.delete(this._collections, collection._uid);
+        }
+
+        /**
+         * Reverts all attributes back to their defaults, and completely removes all
+         * attributes that don't have defaults. This will also sync the reference
+         * attributes, and is not reversable.
+         */
+
+    }, {
+        key: 'clearAttributes',
+        value: function clearAttributes() {
+            var defaults$$1 = this.defaults();
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_attributes', Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["cloneDeep"])(defaults$$1));
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_reference', Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["cloneDeep"])(defaults$$1));
+        }
+
+        /**
+         * Reverts all attributes back to their defaults, and completely removes all
+         * attributes that don't have defaults. This will also sync the reference
+         * attributes, and is not reversable.
+         */
+
+    }, {
+        key: 'clear',
+        value: function clear() {
+            this.clearAttributes();
+            this.clearErrors();
+            this.clearState();
+        }
+
+        /**
+         * Resets model state, ie. `loading`, etc back to their initial states.
+         */
+
+    }, {
+        key: 'clearState',
+        value: function clearState() {
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
+        }
+
+        /**
+         * Assigns all given model data to the model's attributes and reference.
+         * This will also fill any gaps with the model's default attribute.
+         *
+         * @param {Object} attributes
+         *
+         * @returns {Object} The attributes that were assigned to the model.
+         */
+
+    }, {
+        key: 'assign',
+        value: function assign(attributes) {
+            this.set(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultsDeep"])({}, attributes, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["cloneDeep"])(this.defaults())));
+            this.sync();
+        }
+
+        /**
+         * Resets all attributes back to their reference values (source of truth).
+         * A good use case for this is when form fields are bound directly to the
+         * model's attributes. Changing values in the form fields will change the
+         * attributes on the model. On cancel, you can revert the model back to
+         * its saved, original state using reset().
+         *
+         * You can also pass one or an array of attributes to reset.
+         *
+         * @param {string|string[]} attribute
+         */
+
+    }, {
+        key: 'reset',
+        value: function reset(attribute) {
+
+            // Reset specific attributes.
+            if (attribute) {
+                copyFrom(this._reference, this._attributes, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["castArray"])(attribute));
+
+                // Reset all attributes if one or more specific ones were not given.
+            } else {
+                copyFrom(this._reference, this._attributes);
+            }
+
+            this.clearErrors();
+            this.emit('reset');
+        }
+
+        /**
+         * @returns {*} The value of an attribute after applying its mutations.
+         */
+
+    }, {
+        key: 'mutated',
+        value: function mutated(attribute, value) {
+            var mutator = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this._mutations, attribute);
+
+            if (mutator) {
+                return mutator(value);
+            }
+
+            return value;
+        }
+
+        /**
+         * Mutates either specific attributes or all attributes if none provided.
+         * @param {string|string[]|undefined} attribute
+         */
+
+    }, {
+        key: 'mutate',
+        value: function mutate(attribute) {
+            var _this3 = this;
+
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isUndefined"])(attribute)) {
+                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this._attributes, function (value, attribute) {
+                    __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this3._attributes, attribute, _this3.mutated(attribute, value));
+                });
+
+                // Only mutate specific attributes.
+            } else {
+                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["castArray"])(attribute), function (attribute) {
+                    var current = _this3.get(attribute);
+                    var mutated = _this3.mutated(attribute, current);
+
+                    __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this3._attributes, attribute, mutated);
+                });
+            }
+        }
+
+        /**
+         * Sync the current attributes to the reference attributes. This is usually
+         * only called on save. We have to clone the values otherwise we
+         * end up with references to the same object in both attribute sets.
+         *
+         * You can also pass one or an array of attributes to sync.
+         *
+         * @param {string|string[]} attribute
+         */
+
+    }, {
+        key: 'sync',
+        value: function sync(attribute) {
+            var _this4 = this;
+
+            // Mutate all attributes before we sync them, if required to do so.
+            if (this.getOption('mutateBeforeSync')) {
+                this.mutate(attribute);
+            }
+
+            // We're cloning deep to avoid multiple references to the same object,
+            // otherwise updating the attributes will also update the reference.
+            // Set each saved attribute to its active equivalent.
+            var active = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["cloneDeep"])(this._attributes);
+
+            // Sync either specific attributes or all attributes if none provided.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isUndefined"])(attribute)) {
+                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_reference', active);
+            } else {
+                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["castArray"])(attribute), function (attribute) {
+                    __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this4._reference, attribute, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(active, attribute));
+                });
+            }
+
+            this.emit('sync');
+        }
+
+        /**
+         * Registers an attribute on this model so that it can be accessed directly
+         * on the model, passing through `get` and `set`.
+         */
+
+    }, {
+        key: 'registerAttribute',
+        value: function registerAttribute(attribute) {
+            var _this5 = this;
+
+            // Protect against unwillingly using an attribute name that already
+            // exists as an internal property or method name.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["has"])(RESERVED, attribute)) {
+                throw new Error('Can\'t use reserved attribute name \'' + attribute + '\'');
+            }
+
+            // Create dynamic accessors and mutations so that we can update the
+            // model directly while also keeping the model attributes in sync.
+            Object.defineProperty(this, attribute, {
+                get: function get$$1() {
+                    return _this5.get(attribute);
+                },
+                set: function set$$1(value) {
+                    return _this5.set(attribute, value);
+                }
+            });
+        }
+
+        /**
+         * Sets the value of an attribute and registers the magic "getter" in a way
+         * that is compatible with Vue's reactivity. This method should always be
+         * used when setting the value of an attribute.
+         *
+         * @param  {string|Object}  attribute
+         * @param  {*}              value
+         *
+         * @returns {*} The value that was set.
+         */
+
+    }, {
+        key: 'set',
+        value: function set$$1(attribute, value) {
+            var _this6 = this;
+
+            // Allow batch set of multiple attributes at once, ie. set({...});
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(attribute)) {
+                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(attribute, function (value, key) {
+                    _this6.set(key, value);
+                });
+
+                return;
+            }
+
+            var defined = this.has(attribute);
+
+            // Only register the pass-through property if it's not already set up.
+            // If it already exists on the instance, we know it has been.
+            if (!defined) {
+                this.registerAttribute(attribute);
+            }
+
+            // Current value of the attribute, or `undefined` if not set
+            var previous = this.get(attribute);
+
+            // Run the attribute's mutations if required to do so on change.
+            if (this.getOption('mutateOnChange')) {
+                value = this.mutated(attribute, value);
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this._attributes, attribute, value);
+
+            // Only consider a change if the attribute was already defined.
+            var changed = defined && !Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEqual"])(previous, value);
+
+            if (changed) {
+                this.emit('change', { attribute: attribute, previous: previous, value: value });
+
+                // Validate on change only if it's not the first time it's set.
+                if (this.getOption('validateOnChange')) {
+                    __WEBPACK_IMPORTED_MODULE_2_vue___default.a.nextTick(function () {
+                        return _this6.validateAttribute(attribute);
+                    });
+                }
+            }
+
+            return value;
+        }
+
+        /**
+         * Reverts all attributes back to their defaults, or `undefined` if a
+         * default value is not defined.
+         *
+         * You can also pass one or an array of attributes to unset.
+         *
+         * @param {string|string[]} attribute
+         */
+
+    }, {
+        key: 'unset',
+        value: function unset$$1(attribute) {
+            var _this7 = this;
+
+            // We're cloning deep to avoid multiple references to the same object,
+            // otherwise updating the attributes will also update the reference.
+            var defaults$$1 = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["cloneDeep"])(this.defaults());
+
+            // Unset either specific attributes or all attributes if none provided.
+            var attributes = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["defaultTo"])(attribute, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["keys"])(this._attributes));
+
+            // Unset either specific attributes or all attributes if none provided.
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["castArray"])(attributes), function (attribute) {
+                if (_this7.has(attribute)) {
+                    __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(_this7._attributes, attribute, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(defaults$$1, attribute));
+                }
+            });
+        }
+
+        /**
+         * Similar to `saved`, returns an attribute's value or a fallback value
+         * if this model doesn't have the attribute.
+         *
+         * @param {string} attribute
+         * @param {*}      fallback
+         *
+         * @returns {*} The value of the attribute or `fallback` if not found.
+         */
+
+    }, {
+        key: 'get',
+        value: function get$$1(attribute, fallback) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this._attributes, attribute, fallback);
+        }
+
+        /**
+         * Similar to `get`, but accesses the saved attributes instead.
+         *
+         * This is useful in cases where you want to display an attribute but also
+         * change it. For example, a modal with a title based on a model field, but
+         * you're also editing that field. The title will be updating reactively if
+         * it's bound to the active attribute, so bind to the saved one instead.
+         *
+         * @param {string} attribute
+         * @param {*}      fallback
+         *
+         * @returns {*} The value of the attribute or `fallback` if not found.
+         */
+
+    }, {
+        key: 'saved',
+        value: function saved(attribute, fallback) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(this._reference, attribute, fallback);
+        }
+
+        /**
+         * Determines if the model has an attribute.
+         *
+         * @param  {string}  attribute
+         * @returns {boolean} `true` if an attribute exists, `false` otherwise.
+         *                   Will return true if the object exists but is undefined.
+         */
+
+    }, {
+        key: 'has',
+        value: function has$$1(attribute) {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["has"])(this._attributes, attribute);
+        }
+
+        /**
+         * Validates a specific attribute of this model, and sets errors for it.
+         *
+         * @returns {boolean} `true` if valid, `false` otherwise.
+         */
+
+    }, {
+        key: 'validateAttribute',
+        value: function validateAttribute(attribute) {
+            var _this8 = this;
+
+            var value = this.get(attribute);
+            var rules = this.validation();
+            var valid = true;
+            var errors = [];
+
+            if (attribute in rules) {
+                var ruleset = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["castArray"])(rules[attribute]);
+
+                Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(ruleset, function (rule) {
+                    var result = rule(value, attribute, _this8);
+
+                    // Rules should return an error message if validation failed.
+                    if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isString"])(result)) {
+                        errors.push(result);
+                        valid = false;
+
+                        // Break early if we're only interested in the first error.
+                        if (_this8.getOption('useFirstErrorOnly')) {
+                            return false;
+                        }
+                    }
+                });
+            }
+
+            // Defer validation if an attribute is an object that has a `validate`
+            // method. The expectation is that the validate function will return
+            // `true` if valid, `false` if not, and handle its own errors.
+            if (this.getOption('validateRecursively')) {
+                if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isFunction"])(Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["get"])(value, 'validate'))) {
+                    valid = value.validate() && valid;
+                }
+            }
+
+            // Set the errors for the attribute.
+            this.setAttributeErrors(attribute, errors);
+
+            return valid;
+        }
+
+        /**
+         * Validates all attributes.
+         *
+         * @param {Object} [attributes] One or more attributes to validate.
+         *
+         * @returns {boolean} `true` if the model passes validation.
+         */
+
+    }, {
+        key: 'validate',
+        value: function validate(attributes) {
+            var _this9 = this;
+
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isString"])(attributes)) {
+                return this.validateAttribute(attributes);
+
+                // Only validate the attributes that were specified.
+            } else if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isArray"])(attributes)) {
+                attributes = Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["pick"])(this._attributes, attributes);
+
+                // Or validate all attributes if none were given.
+            } else if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isUndefined"])(attributes)) {
+                attributes = this._attributes;
+            } else {
+                throw new Error('Validation attributes must be an array, a string, or not given');
+            }
+
+            // Validate all attributes if none were given.
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["reduce"])(attributes, function (valid, value, attribute) {
+                return _this9.validateAttribute(attribute) && valid;
+            }, true);
+        }
+
+        /**
+         * @returns {Object} A native representation of this model that will determine
+         *                   the contents of JSON.stringify(model).
+         */
+
+    }, {
+        key: 'toJSON',
+        value: function toJSON() {
+            return this._attributes;
+        }
+
+        /**
+         * Adds this model to all registered collections.
+         */
+
+    }, {
+        key: 'addToAllCollections',
+        value: function addToAllCollections() {
+            var _this10 = this;
+
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this._collections, function (collection, id) {
+                collection.add(_this10);
+            });
+        }
+
+        /**
+         * Removes this model from all registered collections.
+         */
+
+    }, {
+        key: 'removeFromAllCollections',
+        value: function removeFromAllCollections() {
+            var _this11 = this;
+
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this._collections, function (collection, id) {
+                collection.remove(_this11);
+            });
+        }
+
+        /**
+         * Returns an array of attribute names that have changed, or `false` if no
+         * changes have been made since the last time this model was synced.
+         *
+         * @returns {Array|boolean} An array of changed attribute names, or `false`
+         *                         if no attributes have changed since the last sync.
+         */
+
+    }, {
+        key: 'changed',
+        value: function changed() {
+            var _this12 = this;
+
+            var changed = [];
+
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(this._attributes, function (value, attribute) {
+                if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEqual"])(value, _this12.saved(attribute))) {
+                    changed.push(attribute);
+                }
+            });
+
+            return !Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(changed) ? changed : false;
+        }
+
+        /**
+         * Called when a fetch request was successful.
+         */
+
+    }, {
+        key: 'onFetchSuccess',
+        value: function onFetchSuccess(response) {
+            var attributes = response.getData();
+
+            // A fetch request must receive *some* data in return.
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(attributes)) {
+                throw new ResponseError("No data in fetch response", response);
+            }
+
+            this.assign(attributes);
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', false);
+
+            this.emit('fetch', { error: null });
+        }
+
+        /**
+         * Called when a fetch request failed.
+         *
+         * @param {Error}  error
+         */
+
+    }, {
+        key: 'onFetchFailure',
+        value: function onFetchFailure(error) {
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', true);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', false);
+
+            this.emit('fetch', { error: error });
+        }
+
+        /**
+         * @returns {string} The key to use when generating the `patch` URL.
+         */
+
+    }, {
+        key: 'getPatchRoute',
+        value: function getPatchRoute() {
+            return this.getRoute('patch', 'save');
+        }
+
+        /**
+         * @returns {string} The key to use when generating the `create` URL.
+         */
+
+    }, {
+        key: 'getCreateRoute',
+        value: function getCreateRoute() {
+            return this.getRoute('create', 'save');
+        }
+
+        /**
+         * @returns {string} The key to use when generating the `update` URL.
+         */
+
+    }, {
+        key: 'getUpdateRoute',
+        value: function getUpdateRoute() {
+            if (this.shouldPatch()) {
+                return this.getPatchRoute();
+            }
+
+            return this.getRoute('update', 'save');
+        }
+
+        /**
+         * @returns {string} The method to use when making an update request.
+         */
+
+    }, {
+        key: 'getUpdateMethod',
+        value: function getUpdateMethod() {
+            return this.shouldPatch() ? this.getPatchMethod() : get$1(Model.prototype.__proto__ || Object.getPrototypeOf(Model.prototype), 'getUpdateMethod', this).call(this);
+        }
+
+        /**
+         * @returns {string} The method to use when making an save request.
+         */
+
+    }, {
+        key: 'getSaveMethod',
+        value: function getSaveMethod() {
+            return this.isNew() ? this.getCreateMethod() : this.getUpdateMethod();
+        }
+
+        /**
+         * @inheritDoc
+         */
+
+    }, {
+        key: 'getSaveRoute',
+        value: function getSaveRoute() {
+            if (this.isNew()) {
+                return this.getCreateRoute();
+            }
+
+            return this.getUpdateRoute();
+        }
+
+        /**
+         * Returns whether this model should perform a "patch" on update, which will
+         * only send changed data in the request, rather than all attributes.
+         *
+         * @returns {boolean} Whether this model should perform a "patch" on update,
+         *                    which will only send changed data in the request,
+         *                    rather than all attributes.
+         */
+
+    }, {
+        key: 'shouldPatch',
+        value: function shouldPatch() {
+            return Boolean(this.getOption('patch'));
+        }
+
+        /**
+         * @returns {Object} The data to send to the server when saving this model.
+         */
+
+    }, {
+        key: 'getSaveData',
+        value: function getSaveData() {
+
+            // Only use changed attributes if patching.
+            if (this.isExisting() && this.shouldPatch()) {
+                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["pick"])(this._attributes, this.changed());
+            }
+
+            return this._attributes;
+        }
+
+        /**
+         * @returns {*} A potential identifier parsed from response data.
+         */
+
+    }, {
+        key: 'parseIdentifier',
+        value: function parseIdentifier(data) {
+            return data;
+        }
+
+        /**
+         * @returns {boolean} Whether the given identifier is considered a valid
+         *                   identifier value for this model.
+         */
+
+    }, {
+        key: 'isValidIdentifier',
+        value: function isValidIdentifier(identifier) {
+            return Boolean(identifier);
+        }
+
+        /**
+         * @returns {boolean} Whether this model allows an existing identifier to be
+         *                    overwritten on update.
+         */
+
+    }, {
+        key: 'shouldAllowIdentifierOverwrite',
+        value: function shouldAllowIdentifierOverwrite() {
+            return Boolean(this.getOption('overwriteIdentifier'));
+        }
+
+        /**
+         * Updates the model data with data returned from the server.
+         *
+         * @param {Object} response
+         */
+
+    }, {
+        key: 'update',
+        value: function update(data) {
+
+            // No content means we don't want to update the model at all.
+            // The attributes that we passed in the request should now be considered
+            // the source of truth, so we should update the reference attributes here.
+            if (!data || Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isObjectLike"])(data) && Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(data)) {
+                this.sync();
+
+                // A plain object implies that we want to update the model data.
+                // It's not a requirement to respond with a complete dataset,
+                // eg. a response to a patch request might return partial data.
+            } else if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(data)) {
+                this.assign(data);
+
+                // There is some data, but it's not an object, so we can assume that the
+                // response only returned an identifier for this model.
+            } else {
+                var identifier = this.parseIdentifier(data);
+
+                // It's possible that the response didn't actually return a valid
+                // identifier, so before we try to use it we should make sure that
+                // we're not accidentially assigning the wrong data as identifiers.
+                if (this.isValidIdentifier(identifier)) {
+
+                    // The current identifier of this model.
+                    var current = this.identifier();
+
+                    // If an identifier already exists on this model and the returned
+                    // identifier is not the same, this almost definitely indicates
+                    // an unexpected state. The default is to protect against this
+                    // and fail hard, but this might not always be what we want.
+                    if (current && identifier !== current) {
+                        if (!this.shouldAllowIdentifierOverwrite()) {
+                            throw new Error('Not allowed to overwrite model identifier');
+                        }
+                    }
+
+                    // Update the identifier and sync the saved data.
+                    this.set(this.getOption('identifier'), identifier);
+                    this.sync();
+                } else {
+                    throw new Error('Expected an empty response, object, or valid identifier');
+                }
+            }
+        }
+
+        /**
+         * Sets errors for a specific attribute. Support the ability to clear error
+         * by passing an empty value.
+         *
+         * @param {string}       attribute
+         * @param {string|array} errors
+         */
+
+    }, {
+        key: 'setAttributeErrors',
+        value: function setAttributeErrors(attribute, errors) {
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(errors)) {
+                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.delete(this._errors, attribute);
+            } else {
+                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this._errors, attribute, Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["castArray"])(errors));
+            }
+        }
+
+        /**
+         * Sets the errors on this model.
+         *
+         * @param {Object} errors
+         */
+
+    }, {
+        key: 'setErrors',
+        value: function setErrors(errors) {
+            var _this13 = this;
+
+            if (Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isEmpty"])(errors)) {
+                __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, '_errors', {});
+                return;
+            }
+
+            Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["each"])(errors, function (errors, attribute) {
+                _this13.setAttributeErrors(attribute, errors);
+            });
+        }
+
+        /**
+         * @returns {Object} Validation errors on this model.
+         */
+
+    }, {
+        key: 'getErrors',
+        value: function getErrors() {
+            if (this.getOption('useFirstErrorOnly')) {
+                return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["mapValues"])(this._errors, __WEBPACK_IMPORTED_MODULE_0_lodash__["head"]);
+            }
+
+            return this._errors;
+        }
+
+        /**
+         * Clears all errors on this model.
+         */
+
+    }, {
+        key: 'clearErrors',
+        value: function clearErrors() {
+            this.setErrors({});
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
+        }
+
+        /**
+         * Called when a save request was successful.
+         *
+         * @param {Object|null} response
+         */
+
+    }, {
+        key: 'onSaveSuccess',
+        value: function onSaveSuccess(response) {
+
+            // Clear errors because the request was successful.
+            this.clearErrors();
+
+            // Update this model with the data that was returned in the response.
+            if (response) {
+                this.update(response.getData());
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
+
+            // Automatically add to all registered collections.
+            this.addToAllCollections();
+
+            this.emit('save', { error: null });
+        }
+
+        /**
+         * Called when a save request resulted in a validation error.
+         *
+         * @param {Object} errors
+         */
+
+    }, {
+        key: 'onSaveValidationFailure',
+        value: function onSaveValidationFailure(error) {
+            var errors = error.getResponse().getValidationErrors();
+
+            if (!Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isPlainObject"])(errors)) {
+                throw new ResponseError('Validation errors must be an object', error.getResponse());
+            }
+
+            this.setErrors(errors);
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
+        }
+
+        /**
+         * Called when a save request resulted in an unexpected error,
+         * eg. an internal server error (500)
+         *
+         * @param {Error}  error
+         * @param {Object} response
+         */
+
+    }, {
+        key: 'onFatalSaveFailure',
+        value: function onFatalSaveFailure(error) {
+            this.clearErrors();
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', true);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', false);
+        }
+
+        /**
+         * Called when a save request resulted in a general error.
+         *
+         * @param {Error}  error
+         * @param {Object} response
+         */
+
+    }, {
+        key: 'onSaveFailure',
+        value: function onSaveFailure(error) {
+            if (this.isBackendValidationError(error)) {
+                this.onSaveValidationFailure(error);
+            } else {
+                this.onFatalSaveFailure(error);
+            }
+
+            this.emit('save', { error: error });
+        }
+
+        /**
+         * Called when a delete request was successful.
+         */
+
+    }, {
+        key: 'onDeleteSuccess',
+        value: function onDeleteSuccess(response) {
+            this.clear();
+            this.removeFromAllCollections();
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', false);
+
+            this.emit('delete', { error: null });
+        }
+
+        /**
+         * Called when a delete request resulted in a general error.
+         *
+         * @param {Error}  error
+         */
+
+    }, {
+        key: 'onDeleteFailure',
+        value: function onDeleteFailure(error) {
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', false);
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'fatal', true);
+
+            this.emit('delete', { error: error });
+        }
+
+        /**
+         * Called before a fetch request is made.
+         *
+         * @returns {boolean|undefined} `false` if the request should not be made.
+         */
+
+    }, {
+        key: 'onFetch',
+        value: function onFetch() {
+
+            // Don't fetch if already fetching. This prevents accidental requests
+            // that sometimes occur as a result of a double-click.
+            if (this.loading) {
+                return false;
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'loading', true);
+        }
+
+        /**
+         * @returns {boolean} whether this model is not persisted yet, ie. has not
+         *                    been created yet. The default test is to check if the
+         *                    model's identifier is missing.
+         */
+
+    }, {
+        key: 'isNew',
+        value: function isNew() {
+            return Object(__WEBPACK_IMPORTED_MODULE_0_lodash__["isNil"])(this.identifier());
+        }
+
+        /**
+         * @returns {boolean} the opposite of `isNew`, returns `true` if this model
+         *                    is already persisted somewhere else.
+         */
+
+    }, {
+        key: 'isExisting',
+        value: function isExisting() {
+            return !this.isNew();
+        }
+
+        /**
+         * Called before a save request is made.
+         *
+         * @returns {boolean} `false` if the request should not be made.
+         */
+
+    }, {
+        key: 'onSave',
+        value: function onSave() {
+
+            // Don't save if we're already busy saving this model.
+            // This prevents things like accidental double-clicks.
+            if (this.saving) {
+                return false;
+            }
+
+            // Don't save if no data has changed, but consider it a success.
+            if (!this.getOption('saveUnchanged') && !this.changed()) {
+                return true;
+            }
+
+            // Mutate attribute before we save if required to do so.
+            if (this.getOption('mutateBeforeSave')) {
+                this.mutate();
+            }
+
+            // Validate all attributes before saving.
+            if (!this.validate()) {
+                throw new ValidationError(this.errors);
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'saving', true);
+        }
+
+        /**
+         * Called before a delete request is made.
+         *
+         * @returns {boolean} `false` if the request should not be made.
+         */
+
+    }, {
+        key: 'onDelete',
+        value: function onDelete() {
+
+            // Don't save if we're already busy deleting this model.
+            if (this.deleting) {
+                return false;
+            }
+
+            __WEBPACK_IMPORTED_MODULE_2_vue___default.a.set(this, 'deleting', true);
+        }
+    }]);
+    return Model;
+}(Base);
+
+/**
+ * Models and Collections for Vue.js
+ *
+ * @version 0.2.3
+ *
+ * @author Rudi Theunissen <rudi.theunissen@figured.com>
+ */
+
+
+
+
+/***/ }),
+/* 58 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _require = __webpack_require__(2),
+    h = _require.h;
+
+// https://css-tricks.com/creating-svg-icon-system-react/
+
+function defaultTabIcon() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", width: "30", height: "30", viewBox: "0 0 30 30" },
+    h("path", { d: "M15 30c8.284 0 15-6.716 15-15 0-8.284-6.716-15-15-15C6.716 0 0 6.716 0 15c0 8.284 6.716 15 15 15zm4.258-12.676v6.846h-8.426v-6.846H5.204l9.82-12.364 9.82 12.364H19.26z" })
+  );
+}
+
+function iconCopy() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", width: "51", height: "51", viewBox: "0 0 51 51" },
+    h("path", { d: "M17.21 45.765a5.394 5.394 0 0 1-7.62 0l-4.12-4.122a5.393 5.393 0 0 1 0-7.618l6.774-6.775-2.404-2.404-6.775 6.776c-3.424 3.427-3.424 9 0 12.426l4.12 4.123a8.766 8.766 0 0 0 6.216 2.57c2.25 0 4.5-.858 6.214-2.57l13.55-13.552a8.72 8.72 0 0 0 2.575-6.213 8.73 8.73 0 0 0-2.575-6.213l-4.123-4.12-2.404 2.404 4.123 4.12a5.352 5.352 0 0 1 1.58 3.81c0 1.438-.562 2.79-1.58 3.808l-13.55 13.55z" }),
+    h("path", { d: "M44.256 2.858A8.728 8.728 0 0 0 38.043.283h-.002a8.73 8.73 0 0 0-6.212 2.574l-13.55 13.55a8.725 8.725 0 0 0-2.575 6.214 8.73 8.73 0 0 0 2.574 6.216l4.12 4.12 2.405-2.403-4.12-4.12a5.357 5.357 0 0 1-1.58-3.812c0-1.437.562-2.79 1.58-3.808l13.55-13.55a5.348 5.348 0 0 1 3.81-1.58c1.44 0 2.792.562 3.81 1.58l4.12 4.12c2.1 2.1 2.1 5.518 0 7.617L39.2 23.775l2.404 2.404 6.775-6.777c3.426-3.427 3.426-9 0-12.426l-4.12-4.12z" })
+  );
+}
+
+function iconResume() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", width: "25", height: "25", viewBox: "0 0 44 44" },
+    h("polygon", { "class": "play", transform: "translate(6, 5.5)", points: "13 21.6666667 13 11 21 16.3333333" })
+  );
+}
+
+function iconPause() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", width: "25px", height: "25px", viewBox: "0 0 44 44" },
+    h(
+      "g",
+      { transform: "translate(18, 17)", "class": "pause" },
+      h("rect", { x: "0", y: "0", width: "2", height: "10", rx: "0" }),
+      h("rect", { x: "6", y: "0", width: "2", height: "10", rx: "0" })
+    )
+  );
+}
+
+function iconEdit() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", width: "28", height: "28", viewBox: "0 0 28 28" },
+    h("path", { d: "M25.436 2.566a7.98 7.98 0 0 0-2.078-1.51C22.638.703 21.906.5 21.198.5a3 3 0 0 0-1.023.17 2.436 2.436 0 0 0-.893.562L2.292 18.217.5 27.5l9.28-1.796 16.99-16.99c.255-.254.444-.56.562-.888a3 3 0 0 0 .17-1.023c0-.708-.205-1.44-.555-2.16a8 8 0 0 0-1.51-2.077zM9.01 24.252l-4.313.834c0-.03.008-.06.012-.09.007-.944-.74-1.715-1.67-1.723-.04 0-.078.007-.118.01l.83-4.29L17.72 5.024l5.264 5.264L9.01 24.252zm16.84-16.96a.818.818 0 0 1-.194.31l-1.57 1.57-5.26-5.26 1.57-1.57a.82.82 0 0 1 .31-.194 1.45 1.45 0 0 1 .492-.074c.397 0 .917.126 1.468.397.55.27 1.13.678 1.656 1.21.53.53.94 1.11 1.208 1.655.272.55.397 1.07.393 1.468.004.193-.027.358-.074.488z" })
+  );
+}
+
+function localIcon() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", width: "27", height: "25", viewBox: "0 0 27 25" },
+    h("path", { d: "M5.586 9.288a.313.313 0 0 0 .282.176h4.84v3.922c0 1.514 1.25 2.24 2.792 2.24 1.54 0 2.79-.726 2.79-2.24V9.464h4.84c.122 0 .23-.068.284-.176a.304.304 0 0 0-.046-.324L13.735.106a.316.316 0 0 0-.472 0l-7.63 8.857a.302.302 0 0 0-.047.325z" }),
+    h("path", { d: "M24.3 5.093c-.218-.76-.54-1.187-1.208-1.187h-4.856l1.018 1.18h3.948l2.043 11.038h-7.193v2.728H9.114v-2.725h-7.36l2.66-11.04h3.33l1.018-1.18H3.907c-.668 0-1.06.46-1.21 1.186L0 16.456v7.062C0 24.338.676 25 1.51 25h23.98c.833 0 1.51-.663 1.51-1.482v-7.062L24.3 5.093z" })
+  );
+}
+
+function closeIcon() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", width: "14px", height: "14px", viewBox: "0 0 19 19" },
+    h("path", { d: "M17.318 17.232L9.94 9.854 9.586 9.5l-.354.354-7.378 7.378h.707l-.62-.62v.706L9.318 9.94l.354-.354-.354-.354L1.94 1.854v.707l.62-.62h-.706l7.378 7.378.354.354.354-.354 7.378-7.378h-.707l.622.62v-.706L9.854 9.232l-.354.354.354.354 7.378 7.378.708-.707-7.38-7.378v.708l7.38-7.38.353-.353-.353-.353-.622-.622-.353-.353-.354.352-7.378 7.38h.708L2.56 1.23 2.208.88l-.353.353-.622.62-.353.355.352.353 7.38 7.38v-.708l-7.38 7.38-.353.353.352.353.622.622.353.353.354-.353 7.38-7.38h-.708l7.38 7.38z" })
+  );
+}
+
+function iconRetry() {
+  return h(
+    "svg",
+    { "class": "UppyIcon retry", width: "28", height: "31", viewBox: "0 0 16 19", xmlns: "http://www.w3.org/2000/svg" },
+    h("path", { d: "M16 11a8 8 0 1 1-8-8v2a6 6 0 1 0 6 6h2z" }),
+    h("path", { d: "M7.9 3H10v2H7.9z" }),
+    h("path", { d: "M8.536.5l3.535 3.536-1.414 1.414L7.12 1.914z" }),
+    h("path", { d: "M10.657 2.621l1.414 1.415L8.536 7.57 7.12 6.157z" })
+  );
+}
+
+function pluginIcon() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", width: "16px", height: "16px", viewBox: "0 0 32 30" },
+    h("path", { d: "M6.6209894,11.1451162 C6.6823051,11.2751669 6.81374248,11.3572188 6.95463813,11.3572188 L12.6925482,11.3572188 L12.6925482,16.0630427 C12.6925482,17.880509 14.1726048,18.75 16.0000083,18.75 C17.8261072,18.75 19.3074684,17.8801847 19.3074684,16.0630427 L19.3074684,11.3572188 L25.0437478,11.3572188 C25.1875787,11.3572188 25.3164069,11.2751669 25.3790272,11.1451162 C25.4370814,11.0173358 25.4171865,10.8642587 25.3252129,10.7562615 L16.278212,0.127131837 C16.2093949,0.0463771751 16.1069846,0 15.9996822,0 C15.8910751,0 15.7886648,0.0463771751 15.718217,0.127131837 L6.6761083,10.7559371 C6.58250402,10.8642587 6.56293518,11.0173358 6.6209894,11.1451162 L6.6209894,11.1451162 Z" }),
+    h("path", { d: "M28.8008722,6.11142645 C28.5417891,5.19831555 28.1583331,4.6875 27.3684848,4.6875 L21.6124454,4.6875 L22.8190234,6.10307874 L27.4986725,6.10307874 L29.9195817,19.3486449 L21.3943891,19.3502502 L21.3943891,22.622552 L10.8023461,22.622552 L10.8023461,19.3524977 L2.07815702,19.3534609 L5.22979699,6.10307874 L9.17871529,6.10307874 L10.3840011,4.6875 L4.6308691,4.6875 C3.83940559,4.6875 3.37421888,5.2390909 3.19815864,6.11142645 L0,19.7470874 L0,28.2212959 C0,29.2043992 0.801477937,30 1.78870751,30 L30.2096773,30 C31.198199,30 32,29.2043992 32,28.2212959 L32,19.7470874 L28.8008722,6.11142645 L28.8008722,6.11142645 Z" })
+  );
+}
+
+function checkIcon() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon UppyIcon-check", width: "13px", height: "9px", viewBox: "0 0 13 9" },
+    h("polygon", { points: "5 7.293 1.354 3.647 0.646 4.354 5 8.707 12.354 1.354 11.646 0.647" })
+  );
+}
+
+function iconAudio() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", viewBox: "0 0 55 55" },
+    h("path", { d: "M52.66.25c-.216-.19-.5-.276-.79-.242l-31 4.01a1 1 0 0 0-.87.992V40.622C18.174 38.428 15.273 37 12 37c-5.514 0-10 4.037-10 9s4.486 9 10 9 10-4.037 10-9c0-.232-.02-.46-.04-.687.014-.065.04-.124.04-.192V16.12l29-3.753v18.257C49.174 28.428 46.273 27 43 27c-5.514 0-10 4.037-10 9s4.486 9 10 9c5.464 0 9.913-3.966 9.993-8.867 0-.013.007-.024.007-.037V1a.998.998 0 0 0-.34-.75zM12 53c-4.41 0-8-3.14-8-7s3.59-7 8-7 8 3.14 8 7-3.59 7-8 7zm31-10c-4.41 0-8-3.14-8-7s3.59-7 8-7 8 3.14 8 7-3.59 7-8 7zM22 14.1V5.89l29-3.753v8.21l-29 3.754z" })
+  );
+}
+
+function iconVideo() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", viewBox: "0 0 58 58" },
+    h("path", { d: "M36.537 28.156l-11-7a1.005 1.005 0 0 0-1.02-.033C24.2 21.3 24 21.635 24 22v14a1 1 0 0 0 1.537.844l11-7a1.002 1.002 0 0 0 0-1.688zM26 34.18V23.82L34.137 29 26 34.18z" }),
+    h("path", { d: "M57 6H1a1 1 0 0 0-1 1v44a1 1 0 0 0 1 1h56a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1zM10 28H2v-9h8v9zm-8 2h8v9H2v-9zm10 10V8h34v42H12V40zm44-12h-8v-9h8v9zm-8 2h8v9h-8v-9zm8-22v9h-8V8h8zM2 8h8v9H2V8zm0 42v-9h8v9H2zm54 0h-8v-9h8v9z" })
+  );
+}
+
+function iconPDF() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", viewBox: "0 0 342 335" },
+    h("path", { d: "M329.337 227.84c-2.1 1.3-8.1 2.1-11.9 2.1-12.4 0-27.6-5.7-49.1-14.9 8.3-.6 15.8-.9 22.6-.9 12.4 0 16 0 28.2 3.1 12.1 3 12.2 9.3 10.2 10.6zm-215.1 1.9c4.8-8.4 9.7-17.3 14.7-26.8 12.2-23.1 20-41.3 25.7-56.2 11.5 20.9 25.8 38.6 42.5 52.8 2.1 1.8 4.3 3.5 6.7 5.3-34.1 6.8-63.6 15-89.6 24.9zm39.8-218.9c6.8 0 10.7 17.06 11 33.16.3 16-3.4 27.2-8.1 35.6-3.9-12.4-5.7-31.8-5.7-44.5 0 0-.3-24.26 2.8-24.26zm-133.4 307.2c3.9-10.5 19.1-31.3 41.6-49.8 1.4-1.1 4.9-4.4 8.1-7.4-23.5 37.6-39.3 52.5-49.7 57.2zm315.2-112.3c-6.8-6.7-22-10.2-45-10.5-15.6-.2-34.3 1.2-54.1 3.9-8.8-5.1-17.9-10.6-25.1-17.3-19.2-18-35.2-42.9-45.2-70.3.6-2.6 1.2-4.8 1.7-7.1 0 0 10.8-61.5 7.9-82.3-.4-2.9-.6-3.7-1.4-5.9l-.9-2.5c-2.9-6.76-8.7-13.96-17.8-13.57l-5.3-.17h-.1c-10.1 0-18.4 5.17-20.5 12.84-6.6 24.3.2 60.5 12.5 107.4l-3.2 7.7c-8.8 21.4-19.8 43-29.5 62l-1.3 2.5c-10.2 20-19.5 37-27.9 51.4l-8.7 4.6c-.6.4-15.5 8.2-19 10.3-29.6 17.7-49.28 37.8-52.54 53.8-1.04 5-.26 11.5 5.01 14.6l8.4 4.2c3.63 1.8 7.53 2.7 11.43 2.7 21.1 0 45.6-26.2 79.3-85.1 39-12.7 83.4-23.3 122.3-29.1 29.6 16.7 66 28.3 89 28.3 4.1 0 7.6-.4 10.5-1.2 4.4-1.1 8.1-3.6 10.4-7.1 4.4-6.7 5.4-15.9 4.1-25.4-.3-2.8-2.6-6.3-5-8.7z" })
+  );
+}
+
+function iconFile() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", width: "44", height: "58", viewBox: "0 0 44 58" },
+    h("path", { d: "M27.437.517a1 1 0 0 0-.094.03H4.25C2.037.548.217 2.368.217 4.58v48.405c0 2.212 1.82 4.03 4.03 4.03H39.03c2.21 0 4.03-1.818 4.03-4.03V15.61a1 1 0 0 0-.03-.28 1 1 0 0 0 0-.093 1 1 0 0 0-.03-.032 1 1 0 0 0 0-.03 1 1 0 0 0-.032-.063 1 1 0 0 0-.03-.063 1 1 0 0 0-.032 0 1 1 0 0 0-.03-.063 1 1 0 0 0-.032-.03 1 1 0 0 0-.03-.063 1 1 0 0 0-.063-.062l-14.593-14a1 1 0 0 0-.062-.062A1 1 0 0 0 28 .708a1 1 0 0 0-.374-.157 1 1 0 0 0-.156 0 1 1 0 0 0-.03-.03l-.003-.003zM4.25 2.547h22.218v9.97c0 2.21 1.82 4.03 4.03 4.03h10.564v36.438a2.02 2.02 0 0 1-2.032 2.032H4.25c-1.13 0-2.032-.9-2.032-2.032V4.58c0-1.13.902-2.032 2.03-2.032zm24.218 1.345l10.375 9.937.75.718H30.5c-1.13 0-2.032-.9-2.032-2.03V3.89z" })
+  );
+}
+
+function iconText() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", width: "62", height: "62", viewBox: "0 0 62 62", xmlns: "http://www.w3.org/2000/svg" },
+    h("path", { d: "M4.309 4.309h24.912v53.382h-6.525v3.559h16.608v-3.559h-6.525V4.309h24.912v10.676h3.559V.75H.75v14.235h3.559z", "fill-rule": "nonzero", fill: "#000" })
+  );
+}
+
+function uploadIcon() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", width: "37", height: "33", viewBox: "0 0 37 33" },
+    h("path", { d: "M29.107 24.5c4.07 0 7.393-3.355 7.393-7.442 0-3.994-3.105-7.307-7.012-7.502l.468.415C29.02 4.52 24.34.5 18.886.5c-4.348 0-8.27 2.522-10.138 6.506l.446-.288C4.394 6.782.5 10.758.5 15.608c0 4.924 3.906 8.892 8.76 8.892h4.872c.635 0 1.095-.467 1.095-1.104 0-.636-.46-1.103-1.095-1.103H9.26c-3.644 0-6.63-3.035-6.63-6.744 0-3.71 2.926-6.685 6.57-6.685h.964l.14-.28.177-.362c1.477-3.4 4.744-5.576 8.347-5.576 4.58 0 8.45 3.452 9.01 8.072l.06.536.05.446h1.101c2.87 0 5.204 2.37 5.204 5.295s-2.333 5.296-5.204 5.296h-6.062c-.634 0-1.094.467-1.094 1.103 0 .637.46 1.104 1.094 1.104h6.12z" }),
+    h("path", { d: "M23.196 18.92l-4.828-5.258-.366-.4-.368.398-4.828 5.196a1.13 1.13 0 0 0 0 1.546c.428.46 1.11.46 1.537 0l3.45-3.71-.868-.34v15.03c0 .64.445 1.118 1.075 1.118.63 0 1.075-.48 1.075-1.12V16.35l-.867.34 3.45 3.712a1 1 0 0 0 .767.345 1 1 0 0 0 .77-.345c.416-.33.416-1.036 0-1.485v.003z" })
+  );
+}
+
+function dashboardBgIcon() {
+  return h(
+    "svg",
+    { "aria-hidden": "true", "class": "UppyIcon", width: "48", height: "69", viewBox: "0 0 48 69" },
+    h("path", { d: "M.5 1.5h5zM10.5 1.5h5zM20.5 1.5h5zM30.504 1.5h5zM45.5 11.5v5zM45.5 21.5v5zM45.5 31.5v5zM45.5 41.502v5zM45.5 51.502v5zM45.5 61.5v5zM45.5 66.502h-4.998zM35.503 66.502h-5zM25.5 66.502h-5zM15.5 66.502h-5zM5.5 66.502h-5zM.5 66.502v-5zM.5 56.502v-5zM.5 46.503V41.5zM.5 36.5v-5zM.5 26.5v-5zM.5 16.5v-5zM.5 6.5V1.498zM44.807 11H36V2.195z" })
+  );
+}
+
+module.exports = {
+  defaultTabIcon: defaultTabIcon,
+  iconCopy: iconCopy,
+  iconResume: iconResume,
+  iconPause: iconPause,
+  iconRetry: iconRetry,
+  iconEdit: iconEdit,
+  localIcon: localIcon,
+  closeIcon: closeIcon,
+  pluginIcon: pluginIcon,
+  checkIcon: checkIcon,
+  iconAudio: iconAudio,
+  iconVideo: iconVideo,
+  iconPDF: iconPDF,
+  iconFile: iconFile,
+  iconText: iconText,
+  uploadIcon: uploadIcon,
+  dashboardBgIcon: dashboardBgIcon
+};
+//# sourceMappingURL=icons.js.map
+
+/***/ }),
+/* 59 */,
+/* 60 */,
+/* 61 */,
+/* 62 */,
 /* 63 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -70777,7 +70777,7 @@ var index_esm = {
 
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(true)
-		module.exports = factory(__webpack_require__(62));
+		module.exports = factory(__webpack_require__(55));
 	else if(typeof define === 'function' && define.amd)
 		define(["vue"], factory);
 	else if(typeof exports === 'object')
@@ -71913,7 +71913,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
   if ( true ) {
     // AMD
     !(__WEBPACK_AMD_DEFINE_ARRAY__ = [
-      __webpack_require__(55),
+      __webpack_require__(56),
       __webpack_require__(587),
       __webpack_require__(589),
       __webpack_require__(590),
@@ -72587,7 +72587,7 @@ return TapListener;
 /* 193 */
 /***/ (function(module, exports, __webpack_require__) {
 
-!function(t,e){ true?module.exports=e(__webpack_require__(63),__webpack_require__(62)):"function"==typeof define&&define.amd?define(["leaflet","vue"],e):"object"==typeof exports?exports.Vue2Leaflet=e(require("leaflet"),require("vue")):t.Vue2Leaflet=e(t.L,t.Vue)}(this,function(t,e){return function(t){function e(o){if(n[o])return n[o].exports;var i=n[o]={i:o,l:!1,exports:{}};return t[o].call(i.exports,i,i.exports,e),i.l=!0,i.exports}var n={};return e.m=t,e.c=n,e.d=function(t,n,o){e.o(t,n)||Object.defineProperty(t,n,{configurable:!1,enumerable:!0,get:o})},e.n=function(t){var n=t&&t.__esModule?function(){return t.default}:function(){return t};return e.d(n,"a",n),n},e.o=function(t,e){return Object.prototype.hasOwnProperty.call(t,e)},e.p="",e(e.s=32)}([function(t,e){t.exports=function(t,e,n,o,i,r){var s,a=t=t||{},u=typeof t.default;"object"!==u&&"function"!==u||(s=t,a=t.default);var c="function"==typeof a?a.options:a;e&&(c.render=e.render,c.staticRenderFns=e.staticRenderFns,c._compiled=!0),n&&(c.functional=!0),i&&(c._scopeId=i);var l;if(r?(l=function(t){t=t||this.$vnode&&this.$vnode.ssrContext||this.parent&&this.parent.$vnode&&this.parent.$vnode.ssrContext,t||"undefined"==typeof __VUE_SSR_CONTEXT__||(t=__VUE_SSR_CONTEXT__),o&&o.call(this,t),t&&t._registeredComponents&&t._registeredComponents.add(r)},c._ssrRegister=l):o&&(l=o),l){var f=c.functional,p=f?c.render:c.beforeCreate;f?(c._injectStyles=l,c.render=function(t,e){return l.call(e),p(t,e)}):c.beforeCreate=p?[].concat(p,l):[l]}return{esModule:s,exports:a,options:c}}},function(t,e,n){"use strict";function o(t){return t.charAt(0).toUpperCase()+t.slice(1)}var i=n(38),r=n.n(i);e.a=function(t,e,n,i){for(var s=r()(n),a=0;a<s.length;a++)!function(){var i=s[a],r="set"+o(i),u=n[i].type===Object||n[i].type===Array||Array.isArray(n[i].type);n[i].custom?t.$watch(i,function(e,n){t[r](e,n)},{deep:u}):"setOptions"==r?t.$watch(i,function(t,n){L.setOptions(e,t)},{deep:u}):t.$watch(i,function(t,n){e[r](t)},{deep:u})}()}},function(t,e,n){"use strict";e.a=function(t,e,n){for(var o=0;o<n.length;o++)!function(){var i="l-"+n[o],r=n[o];e.on(r,function(e){t.$emit(i,e)})}()}},function(t,e){var n=t.exports="undefined"!=typeof window&&window.Math==Math?window:"undefined"!=typeof self&&self.Math==Math?self:Function("return this")();"number"==typeof __g&&(__g=n)},function(t,e){var n=t.exports={version:"2.5.1"};"number"==typeof __e&&(__e=n)},function(t,e,n){var o=n(24)("wks"),i=n(25),r=n(3).Symbol,s="function"==typeof r;(t.exports=function(t){return o[t]||(o[t]=s&&r[t]||(s?r:i)("Symbol."+t))}).store=o},function(t,e,n){var o=n(19),i=n(28);t.exports=n(9)?function(t,e,n){return o.f(t,e,i(1,n))}:function(t,e,n){return t[e]=n,t}},function(t,e){var n={}.hasOwnProperty;t.exports=function(t,e){return n.call(t,e)}},function(t,e,n){var o=n(20);t.exports=function(t){if(!o(t))throw TypeError(t+" is not an object!");return t}},function(t,e,n){t.exports=!n(10)(function(){return 7!=Object.defineProperty({},"a",{get:function(){return 7}}).a})},function(t,e){t.exports=function(t){try{return!!t()}catch(t){return!0}}},function(t,e){t.exports={}},function(t,e,n){var o=n(13);t.exports=function(t){return Object(o(t))}},function(t,e){t.exports=function(t){if(void 0==t)throw TypeError("Can't call method on  "+t);return t}},function(t,e,n){var o=n(41),i=n(26);t.exports=Object.keys||function(t){return o(t,i)}},function(t,e,n){var o=n(22),i=n(13);t.exports=function(t){return o(i(t))}},function(t,e){var n=Math.ceil,o=Math.floor;t.exports=function(t){return isNaN(t=+t)?0:(t>0?o:n)(t)}},function(t,e,n){var o=n(24)("keys"),i=n(25);t.exports=function(t){return o[t]||(o[t]=i(t))}},function(t,e,n){var o=n(3),i=n(4),r=n(46),s=n(6),a=function(t,e,n){var u,c,l,f=t&a.F,p=t&a.G,d=t&a.S,h=t&a.P,m=t&a.B,y=t&a.W,b=p?i:i[e]||(i[e]={}),v=b.prototype,O=p?o:d?o[e]:(o[e]||{}).prototype;p&&(n=e);for(u in n)(c=!f&&O&&void 0!==O[u])&&u in b||(l=c?O[u]:n[u],b[u]=p&&"function"!=typeof O[u]?n[u]:m&&c?r(l,o):y&&O[u]==l?function(t){var e=function(e,n,o){if(this instanceof t){switch(arguments.length){case 0:return new t;case 1:return new t(e);case 2:return new t(e,n)}return new t(e,n,o)}return t.apply(this,arguments)};return e.prototype=t.prototype,e}(l):h&&"function"==typeof l?r(Function.call,l):l,h&&((b.virtual||(b.virtual={}))[u]=l,t&a.R&&v&&!v[u]&&s(v,u,l)))};a.F=1,a.G=2,a.S=4,a.P=8,a.B=16,a.W=32,a.U=64,a.R=128,t.exports=a},function(t,e,n){var o=n(8),i=n(48),r=n(49),s=Object.defineProperty;e.f=n(9)?Object.defineProperty:function(t,e,n){if(o(t),e=r(e,!0),o(n),i)try{return s(t,e,n)}catch(t){}if("get"in n||"set"in n)throw TypeError("Accessors not supported!");return"value"in n&&(t[e]=n.value),t}},function(t,e){t.exports=function(t){return"object"==typeof t?null!==t:"function"==typeof t}},function(e,n){e.exports=t},function(t,e,n){var o=n(23);t.exports=Object("z").propertyIsEnumerable(0)?Object:function(t){return"String"==o(t)?t.split(""):Object(t)}},function(t,e){var n={}.toString;t.exports=function(t){return n.call(t).slice(8,-1)}},function(t,e,n){var o=n(3),i=o["__core-js_shared__"]||(o["__core-js_shared__"]={});t.exports=function(t){return i[t]||(i[t]={})}},function(t,e){var n=0,o=Math.random();t.exports=function(t){return"Symbol(".concat(void 0===t?"":t,")_",(++n+o).toString(36))}},function(t,e){t.exports="constructor,hasOwnProperty,isPrototypeOf,propertyIsEnumerable,toLocaleString,toString,valueOf".split(",")},function(t,e,n){var o=n(20),i=n(3).document,r=o(i)&&o(i.createElement);t.exports=function(t){return r?i.createElement(t):{}}},function(t,e){t.exports=function(t,e){return{enumerable:!(1&t),configurable:!(2&t),writable:!(4&t),value:e}}},function(t,e,n){t.exports={default:n(64),__esModule:!0}},function(t,e,n){"use strict";var o=n(103),i=n(18),r=n(104),s=n(6),a=n(7),u=n(11),c=n(105),l=n(31),f=n(109),p=n(5)("iterator"),d=!([].keys&&"next"in[].keys()),h=function(){return this};t.exports=function(t,e,n,m,y,b,v){c(n,e,m);var O,j,g,S=function(t){if(!d&&t in L)return L[t];switch(t){case"keys":case"values":return function(){return new n(this,t)}}return function(){return new n(this,t)}},_=e+" Iterator",x="values"==y,T=!1,L=t.prototype,M=L[p]||L["@@iterator"]||y&&L[y],C=M||S(y),$=y?x?S("entries"):C:void 0,w="Array"==e?L.entries||M:M;if(w&&(g=f(w.call(new t)))!==Object.prototype&&g.next&&(l(g,_,!0),o||a(g,p)||s(g,p,h)),x&&M&&"values"!==M.name&&(T=!0,C=function(){return M.call(this)}),o&&!v||!d&&!T&&L[p]||s(L,p,C),u[e]=C,u[_]=h,y)if(O={values:x?C:S("values"),keys:b?C:S("keys"),entries:$},v)for(j in O)j in L||r(L,j,O[j]);else i(i.P+i.F*(d||T),e,O);return O}},function(t,e,n){var o=n(19).f,i=n(7),r=n(5)("toStringTag");t.exports=function(t,e,n){t&&!i(t=n?t:t.prototype,r)&&o(t,r,{configurable:!0,value:e})}},function(t,e,n){e.GeoJSON=n(33).default,e.IconDefault=n(36).default,e.LayerGroup=n(51).default,e.LCircle=n(54).default,e.Map=n(57).default,e.Marker=n(71).default,e.Polygon=n(74).default,e.Polyline=n(77).default,e.Popup=n(80).default,e.Rectangle=n(83).default,e.TileLayer=n(86).default,e.Tooltip=n(89).default,e.WMSTileLayer=n(92).default,e.WMSTileLayers=n(95).default,e.ImageOverlay=n(116).default},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(34),i=n(35),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";e.a={props:["geojson","options"],mounted:function(){this.mapObject=L.geoJSON(this.geojson,this.options),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},watch:{geojson:{handler:function(t){this.mapObject.clearLayers(),this.addGeoJSONData(t)},deep:!0}},methods:{deferredMountedTo:function(t){this.parent=t,this.mapObject.addTo(t);for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(t)},addGeoJSONData:function(t){this.mapObject.addData(t)},getGeoJSONData:function(){return this.mapObject.toGeoJSON()},getBounds:function(){return this.mapObject.getBounds()},setVisible:function(t,e){t!==e&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))}},beforeDestroy:function(){this.parent&&this.parent.removeLayer(this.mapObject)}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div")},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(37),i=n(50),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(1),i={imagePath:{type:String,custom:!0,default:""}};e.a={props:i,mounted:function(){L.Icon.Default.imagePath=this.imagePath,Object(o.a)(this,this.mapObject,i),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},methods:{deferredMountedTo:function(t){},setImagePath:function(t,e){L.Icon.Default.imagePath=t}}}},function(t,e,n){t.exports={default:n(39),__esModule:!0}},function(t,e,n){n(40),t.exports=n(4).Object.keys},function(t,e,n){var o=n(12),i=n(14);n(45)("keys",function(){return function(t){return i(o(t))}})},function(t,e,n){var o=n(7),i=n(15),r=n(42)(!1),s=n(17)("IE_PROTO");t.exports=function(t,e){var n,a=i(t),u=0,c=[];for(n in a)n!=s&&o(a,n)&&c.push(n);for(;e.length>u;)o(a,n=e[u++])&&(~r(c,n)||c.push(n));return c}},function(t,e,n){var o=n(15),i=n(43),r=n(44);t.exports=function(t){return function(e,n,s){var a,u=o(e),c=i(u.length),l=r(s,c);if(t&&n!=n){for(;c>l;)if((a=u[l++])!=a)return!0}else for(;c>l;l++)if((t||l in u)&&u[l]===n)return t||l||0;return!t&&-1}}},function(t,e,n){var o=n(16),i=Math.min;t.exports=function(t){return t>0?i(o(t),9007199254740991):0}},function(t,e,n){var o=n(16),i=Math.max,r=Math.min;t.exports=function(t,e){return t=o(t),t<0?i(t+e,0):r(t,e)}},function(t,e,n){var o=n(18),i=n(4),r=n(10);t.exports=function(t,e){var n=(i.Object||{})[t]||Object[t],s={};s[t]=e(n),o(o.S+o.F*r(function(){n(1)}),"Object",s)}},function(t,e,n){var o=n(47);t.exports=function(t,e,n){if(o(t),void 0===e)return t;switch(n){case 1:return function(n){return t.call(e,n)};case 2:return function(n,o){return t.call(e,n,o)};case 3:return function(n,o,i){return t.call(e,n,o,i)}}return function(){return t.apply(e,arguments)}}},function(t,e){t.exports=function(t){if("function"!=typeof t)throw TypeError(t+" is not a function!");return t}},function(t,e,n){t.exports=!n(9)&&!n(10)(function(){return 7!=Object.defineProperty(n(27)("div"),"a",{get:function(){return 7}}).a})},function(t,e,n){var o=n(20);t.exports=function(t,e){if(!o(t))return t;var n,i;if(e&&"function"==typeof(n=t.toString)&&!o(i=n.call(t)))return i;if("function"==typeof(n=t.valueOf)&&!o(i=n.call(t)))return i;if(!e&&"function"==typeof(n=t.toString)&&!o(i=n.call(t)))return i;throw TypeError("Can't convert object to primitive value")}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div")},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(52),i=n(53),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(1),i={visible:{type:Boolean,custom:!0,default:!0}};e.a={props:i,mounted:function(){this.mapObject=L.layerGroup(),Object(o.a)(this,this.mapObject,i),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.setVisible(!1)},methods:{deferredMountedTo:function(t){for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject);this.parent=t,this.visible&&this.mapObject.addTo(t)},setVisible:function(t,e){t!=e&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(55),i=n(56),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["click","dblclick","mousedown","mouseover","mouseout","contextmenu","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={latLng:{type:[Object,Array]},radius:{type:Number},lStyle:{type:Object,custom:!0},visible:{type:Boolean,custom:!0,default:!0},stroke:{type:Boolean,custom:!0,default:!0},color:{type:String,custom:!0,default:"#3388ff"},weight:{type:Number,custom:!0,default:3},opacity:{type:Number,custom:!0,default:1},lineCap:{type:String,custom:!0,default:"round"},lineJoin:{type:String,custom:!0,default:"round"},dashArray:{type:String,custom:!0,default:null},dashOffset:{type:String,custom:!0,default:null},fill:{type:Boolean,custom:!0,default:!0},fillColor:{type:String,custom:!0,default:"#3388ff"},fillOpacity:{type:Number,custom:!0,default:.2},fillRule:{type:String,custom:!0,default:"evenodd"},className:{type:String,custom:!0,default:null}};e.a={props:s,mounted:function(){var t={};if(this.color&&(t.color=this.color),this.radius&&(t.radius=this.radius),this.lStyle)for(var e in this.lStyle)t[e]=this.lStyle[e];for(var n=["smoothFactor","noClip","stroke","color","weight","opacity","lineCap","lineJoin","dashArray","dashOffset","fill","fillColor","fillOpacity","fillRule","className"],a=0;a<n.length;a++){var u=n[a];this[u]&&(t[u]=this[u])}this.mapObject=L.circle(this.latLng,t),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.setVisible(!1)},methods:{deferredMountedTo:function(t){this.parent=t;for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject);this.visible&&this.mapObject.addTo(t)},setVisible:function(t,e){t!=e&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))},setLStyle:function(t,e){t!=e&&this.mapObject.setStyle(t)},setStroke:function(t,e){t!=e&&this.mapObject.setStyle({stroke:t})},setColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({color:t})},setWeight:function(t,e){t!=e&&t&&this.mapObject.setStyle({weight:t})},setOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({opacity:t})},setLineCap:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineCap:t})},setLineJoin:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineJoin:t})},setDashArray:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashArray:t})},setDashOffset:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashOffset:t})},setFill:function(t,e){t!=e&&this.mapObject.setStyle({fill:t})},setFillColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillColor:t})},setFillOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillOpacity:t})},setFillRule:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillRule:t})},setClassName:function(t,e){t!=e&&t&&this.mapObject.setStyle({className:t})}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";function o(t){n(58)}Object.defineProperty(e,"__esModule",{value:!0});var i=n(63),r=n(70),s=n(0),a=o,u=s(i.a,r.a,!1,a,null,null);e.default=u.exports},function(t,e,n){var o=n(59);"string"==typeof o&&(o=[[t.i,o,""]]),o.locals&&(t.exports=o.locals);n(61)("53af723c",o,!0)},function(t,e,n){e=t.exports=n(60)(void 0),e.push([t.i,".vue2leaflet-map{height:100%;width:100%}",""])},function(t,e){function n(t,e){var n=t[1]||"",i=t[3];if(!i)return n;if(e&&"function"==typeof btoa){var r=o(i);return[n].concat(i.sources.map(function(t){return"/*# sourceURL="+i.sourceRoot+t+" */"})).concat([r]).join("\n")}return[n].join("\n")}function o(t){return"/*# sourceMappingURL=data:application/json;charset=utf-8;base64,"+btoa(unescape(encodeURIComponent(JSON.stringify(t))))+" */"}t.exports=function(t){var e=[];return e.toString=function(){return this.map(function(e){var o=n(e,t);return e[2]?"@media "+e[2]+"{"+o+"}":o}).join("")},e.i=function(t,n){"string"==typeof t&&(t=[[null,t,""]]);for(var o={},i=0;i<this.length;i++){var r=this[i][0];"number"==typeof r&&(o[r]=!0)}for(i=0;i<t.length;i++){var s=t[i];"number"==typeof s[0]&&o[s[0]]||(n&&!s[2]?s[2]=n:n&&(s[2]="("+s[2]+") and ("+n+")"),e.push(s))}},e}},function(t,e,n){function o(t){for(var e=0;e<t.length;e++){var n=t[e],o=l[n.id];if(o){o.refs++;for(var i=0;i<o.parts.length;i++)o.parts[i](n.parts[i]);for(;i<n.parts.length;i++)o.parts.push(r(n.parts[i]));o.parts.length>n.parts.length&&(o.parts.length=n.parts.length)}else{for(var s=[],i=0;i<n.parts.length;i++)s.push(r(n.parts[i]));l[n.id]={id:n.id,refs:1,parts:s}}}}function i(){var t=document.createElement("style");return t.type="text/css",f.appendChild(t),t}function r(t){var e,n,o=document.querySelector('style[data-vue-ssr-id~="'+t.id+'"]');if(o){if(h)return m;o.parentNode.removeChild(o)}if(y){var r=d++;o=p||(p=i()),e=s.bind(null,o,r,!1),n=s.bind(null,o,r,!0)}else o=i(),e=a.bind(null,o),n=function(){o.parentNode.removeChild(o)};return e(t),function(o){if(o){if(o.css===t.css&&o.media===t.media&&o.sourceMap===t.sourceMap)return;e(t=o)}else n()}}function s(t,e,n,o){var i=n?"":o.css;if(t.styleSheet)t.styleSheet.cssText=b(e,i);else{var r=document.createTextNode(i),s=t.childNodes;s[e]&&t.removeChild(s[e]),s.length?t.insertBefore(r,s[e]):t.appendChild(r)}}function a(t,e){var n=e.css,o=e.media,i=e.sourceMap;if(o&&t.setAttribute("media",o),i&&(n+="\n/*# sourceURL="+i.sources[0]+" */",n+="\n/*# sourceMappingURL=data:application/json;base64,"+btoa(unescape(encodeURIComponent(JSON.stringify(i))))+" */"),t.styleSheet)t.styleSheet.cssText=n;else{for(;t.firstChild;)t.removeChild(t.firstChild);t.appendChild(document.createTextNode(n))}}var u="undefined"!=typeof document;if("undefined"!=typeof DEBUG&&DEBUG&&!u)throw new Error("vue-style-loader cannot be used in a non-browser environment. Use { target: 'node' } in your Webpack config to indicate a server-rendering environment.");var c=n(62),l={},f=u&&(document.head||document.getElementsByTagName("head")[0]),p=null,d=0,h=!1,m=function(){},y="undefined"!=typeof navigator&&/msie [6-9]\b/.test(navigator.userAgent.toLowerCase());t.exports=function(t,e,n){h=n;var i=c(t,e);return o(i),function(e){for(var n=[],r=0;r<i.length;r++){var s=i[r],a=l[s.id];a.refs--,n.push(a)}e?(i=c(t,e),o(i)):i=[];for(var r=0;r<n.length;r++){var a=n[r];if(0===a.refs){for(var u=0;u<a.parts.length;u++)a.parts[u]();delete l[a.id]}}}};var b=function(){var t=[];return function(e,n){return t[e]=n,t.filter(Boolean).join("\n")}}()},function(t,e){t.exports=function(t,e){for(var n=[],o={},i=0;i<e.length;i++){var r=e[i],s=r[0],a=r[1],u=r[2],c=r[3],l={id:t+":"+i,css:a,media:u,sourceMap:c};o[s]?o[s].parts.push(l):n.push(o[s]={id:s,parts:[l]})}return n}},function(t,e,n){"use strict";var o=n(29),i=n.n(o),r=n(69),s=(n.n(r),n(21)),a=n.n(s),u=n(2),c=n(1),l=["click","dblclick","mousedown","mouseup","mouseover","mouseout","mousemove","contextmenu","focus","blur","preclick","load","unload","viewreset","movestart","move","moveend","dragstart","drag","dragend","zoom","zoomstart","zoomend","zoomanim","zoomlevelschange","resize","autopanstart","layeradd","layerremove","baselayerchange","overlayadd","overlayremove","locationfound","locationerror","popupopen","popupclose"],f={center:{type:[Object,Array],custom:!0,default:void 0},bounds:{custom:!0,default:void 0},zoom:{type:Number,default:void 0},minZoom:{type:Number,default:void 0},maxZoom:{type:Number,default:void 0},paddingBottomRight:{custom:!0,default:null},paddingTopLeft:{custom:!0,default:null},padding:{custom:!0,default:null},worldCopyJump:{type:Boolean,default:!1},crs:{custom:!0,default:function(){return a.a.CRS.EPSG3857}},options:{type:Object,default:function(){return{}}}};e.a={props:f,mounted:function(){var t=this.options;i()(t,{minZoom:this.minZoom,maxZoom:this.maxZoom,worldCopyJump:this.worldCopyJump,crs:this.crs}),null!=this.center&&(t.center=this.center),null!=this.zoom&&(t.zoom=this.zoom),this.mapObject=a.a.map(this.$el,t),Object(u.a)(this,this.mapObject,l),Object(c.a)(this,this.mapObject,f);for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo?this.$children[e].deferredMountedTo(this.mapObject):"function"==typeof this.$children[e].$children[0].deferredMountedTo&&this.$children[e].$children[0].deferredMountedTo(this.mapObject);this.setBounds(this.bounds),this.mapObject.whenReady(function(){this.$emit("l-ready")},this)},methods:{setCenter:function(t,e){if(null!=t){var n=!1,o=0,i=0;null==e?n=!0:Array.isArray(e)?(o=e[0],i=e[1]):(o=e.lat,i=e.lng);var r=0,s=0;Array.isArray(t)?(r=t[0],s=t[1]):(r=t.lat,s=t.lng);(n||r!=o||s!=i)&&this.mapObject.setView(t,this.zoom)}},setBounds:function(t,e){if(t&&t.isValid()){var n={};this.padding?n.padding=this.padding:(this.paddingBottomRight&&(n.paddingBottomRight=this.paddingBottomRight),this.paddingTopLeft&&(n.paddingTopLeft=this.paddingTopLeft)),this.mapObject.fitBounds(t,n)}},setPaddingBottomRight:function(t,e){this.paddingBottomRight=t},setPaddingTopLeft:function(t,e){this.paddingTopLeft=t},setPadding:function(t,e){this.padding=t},setCrs:function(t,e){console.log("Changing CRS is not yet supported by Leaflet")},fitBounds:function(t){this.mapObject.fitBounds(t)}}}},function(t,e,n){n(65),t.exports=n(4).Object.assign},function(t,e,n){var o=n(18);o(o.S+o.F,"Object",{assign:n(66)})},function(t,e,n){"use strict";var o=n(14),i=n(67),r=n(68),s=n(12),a=n(22),u=Object.assign;t.exports=!u||n(10)(function(){var t={},e={},n=Symbol(),o="abcdefghijklmnopqrst";return t[n]=7,o.split("").forEach(function(t){e[t]=t}),7!=u({},t)[n]||Object.keys(u({},e)).join("")!=o})?function(t,e){for(var n=s(t),u=arguments.length,c=1,l=i.f,f=r.f;u>c;)for(var p,d=a(arguments[c++]),h=l?o(d).concat(l(d)):o(d),m=h.length,y=0;m>y;)f.call(d,p=h[y++])&&(n[p]=d[p]);return n}:u},function(t,e){e.f=Object.getOwnPropertySymbols},function(t,e){e.f={}.propertyIsEnumerable},function(t,n){t.exports=e},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",{staticClass:"vue2leaflet-map"},[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(72),i=n(73),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(29),i=n.n(o),r=n(2),s=n(1),a=["click","dblclick","mousedown","mouseover","mouseout","contextmenu","dragstart","drag","dragend","move","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],u={draggable:{type:Boolean,custom:!0,default:!1},visible:{type:Boolean,custom:!0,default:!0},latLng:{type:[Object,Array]},icon:{custom:!1,default:function(){return new L.Icon.Default}},zIndexOffset:{type:Number,custom:!1},options:{custom:!0,type:Object,default:function(){return{}}}};e.a={props:u,mounted:function(){var t=this.options;this.icon&&(t.icon=this.icon),t.draggable=this.draggable,this.mapObject=L.marker(this.latLng,t),Object(r.a)(this,this.mapObject,a),Object(s.a)(this,this.mapObject,u),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.setVisible(!1)},methods:{deferredMountedTo:function(t){this.parent=t;for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject);this.visible&&this.mapObject.addTo(t)},setDraggable:function(t,e){this.mapObject.dragging&&(t?this.mapObject.dragging.enable():this.mapObject.dragging.disable())},setOptions:function(t){i()(this.options,t)},setVisible:function(t,e){t!=e&&this.mapObject&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(75),i=n(76),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["click","dblclick","mousedown","mouseover","mouseout","contextmenu","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={latLngs:{type:Array,default:function(){return[]}},lStyle:{type:Object,custom:!0},visible:{type:Boolean,custom:!0,default:!0},smoothFactor:{type:Number,custom:!0,default:1},noClip:{type:Boolean,custom:!0,default:!1},stroke:{type:Boolean,custom:!0,default:!0},color:{type:String,custom:!0,default:"#3388ff"},weight:{type:Number,custom:!0,default:3},opacity:{type:Number,custom:!0,default:1},lineCap:{type:String,custom:!0,default:"round"},lineJoin:{type:String,custom:!0,default:"round"},dashArray:{type:String,custom:!0,default:null},dashOffset:{type:String,custom:!0,default:null},fill:{type:Boolean,custom:!0,default:!0},fillColor:{type:String,custom:!0,default:"#3388ff"},fillOpacity:{type:Number,custom:!0,default:.2},fillRule:{type:String,custom:!0,default:"evenodd"},className:{type:String,custom:!0,default:null}};e.a={props:s,mounted:function(){var t={};if(this.color&&(t.color=this.color),this.lStyle)for(var e in this.lStyle)t[e]=this.lStyle[e];for(var n=["smoothFactor","noClip","stroke","color","weight","opacity","lineCap","lineJoin","dashArray","dashOffset","fill","fillColor","fillOpacity","fillRule","className"],a=0;a<n.length;a++){var u=n[a];this[u]&&(t[u]=this[u])}this.mapObject=L.polygon(this.latLngs,t),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.setVisible(!1)},methods:{deferredMountedTo:function(t){this.parent=t;for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject);this.visible&&this.mapObject.addTo(t)},setVisible:function(t,e){t!=e&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))},setLStyle:function(t,e){t!=e&&this.mapObject.setStyle(t)},setSmoothFactor:function(t,e){t!=e&&t&&this.mapObject.setStyle({smoothFactor:t})},setNoClip:function(t,e){t!=e&&t&&this.mapObject.setStyle({noClip:t})},setStroke:function(t,e){t!=e&&this.mapObject.setStyle({stroke:t})},setColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({color:t})},setWeight:function(t,e){t!=e&&t&&this.mapObject.setStyle({weight:t})},setOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({opacity:t})},setLineCap:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineCap:t})},setLineJoin:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineJoin:t})},setDashArray:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashArray:t})},setDashOffset:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashOffset:t})},setFill:function(t,e){t!=e&&this.mapObject.setStyle({fill:t})},setFillColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillColor:t})},setFillOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillOpacity:t})},setFillRule:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillRule:t})},setClassName:function(t,e){t!=e&&t&&this.mapObject.setStyle({className:t})},addLatLng:function(t){this.mapObject.addLatLng(t)},getGeoJSONData:function(){return this.mapObject.toGeoJSON()}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(78),i=n(79),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["click","dblclick","mousedown","mouseover","mouseout","contextmenu","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={latLngs:{type:Array,default:function(){return[]}},lStyle:{type:Object,custom:!0},visible:{type:Boolean,custom:!0,default:!0},smoothFactor:{type:Number,custom:!0,default:1},noClip:{type:Boolean,custom:!0,default:!1},stroke:{type:Boolean,custom:!0,default:!0},color:{type:String,custom:!0,default:"#3388ff"},weight:{type:Number,custom:!0,default:3},opacity:{type:Number,custom:!0,default:1},lineCap:{type:String,custom:!0,default:"round"},lineJoin:{type:String,custom:!0,default:"round"},dashArray:{type:String,custom:!0,default:null},dashOffset:{type:String,custom:!0,default:null},fill:{type:Boolean,custom:!0,default:!1},fillColor:{type:String,custom:!0,default:"#3388ff"},fillOpacity:{type:Number,custom:!0,default:.2},fillRule:{type:String,custom:!0,default:"evenodd"},className:{type:String,custom:!0,default:null}};e.a={props:s,mounted:function(){var t={};if(this.color&&(t.color=this.color),this.lStyle)for(var e in this.lStyle)t[e]=this.lStyle[e];for(var n=["smoothFactor","noClip","stroke","color","weight","opacity","lineCap","lineJoin","dashArray","dashOffset","fill","fillColor","fillOpacity","fillRule","className"],a=0;a<n.length;a++){var u=n[a];this[u]&&(t[u]=this[u])}this.mapObject=L.polyline(this.latLngs,t),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.setVisible(!1)},methods:{deferredMountedTo:function(t){this.parent=t;for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject);this.visible&&this.mapObject.addTo(t)},setVisible:function(t,e){t!=e&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))},setLStyle:function(t,e){t!=e&&this.mapObject.setStyle(t)},setSmoothFactor:function(t,e){t!=e&&t&&this.mapObject.setStyle({smoothFactor:t})},setNoClip:function(t,e){t!=e&&t&&this.mapObject.setStyle({noClip:t})},setStroke:function(t,e){t!=e&&this.mapObject.setStyle({stroke:t})},setColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({color:t})},setWeight:function(t,e){t!=e&&t&&this.mapObject.setStyle({weight:t})},setOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({opacity:t})},setLineCap:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineCap:t})},setLineJoin:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineJoin:t})},setDashArray:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashArray:t})},setDashOffset:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashOffset:t})},setFill:function(t,e){t!=e&&this.mapObject.setStyle({fill:t})},setFillColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillColor:t})},setFillOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillOpacity:t})},setFillRule:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillRule:t})},setClassName:function(t,e){t!=e&&t&&this.mapObject.setStyle({className:t})},addLatLng:function(t){this.mapObject.addLatLng(t)}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(81),i=n(82),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={content:{default:""},options:{type:Object,default:function(){return{}}}};e.a={props:s,mounted:function(){this.mapObject=L.popup(this.options),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.parent.getPopup()&&this.parent.unbindPopup()},methods:{deferredMountedTo:function(t){this.parent=t,this.mapObject.setContent(this.content||this.$el),t.bindPopup(this.mapObject)}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(84),i=n(85),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["click","dblclick","mousedown","mouseover","mouseout","contextmenu","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={bounds:{type:Array,default:function(){return[]}},lStyle:{type:Object,custom:!0},visible:{type:Boolean,custom:!0,default:!0},stroke:{type:Boolean,custom:!0,default:!0},color:{type:String,custom:!0,default:"#3388ff"},weight:{type:Number,custom:!0,default:3},opacity:{type:Number,custom:!0,default:1},lineCap:{type:String,custom:!0,default:"round"},lineJoin:{type:String,custom:!0,default:"round"},dashArray:{type:String,custom:!0,default:null},dashOffset:{type:String,custom:!0,default:null},fill:{type:Boolean,custom:!0,default:!0},fillColor:{type:String,custom:!0,default:"#3388ff"},fillOpacity:{type:Number,custom:!0,default:.2},fillRule:{type:String,custom:!0,default:"evenodd"},className:{type:String,custom:!0,default:null}};e.a={props:s,mounted:function(){var t={};if(this.color&&(t.color=this.color),this.lStyle)for(var e in this.lStyle)t[e]=this.lStyle[e];for(var n=["smoothFactor","noClip","stroke","color","weight","opacity","lineCap","lineJoin","dashArray","dashOffset","fill","fillColor","fillOpacity","fillRule","className"],a=0;a<n.length;a++){var u=n[a];this[u]&&(t[u]=this[u])}this.mapObject=L.rectangle(this.bounds,t),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.setVisible(!1)},methods:{deferredMountedTo:function(t){this.parent=t;for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject);this.visible&&this.mapObject.addTo(t)},setVisible:function(t,e){t!=e&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))},setLStyle:function(t,e){t!=e&&this.mapObject.setStyle(t)},setStroke:function(t,e){t!=e&&this.mapObject.setStyle({stroke:t})},setColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({color:t})},setWeight:function(t,e){t!=e&&t&&this.mapObject.setStyle({weight:t})},setOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({opacity:t})},setLineCap:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineCap:t})},setLineJoin:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineJoin:t})},setDashArray:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashArray:t})},setDashOffset:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashOffset:t})},setFill:function(t,e){t!=e&&this.mapObject.setStyle({fill:t})},setFillColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillColor:t})},setFillOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillOpacity:t})},setFillRule:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillRule:t})},setClassName:function(t,e){t!=e&&t&&this.mapObject.setStyle({className:t})}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(87),i=n(88),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(1),i=n(2),r=["loading","tileunload","tileloadstart","tileerror","tileload","load","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={url:String,attribution:{type:String,custom:!0},detectRetina:{type:Boolean,custom:!1,default:!1},token:{type:String,custom:!0},opacity:{type:Number,custom:!1,default:1},zIndex:{type:Number,default:1},options:{type:Object,default:function(){return{}}}};e.a={props:s,mounted:function(){for(var t=this.options,e=["attribution","token","detectRetina","opacity","zIndex"],n=0;n<e.length;n++){var a=e[n];this[a]&&(t[a]=this[a])}this.mapObject=L.tileLayer(this.url,t),Object(i.a)(this,this.mapObject,r),Object(o.a)(this,this.mapObject,s)},methods:{deferredMountedTo:function(t){this.mapObject.addTo(t),this.attributionControl=t.attributionControl;for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject)},setAttribution:function(t,e){this.attributionControl.removeAttribution(e),this.attributionControl.addAttribution(t)},setToken:function(t){this.options.token=t}},beforeDestroy:function(){this.$parent.mapObject.removeLayer(this.mapObject)}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div")},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(90),i=n(91),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={content:{default:""},options:{type:Object,default:function(){return{}}}};e.a={props:s,mounted:function(){this.mapObject=L.tooltip(this.options),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.parent.getTooltip()&&this.parent.unbindTooltip()},methods:{deferredMountedTo:function(t){this.parent=t,this.mapObject.setContent(this.content||this.$el),t.bindTooltip(this.mapObject)}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(93),i=n(94),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(21),i=n.n(o);e.a={props:["baseurl","format","transparent","ids","crs"],mounted:function(){this.$tileLayer=i.a.tileLayer.wms(this.baseurl,{format:this.format,transparent:this.transparent,layers:this.ids,crs:this.crs})},methods:{deferredMountedTo:function(t){this.$tileLayer.addTo(t)}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div")},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(96),i=n(115),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(97),i=n.n(o),r=n(21),s=n.n(r);e.a={props:["baseurl","format","transparent","layers","crs"],mounted:function(){this.$basemaps={};var t=!0,e=!1,n=void 0;try{for(var o,r=i()(this.layers);!(t=(o=r.next()).done);t=!0){var a=o.value;this.$basemaps[a.name]=s.a.tileLayer.wms(this.baseurl,{format:this.format,transparent:this.transparent,layers:a.id,crs:this.crs})}}catch(t){e=!0,n=t}finally{try{!t&&r.return&&r.return()}finally{if(e)throw n}}},methods:{deferredMountedTo:function(t){s.a.control.layers(this.$basemaps).addTo(t)}}}},function(t,e,n){t.exports={default:n(98),__esModule:!0}},function(t,e,n){n(99),n(110),t.exports=n(112)},function(t,e,n){n(100);for(var o=n(3),i=n(6),r=n(11),s=n(5)("toStringTag"),a="CSSRuleList,CSSStyleDeclaration,CSSValueList,ClientRectList,DOMRectList,DOMStringList,DOMTokenList,DataTransferItemList,FileList,HTMLAllCollection,HTMLCollection,HTMLFormElement,HTMLSelectElement,MediaList,MimeTypeArray,NamedNodeMap,NodeList,PaintRequestList,Plugin,PluginArray,SVGLengthList,SVGNumberList,SVGPathSegList,SVGPointList,SVGStringList,SVGTransformList,SourceBufferList,StyleSheetList,TextTrackCueList,TextTrackList,TouchList".split(","),u=0;u<a.length;u++){var c=a[u],l=o[c],f=l&&l.prototype;f&&!f[s]&&i(f,s,c),r[c]=r.Array}},function(t,e,n){"use strict";var o=n(101),i=n(102),r=n(11),s=n(15);t.exports=n(30)(Array,"Array",function(t,e){this._t=s(t),this._i=0,this._k=e},function(){var t=this._t,e=this._k,n=this._i++;return!t||n>=t.length?(this._t=void 0,i(1)):"keys"==e?i(0,n):"values"==e?i(0,t[n]):i(0,[n,t[n]])},"values"),r.Arguments=r.Array,o("keys"),o("values"),o("entries")},function(t,e){t.exports=function(){}},function(t,e){t.exports=function(t,e){return{value:e,done:!!t}}},function(t,e){t.exports=!0},function(t,e,n){t.exports=n(6)},function(t,e,n){"use strict";var o=n(106),i=n(28),r=n(31),s={};n(6)(s,n(5)("iterator"),function(){return this}),t.exports=function(t,e,n){t.prototype=o(s,{next:i(1,n)}),r(t,e+" Iterator")}},function(t,e,n){var o=n(8),i=n(107),r=n(26),s=n(17)("IE_PROTO"),a=function(){},u=function(){var t,e=n(27)("iframe"),o=r.length;for(e.style.display="none",n(108).appendChild(e),e.src="javascript:",t=e.contentWindow.document,t.open(),t.write("<script>document.F=Object<\/script>"),t.close(),u=t.F;o--;)delete u.prototype[r[o]];return u()};t.exports=Object.create||function(t,e){var n;return null!==t?(a.prototype=o(t),n=new a,a.prototype=null,n[s]=t):n=u(),void 0===e?n:i(n,e)}},function(t,e,n){var o=n(19),i=n(8),r=n(14);t.exports=n(9)?Object.defineProperties:function(t,e){i(t);for(var n,s=r(e),a=s.length,u=0;a>u;)o.f(t,n=s[u++],e[n]);return t}},function(t,e,n){var o=n(3).document;t.exports=o&&o.documentElement},function(t,e,n){var o=n(7),i=n(12),r=n(17)("IE_PROTO"),s=Object.prototype;t.exports=Object.getPrototypeOf||function(t){return t=i(t),o(t,r)?t[r]:"function"==typeof t.constructor&&t instanceof t.constructor?t.constructor.prototype:t instanceof Object?s:null}},function(t,e,n){"use strict";var o=n(111)(!0);n(30)(String,"String",function(t){this._t=String(t),this._i=0},function(){var t,e=this._t,n=this._i;return n>=e.length?{value:void 0,done:!0}:(t=o(e,n),this._i+=t.length,{value:t,done:!1})})},function(t,e,n){var o=n(16),i=n(13);t.exports=function(t){return function(e,n){var r,s,a=String(i(e)),u=o(n),c=a.length;return u<0||u>=c?t?"":void 0:(r=a.charCodeAt(u),r<55296||r>56319||u+1===c||(s=a.charCodeAt(u+1))<56320||s>57343?t?a.charAt(u):r:t?a.slice(u,u+2):s-56320+(r-55296<<10)+65536)}}},function(t,e,n){var o=n(8),i=n(113);t.exports=n(4).getIterator=function(t){var e=i(t);if("function"!=typeof e)throw TypeError(t+" is not iterable!");return o(e.call(t))}},function(t,e,n){var o=n(114),i=n(5)("iterator"),r=n(11);t.exports=n(4).getIteratorMethod=function(t){if(void 0!=t)return t[i]||t["@@iterator"]||r[o(t)]}},function(t,e,n){var o=n(23),i=n(5)("toStringTag"),r="Arguments"==o(function(){return arguments}()),s=function(t,e){try{return t[e]}catch(t){}};t.exports=function(t){var e,n,a;return void 0===t?"Undefined":null===t?"Null":"string"==typeof(n=s(e=Object(t),i))?n:r?o(e):"Object"==(a=o(e))&&"function"==typeof e.callee?"Arguments":a}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div")},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(117),i=n(118),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["click","dblclick","mousedown","mouseover","mouseout","contextmenu","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={url:{type:String},bounds:{},opacity:{type:Number,default:1},alt:{type:String,default:""},interactive:{type:Boolean,default:!1},crossOrigin:{type:Boolean,default:!1}};e.a={props:s,mounted:function(){var t={opacity:this.opacity,alt:this.alt,interactive:this.interactive,crossOrigin:this.crossOrigin};this.mapObject=L.imageOverlay(this.url,this.bounds,t),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},methods:{deferredMountedTo:function(t){this.mapObject.addTo(t)},getBounds:function(){return this.mapObject.getBounds()}},beforeDestroy:function(){this.$parent.mapObject.removeLayer(this.mapObject)}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div")},i=[],r={render:o,staticRenderFns:i};e.a=r}])});
+!function(t,e){ true?module.exports=e(__webpack_require__(63),__webpack_require__(55)):"function"==typeof define&&define.amd?define(["leaflet","vue"],e):"object"==typeof exports?exports.Vue2Leaflet=e(require("leaflet"),require("vue")):t.Vue2Leaflet=e(t.L,t.Vue)}(this,function(t,e){return function(t){function e(o){if(n[o])return n[o].exports;var i=n[o]={i:o,l:!1,exports:{}};return t[o].call(i.exports,i,i.exports,e),i.l=!0,i.exports}var n={};return e.m=t,e.c=n,e.d=function(t,n,o){e.o(t,n)||Object.defineProperty(t,n,{configurable:!1,enumerable:!0,get:o})},e.n=function(t){var n=t&&t.__esModule?function(){return t.default}:function(){return t};return e.d(n,"a",n),n},e.o=function(t,e){return Object.prototype.hasOwnProperty.call(t,e)},e.p="",e(e.s=32)}([function(t,e){t.exports=function(t,e,n,o,i,r){var s,a=t=t||{},u=typeof t.default;"object"!==u&&"function"!==u||(s=t,a=t.default);var c="function"==typeof a?a.options:a;e&&(c.render=e.render,c.staticRenderFns=e.staticRenderFns,c._compiled=!0),n&&(c.functional=!0),i&&(c._scopeId=i);var l;if(r?(l=function(t){t=t||this.$vnode&&this.$vnode.ssrContext||this.parent&&this.parent.$vnode&&this.parent.$vnode.ssrContext,t||"undefined"==typeof __VUE_SSR_CONTEXT__||(t=__VUE_SSR_CONTEXT__),o&&o.call(this,t),t&&t._registeredComponents&&t._registeredComponents.add(r)},c._ssrRegister=l):o&&(l=o),l){var f=c.functional,p=f?c.render:c.beforeCreate;f?(c._injectStyles=l,c.render=function(t,e){return l.call(e),p(t,e)}):c.beforeCreate=p?[].concat(p,l):[l]}return{esModule:s,exports:a,options:c}}},function(t,e,n){"use strict";function o(t){return t.charAt(0).toUpperCase()+t.slice(1)}var i=n(38),r=n.n(i);e.a=function(t,e,n,i){for(var s=r()(n),a=0;a<s.length;a++)!function(){var i=s[a],r="set"+o(i),u=n[i].type===Object||n[i].type===Array||Array.isArray(n[i].type);n[i].custom?t.$watch(i,function(e,n){t[r](e,n)},{deep:u}):"setOptions"==r?t.$watch(i,function(t,n){L.setOptions(e,t)},{deep:u}):t.$watch(i,function(t,n){e[r](t)},{deep:u})}()}},function(t,e,n){"use strict";e.a=function(t,e,n){for(var o=0;o<n.length;o++)!function(){var i="l-"+n[o],r=n[o];e.on(r,function(e){t.$emit(i,e)})}()}},function(t,e){var n=t.exports="undefined"!=typeof window&&window.Math==Math?window:"undefined"!=typeof self&&self.Math==Math?self:Function("return this")();"number"==typeof __g&&(__g=n)},function(t,e){var n=t.exports={version:"2.5.1"};"number"==typeof __e&&(__e=n)},function(t,e,n){var o=n(24)("wks"),i=n(25),r=n(3).Symbol,s="function"==typeof r;(t.exports=function(t){return o[t]||(o[t]=s&&r[t]||(s?r:i)("Symbol."+t))}).store=o},function(t,e,n){var o=n(19),i=n(28);t.exports=n(9)?function(t,e,n){return o.f(t,e,i(1,n))}:function(t,e,n){return t[e]=n,t}},function(t,e){var n={}.hasOwnProperty;t.exports=function(t,e){return n.call(t,e)}},function(t,e,n){var o=n(20);t.exports=function(t){if(!o(t))throw TypeError(t+" is not an object!");return t}},function(t,e,n){t.exports=!n(10)(function(){return 7!=Object.defineProperty({},"a",{get:function(){return 7}}).a})},function(t,e){t.exports=function(t){try{return!!t()}catch(t){return!0}}},function(t,e){t.exports={}},function(t,e,n){var o=n(13);t.exports=function(t){return Object(o(t))}},function(t,e){t.exports=function(t){if(void 0==t)throw TypeError("Can't call method on  "+t);return t}},function(t,e,n){var o=n(41),i=n(26);t.exports=Object.keys||function(t){return o(t,i)}},function(t,e,n){var o=n(22),i=n(13);t.exports=function(t){return o(i(t))}},function(t,e){var n=Math.ceil,o=Math.floor;t.exports=function(t){return isNaN(t=+t)?0:(t>0?o:n)(t)}},function(t,e,n){var o=n(24)("keys"),i=n(25);t.exports=function(t){return o[t]||(o[t]=i(t))}},function(t,e,n){var o=n(3),i=n(4),r=n(46),s=n(6),a=function(t,e,n){var u,c,l,f=t&a.F,p=t&a.G,d=t&a.S,h=t&a.P,m=t&a.B,y=t&a.W,b=p?i:i[e]||(i[e]={}),v=b.prototype,O=p?o:d?o[e]:(o[e]||{}).prototype;p&&(n=e);for(u in n)(c=!f&&O&&void 0!==O[u])&&u in b||(l=c?O[u]:n[u],b[u]=p&&"function"!=typeof O[u]?n[u]:m&&c?r(l,o):y&&O[u]==l?function(t){var e=function(e,n,o){if(this instanceof t){switch(arguments.length){case 0:return new t;case 1:return new t(e);case 2:return new t(e,n)}return new t(e,n,o)}return t.apply(this,arguments)};return e.prototype=t.prototype,e}(l):h&&"function"==typeof l?r(Function.call,l):l,h&&((b.virtual||(b.virtual={}))[u]=l,t&a.R&&v&&!v[u]&&s(v,u,l)))};a.F=1,a.G=2,a.S=4,a.P=8,a.B=16,a.W=32,a.U=64,a.R=128,t.exports=a},function(t,e,n){var o=n(8),i=n(48),r=n(49),s=Object.defineProperty;e.f=n(9)?Object.defineProperty:function(t,e,n){if(o(t),e=r(e,!0),o(n),i)try{return s(t,e,n)}catch(t){}if("get"in n||"set"in n)throw TypeError("Accessors not supported!");return"value"in n&&(t[e]=n.value),t}},function(t,e){t.exports=function(t){return"object"==typeof t?null!==t:"function"==typeof t}},function(e,n){e.exports=t},function(t,e,n){var o=n(23);t.exports=Object("z").propertyIsEnumerable(0)?Object:function(t){return"String"==o(t)?t.split(""):Object(t)}},function(t,e){var n={}.toString;t.exports=function(t){return n.call(t).slice(8,-1)}},function(t,e,n){var o=n(3),i=o["__core-js_shared__"]||(o["__core-js_shared__"]={});t.exports=function(t){return i[t]||(i[t]={})}},function(t,e){var n=0,o=Math.random();t.exports=function(t){return"Symbol(".concat(void 0===t?"":t,")_",(++n+o).toString(36))}},function(t,e){t.exports="constructor,hasOwnProperty,isPrototypeOf,propertyIsEnumerable,toLocaleString,toString,valueOf".split(",")},function(t,e,n){var o=n(20),i=n(3).document,r=o(i)&&o(i.createElement);t.exports=function(t){return r?i.createElement(t):{}}},function(t,e){t.exports=function(t,e){return{enumerable:!(1&t),configurable:!(2&t),writable:!(4&t),value:e}}},function(t,e,n){t.exports={default:n(64),__esModule:!0}},function(t,e,n){"use strict";var o=n(103),i=n(18),r=n(104),s=n(6),a=n(7),u=n(11),c=n(105),l=n(31),f=n(109),p=n(5)("iterator"),d=!([].keys&&"next"in[].keys()),h=function(){return this};t.exports=function(t,e,n,m,y,b,v){c(n,e,m);var O,j,g,S=function(t){if(!d&&t in L)return L[t];switch(t){case"keys":case"values":return function(){return new n(this,t)}}return function(){return new n(this,t)}},_=e+" Iterator",x="values"==y,T=!1,L=t.prototype,M=L[p]||L["@@iterator"]||y&&L[y],C=M||S(y),$=y?x?S("entries"):C:void 0,w="Array"==e?L.entries||M:M;if(w&&(g=f(w.call(new t)))!==Object.prototype&&g.next&&(l(g,_,!0),o||a(g,p)||s(g,p,h)),x&&M&&"values"!==M.name&&(T=!0,C=function(){return M.call(this)}),o&&!v||!d&&!T&&L[p]||s(L,p,C),u[e]=C,u[_]=h,y)if(O={values:x?C:S("values"),keys:b?C:S("keys"),entries:$},v)for(j in O)j in L||r(L,j,O[j]);else i(i.P+i.F*(d||T),e,O);return O}},function(t,e,n){var o=n(19).f,i=n(7),r=n(5)("toStringTag");t.exports=function(t,e,n){t&&!i(t=n?t:t.prototype,r)&&o(t,r,{configurable:!0,value:e})}},function(t,e,n){e.GeoJSON=n(33).default,e.IconDefault=n(36).default,e.LayerGroup=n(51).default,e.LCircle=n(54).default,e.Map=n(57).default,e.Marker=n(71).default,e.Polygon=n(74).default,e.Polyline=n(77).default,e.Popup=n(80).default,e.Rectangle=n(83).default,e.TileLayer=n(86).default,e.Tooltip=n(89).default,e.WMSTileLayer=n(92).default,e.WMSTileLayers=n(95).default,e.ImageOverlay=n(116).default},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(34),i=n(35),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";e.a={props:["geojson","options"],mounted:function(){this.mapObject=L.geoJSON(this.geojson,this.options),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},watch:{geojson:{handler:function(t){this.mapObject.clearLayers(),this.addGeoJSONData(t)},deep:!0}},methods:{deferredMountedTo:function(t){this.parent=t,this.mapObject.addTo(t);for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(t)},addGeoJSONData:function(t){this.mapObject.addData(t)},getGeoJSONData:function(){return this.mapObject.toGeoJSON()},getBounds:function(){return this.mapObject.getBounds()},setVisible:function(t,e){t!==e&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))}},beforeDestroy:function(){this.parent&&this.parent.removeLayer(this.mapObject)}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div")},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(37),i=n(50),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(1),i={imagePath:{type:String,custom:!0,default:""}};e.a={props:i,mounted:function(){L.Icon.Default.imagePath=this.imagePath,Object(o.a)(this,this.mapObject,i),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},methods:{deferredMountedTo:function(t){},setImagePath:function(t,e){L.Icon.Default.imagePath=t}}}},function(t,e,n){t.exports={default:n(39),__esModule:!0}},function(t,e,n){n(40),t.exports=n(4).Object.keys},function(t,e,n){var o=n(12),i=n(14);n(45)("keys",function(){return function(t){return i(o(t))}})},function(t,e,n){var o=n(7),i=n(15),r=n(42)(!1),s=n(17)("IE_PROTO");t.exports=function(t,e){var n,a=i(t),u=0,c=[];for(n in a)n!=s&&o(a,n)&&c.push(n);for(;e.length>u;)o(a,n=e[u++])&&(~r(c,n)||c.push(n));return c}},function(t,e,n){var o=n(15),i=n(43),r=n(44);t.exports=function(t){return function(e,n,s){var a,u=o(e),c=i(u.length),l=r(s,c);if(t&&n!=n){for(;c>l;)if((a=u[l++])!=a)return!0}else for(;c>l;l++)if((t||l in u)&&u[l]===n)return t||l||0;return!t&&-1}}},function(t,e,n){var o=n(16),i=Math.min;t.exports=function(t){return t>0?i(o(t),9007199254740991):0}},function(t,e,n){var o=n(16),i=Math.max,r=Math.min;t.exports=function(t,e){return t=o(t),t<0?i(t+e,0):r(t,e)}},function(t,e,n){var o=n(18),i=n(4),r=n(10);t.exports=function(t,e){var n=(i.Object||{})[t]||Object[t],s={};s[t]=e(n),o(o.S+o.F*r(function(){n(1)}),"Object",s)}},function(t,e,n){var o=n(47);t.exports=function(t,e,n){if(o(t),void 0===e)return t;switch(n){case 1:return function(n){return t.call(e,n)};case 2:return function(n,o){return t.call(e,n,o)};case 3:return function(n,o,i){return t.call(e,n,o,i)}}return function(){return t.apply(e,arguments)}}},function(t,e){t.exports=function(t){if("function"!=typeof t)throw TypeError(t+" is not a function!");return t}},function(t,e,n){t.exports=!n(9)&&!n(10)(function(){return 7!=Object.defineProperty(n(27)("div"),"a",{get:function(){return 7}}).a})},function(t,e,n){var o=n(20);t.exports=function(t,e){if(!o(t))return t;var n,i;if(e&&"function"==typeof(n=t.toString)&&!o(i=n.call(t)))return i;if("function"==typeof(n=t.valueOf)&&!o(i=n.call(t)))return i;if(!e&&"function"==typeof(n=t.toString)&&!o(i=n.call(t)))return i;throw TypeError("Can't convert object to primitive value")}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div")},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(52),i=n(53),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(1),i={visible:{type:Boolean,custom:!0,default:!0}};e.a={props:i,mounted:function(){this.mapObject=L.layerGroup(),Object(o.a)(this,this.mapObject,i),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.setVisible(!1)},methods:{deferredMountedTo:function(t){for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject);this.parent=t,this.visible&&this.mapObject.addTo(t)},setVisible:function(t,e){t!=e&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(55),i=n(56),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["click","dblclick","mousedown","mouseover","mouseout","contextmenu","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={latLng:{type:[Object,Array]},radius:{type:Number},lStyle:{type:Object,custom:!0},visible:{type:Boolean,custom:!0,default:!0},stroke:{type:Boolean,custom:!0,default:!0},color:{type:String,custom:!0,default:"#3388ff"},weight:{type:Number,custom:!0,default:3},opacity:{type:Number,custom:!0,default:1},lineCap:{type:String,custom:!0,default:"round"},lineJoin:{type:String,custom:!0,default:"round"},dashArray:{type:String,custom:!0,default:null},dashOffset:{type:String,custom:!0,default:null},fill:{type:Boolean,custom:!0,default:!0},fillColor:{type:String,custom:!0,default:"#3388ff"},fillOpacity:{type:Number,custom:!0,default:.2},fillRule:{type:String,custom:!0,default:"evenodd"},className:{type:String,custom:!0,default:null}};e.a={props:s,mounted:function(){var t={};if(this.color&&(t.color=this.color),this.radius&&(t.radius=this.radius),this.lStyle)for(var e in this.lStyle)t[e]=this.lStyle[e];for(var n=["smoothFactor","noClip","stroke","color","weight","opacity","lineCap","lineJoin","dashArray","dashOffset","fill","fillColor","fillOpacity","fillRule","className"],a=0;a<n.length;a++){var u=n[a];this[u]&&(t[u]=this[u])}this.mapObject=L.circle(this.latLng,t),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.setVisible(!1)},methods:{deferredMountedTo:function(t){this.parent=t;for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject);this.visible&&this.mapObject.addTo(t)},setVisible:function(t,e){t!=e&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))},setLStyle:function(t,e){t!=e&&this.mapObject.setStyle(t)},setStroke:function(t,e){t!=e&&this.mapObject.setStyle({stroke:t})},setColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({color:t})},setWeight:function(t,e){t!=e&&t&&this.mapObject.setStyle({weight:t})},setOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({opacity:t})},setLineCap:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineCap:t})},setLineJoin:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineJoin:t})},setDashArray:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashArray:t})},setDashOffset:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashOffset:t})},setFill:function(t,e){t!=e&&this.mapObject.setStyle({fill:t})},setFillColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillColor:t})},setFillOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillOpacity:t})},setFillRule:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillRule:t})},setClassName:function(t,e){t!=e&&t&&this.mapObject.setStyle({className:t})}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";function o(t){n(58)}Object.defineProperty(e,"__esModule",{value:!0});var i=n(63),r=n(70),s=n(0),a=o,u=s(i.a,r.a,!1,a,null,null);e.default=u.exports},function(t,e,n){var o=n(59);"string"==typeof o&&(o=[[t.i,o,""]]),o.locals&&(t.exports=o.locals);n(61)("53af723c",o,!0)},function(t,e,n){e=t.exports=n(60)(void 0),e.push([t.i,".vue2leaflet-map{height:100%;width:100%}",""])},function(t,e){function n(t,e){var n=t[1]||"",i=t[3];if(!i)return n;if(e&&"function"==typeof btoa){var r=o(i);return[n].concat(i.sources.map(function(t){return"/*# sourceURL="+i.sourceRoot+t+" */"})).concat([r]).join("\n")}return[n].join("\n")}function o(t){return"/*# sourceMappingURL=data:application/json;charset=utf-8;base64,"+btoa(unescape(encodeURIComponent(JSON.stringify(t))))+" */"}t.exports=function(t){var e=[];return e.toString=function(){return this.map(function(e){var o=n(e,t);return e[2]?"@media "+e[2]+"{"+o+"}":o}).join("")},e.i=function(t,n){"string"==typeof t&&(t=[[null,t,""]]);for(var o={},i=0;i<this.length;i++){var r=this[i][0];"number"==typeof r&&(o[r]=!0)}for(i=0;i<t.length;i++){var s=t[i];"number"==typeof s[0]&&o[s[0]]||(n&&!s[2]?s[2]=n:n&&(s[2]="("+s[2]+") and ("+n+")"),e.push(s))}},e}},function(t,e,n){function o(t){for(var e=0;e<t.length;e++){var n=t[e],o=l[n.id];if(o){o.refs++;for(var i=0;i<o.parts.length;i++)o.parts[i](n.parts[i]);for(;i<n.parts.length;i++)o.parts.push(r(n.parts[i]));o.parts.length>n.parts.length&&(o.parts.length=n.parts.length)}else{for(var s=[],i=0;i<n.parts.length;i++)s.push(r(n.parts[i]));l[n.id]={id:n.id,refs:1,parts:s}}}}function i(){var t=document.createElement("style");return t.type="text/css",f.appendChild(t),t}function r(t){var e,n,o=document.querySelector('style[data-vue-ssr-id~="'+t.id+'"]');if(o){if(h)return m;o.parentNode.removeChild(o)}if(y){var r=d++;o=p||(p=i()),e=s.bind(null,o,r,!1),n=s.bind(null,o,r,!0)}else o=i(),e=a.bind(null,o),n=function(){o.parentNode.removeChild(o)};return e(t),function(o){if(o){if(o.css===t.css&&o.media===t.media&&o.sourceMap===t.sourceMap)return;e(t=o)}else n()}}function s(t,e,n,o){var i=n?"":o.css;if(t.styleSheet)t.styleSheet.cssText=b(e,i);else{var r=document.createTextNode(i),s=t.childNodes;s[e]&&t.removeChild(s[e]),s.length?t.insertBefore(r,s[e]):t.appendChild(r)}}function a(t,e){var n=e.css,o=e.media,i=e.sourceMap;if(o&&t.setAttribute("media",o),i&&(n+="\n/*# sourceURL="+i.sources[0]+" */",n+="\n/*# sourceMappingURL=data:application/json;base64,"+btoa(unescape(encodeURIComponent(JSON.stringify(i))))+" */"),t.styleSheet)t.styleSheet.cssText=n;else{for(;t.firstChild;)t.removeChild(t.firstChild);t.appendChild(document.createTextNode(n))}}var u="undefined"!=typeof document;if("undefined"!=typeof DEBUG&&DEBUG&&!u)throw new Error("vue-style-loader cannot be used in a non-browser environment. Use { target: 'node' } in your Webpack config to indicate a server-rendering environment.");var c=n(62),l={},f=u&&(document.head||document.getElementsByTagName("head")[0]),p=null,d=0,h=!1,m=function(){},y="undefined"!=typeof navigator&&/msie [6-9]\b/.test(navigator.userAgent.toLowerCase());t.exports=function(t,e,n){h=n;var i=c(t,e);return o(i),function(e){for(var n=[],r=0;r<i.length;r++){var s=i[r],a=l[s.id];a.refs--,n.push(a)}e?(i=c(t,e),o(i)):i=[];for(var r=0;r<n.length;r++){var a=n[r];if(0===a.refs){for(var u=0;u<a.parts.length;u++)a.parts[u]();delete l[a.id]}}}};var b=function(){var t=[];return function(e,n){return t[e]=n,t.filter(Boolean).join("\n")}}()},function(t,e){t.exports=function(t,e){for(var n=[],o={},i=0;i<e.length;i++){var r=e[i],s=r[0],a=r[1],u=r[2],c=r[3],l={id:t+":"+i,css:a,media:u,sourceMap:c};o[s]?o[s].parts.push(l):n.push(o[s]={id:s,parts:[l]})}return n}},function(t,e,n){"use strict";var o=n(29),i=n.n(o),r=n(69),s=(n.n(r),n(21)),a=n.n(s),u=n(2),c=n(1),l=["click","dblclick","mousedown","mouseup","mouseover","mouseout","mousemove","contextmenu","focus","blur","preclick","load","unload","viewreset","movestart","move","moveend","dragstart","drag","dragend","zoom","zoomstart","zoomend","zoomanim","zoomlevelschange","resize","autopanstart","layeradd","layerremove","baselayerchange","overlayadd","overlayremove","locationfound","locationerror","popupopen","popupclose"],f={center:{type:[Object,Array],custom:!0,default:void 0},bounds:{custom:!0,default:void 0},zoom:{type:Number,default:void 0},minZoom:{type:Number,default:void 0},maxZoom:{type:Number,default:void 0},paddingBottomRight:{custom:!0,default:null},paddingTopLeft:{custom:!0,default:null},padding:{custom:!0,default:null},worldCopyJump:{type:Boolean,default:!1},crs:{custom:!0,default:function(){return a.a.CRS.EPSG3857}},options:{type:Object,default:function(){return{}}}};e.a={props:f,mounted:function(){var t=this.options;i()(t,{minZoom:this.minZoom,maxZoom:this.maxZoom,worldCopyJump:this.worldCopyJump,crs:this.crs}),null!=this.center&&(t.center=this.center),null!=this.zoom&&(t.zoom=this.zoom),this.mapObject=a.a.map(this.$el,t),Object(u.a)(this,this.mapObject,l),Object(c.a)(this,this.mapObject,f);for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo?this.$children[e].deferredMountedTo(this.mapObject):"function"==typeof this.$children[e].$children[0].deferredMountedTo&&this.$children[e].$children[0].deferredMountedTo(this.mapObject);this.setBounds(this.bounds),this.mapObject.whenReady(function(){this.$emit("l-ready")},this)},methods:{setCenter:function(t,e){if(null!=t){var n=!1,o=0,i=0;null==e?n=!0:Array.isArray(e)?(o=e[0],i=e[1]):(o=e.lat,i=e.lng);var r=0,s=0;Array.isArray(t)?(r=t[0],s=t[1]):(r=t.lat,s=t.lng);(n||r!=o||s!=i)&&this.mapObject.setView(t,this.zoom)}},setBounds:function(t,e){if(t&&t.isValid()){var n={};this.padding?n.padding=this.padding:(this.paddingBottomRight&&(n.paddingBottomRight=this.paddingBottomRight),this.paddingTopLeft&&(n.paddingTopLeft=this.paddingTopLeft)),this.mapObject.fitBounds(t,n)}},setPaddingBottomRight:function(t,e){this.paddingBottomRight=t},setPaddingTopLeft:function(t,e){this.paddingTopLeft=t},setPadding:function(t,e){this.padding=t},setCrs:function(t,e){console.log("Changing CRS is not yet supported by Leaflet")},fitBounds:function(t){this.mapObject.fitBounds(t)}}}},function(t,e,n){n(65),t.exports=n(4).Object.assign},function(t,e,n){var o=n(18);o(o.S+o.F,"Object",{assign:n(66)})},function(t,e,n){"use strict";var o=n(14),i=n(67),r=n(68),s=n(12),a=n(22),u=Object.assign;t.exports=!u||n(10)(function(){var t={},e={},n=Symbol(),o="abcdefghijklmnopqrst";return t[n]=7,o.split("").forEach(function(t){e[t]=t}),7!=u({},t)[n]||Object.keys(u({},e)).join("")!=o})?function(t,e){for(var n=s(t),u=arguments.length,c=1,l=i.f,f=r.f;u>c;)for(var p,d=a(arguments[c++]),h=l?o(d).concat(l(d)):o(d),m=h.length,y=0;m>y;)f.call(d,p=h[y++])&&(n[p]=d[p]);return n}:u},function(t,e){e.f=Object.getOwnPropertySymbols},function(t,e){e.f={}.propertyIsEnumerable},function(t,n){t.exports=e},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",{staticClass:"vue2leaflet-map"},[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(72),i=n(73),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(29),i=n.n(o),r=n(2),s=n(1),a=["click","dblclick","mousedown","mouseover","mouseout","contextmenu","dragstart","drag","dragend","move","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],u={draggable:{type:Boolean,custom:!0,default:!1},visible:{type:Boolean,custom:!0,default:!0},latLng:{type:[Object,Array]},icon:{custom:!1,default:function(){return new L.Icon.Default}},zIndexOffset:{type:Number,custom:!1},options:{custom:!0,type:Object,default:function(){return{}}}};e.a={props:u,mounted:function(){var t=this.options;this.icon&&(t.icon=this.icon),t.draggable=this.draggable,this.mapObject=L.marker(this.latLng,t),Object(r.a)(this,this.mapObject,a),Object(s.a)(this,this.mapObject,u),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.setVisible(!1)},methods:{deferredMountedTo:function(t){this.parent=t;for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject);this.visible&&this.mapObject.addTo(t)},setDraggable:function(t,e){this.mapObject.dragging&&(t?this.mapObject.dragging.enable():this.mapObject.dragging.disable())},setOptions:function(t){i()(this.options,t)},setVisible:function(t,e){t!=e&&this.mapObject&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(75),i=n(76),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["click","dblclick","mousedown","mouseover","mouseout","contextmenu","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={latLngs:{type:Array,default:function(){return[]}},lStyle:{type:Object,custom:!0},visible:{type:Boolean,custom:!0,default:!0},smoothFactor:{type:Number,custom:!0,default:1},noClip:{type:Boolean,custom:!0,default:!1},stroke:{type:Boolean,custom:!0,default:!0},color:{type:String,custom:!0,default:"#3388ff"},weight:{type:Number,custom:!0,default:3},opacity:{type:Number,custom:!0,default:1},lineCap:{type:String,custom:!0,default:"round"},lineJoin:{type:String,custom:!0,default:"round"},dashArray:{type:String,custom:!0,default:null},dashOffset:{type:String,custom:!0,default:null},fill:{type:Boolean,custom:!0,default:!0},fillColor:{type:String,custom:!0,default:"#3388ff"},fillOpacity:{type:Number,custom:!0,default:.2},fillRule:{type:String,custom:!0,default:"evenodd"},className:{type:String,custom:!0,default:null}};e.a={props:s,mounted:function(){var t={};if(this.color&&(t.color=this.color),this.lStyle)for(var e in this.lStyle)t[e]=this.lStyle[e];for(var n=["smoothFactor","noClip","stroke","color","weight","opacity","lineCap","lineJoin","dashArray","dashOffset","fill","fillColor","fillOpacity","fillRule","className"],a=0;a<n.length;a++){var u=n[a];this[u]&&(t[u]=this[u])}this.mapObject=L.polygon(this.latLngs,t),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.setVisible(!1)},methods:{deferredMountedTo:function(t){this.parent=t;for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject);this.visible&&this.mapObject.addTo(t)},setVisible:function(t,e){t!=e&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))},setLStyle:function(t,e){t!=e&&this.mapObject.setStyle(t)},setSmoothFactor:function(t,e){t!=e&&t&&this.mapObject.setStyle({smoothFactor:t})},setNoClip:function(t,e){t!=e&&t&&this.mapObject.setStyle({noClip:t})},setStroke:function(t,e){t!=e&&this.mapObject.setStyle({stroke:t})},setColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({color:t})},setWeight:function(t,e){t!=e&&t&&this.mapObject.setStyle({weight:t})},setOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({opacity:t})},setLineCap:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineCap:t})},setLineJoin:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineJoin:t})},setDashArray:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashArray:t})},setDashOffset:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashOffset:t})},setFill:function(t,e){t!=e&&this.mapObject.setStyle({fill:t})},setFillColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillColor:t})},setFillOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillOpacity:t})},setFillRule:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillRule:t})},setClassName:function(t,e){t!=e&&t&&this.mapObject.setStyle({className:t})},addLatLng:function(t){this.mapObject.addLatLng(t)},getGeoJSONData:function(){return this.mapObject.toGeoJSON()}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(78),i=n(79),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["click","dblclick","mousedown","mouseover","mouseout","contextmenu","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={latLngs:{type:Array,default:function(){return[]}},lStyle:{type:Object,custom:!0},visible:{type:Boolean,custom:!0,default:!0},smoothFactor:{type:Number,custom:!0,default:1},noClip:{type:Boolean,custom:!0,default:!1},stroke:{type:Boolean,custom:!0,default:!0},color:{type:String,custom:!0,default:"#3388ff"},weight:{type:Number,custom:!0,default:3},opacity:{type:Number,custom:!0,default:1},lineCap:{type:String,custom:!0,default:"round"},lineJoin:{type:String,custom:!0,default:"round"},dashArray:{type:String,custom:!0,default:null},dashOffset:{type:String,custom:!0,default:null},fill:{type:Boolean,custom:!0,default:!1},fillColor:{type:String,custom:!0,default:"#3388ff"},fillOpacity:{type:Number,custom:!0,default:.2},fillRule:{type:String,custom:!0,default:"evenodd"},className:{type:String,custom:!0,default:null}};e.a={props:s,mounted:function(){var t={};if(this.color&&(t.color=this.color),this.lStyle)for(var e in this.lStyle)t[e]=this.lStyle[e];for(var n=["smoothFactor","noClip","stroke","color","weight","opacity","lineCap","lineJoin","dashArray","dashOffset","fill","fillColor","fillOpacity","fillRule","className"],a=0;a<n.length;a++){var u=n[a];this[u]&&(t[u]=this[u])}this.mapObject=L.polyline(this.latLngs,t),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.setVisible(!1)},methods:{deferredMountedTo:function(t){this.parent=t;for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject);this.visible&&this.mapObject.addTo(t)},setVisible:function(t,e){t!=e&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))},setLStyle:function(t,e){t!=e&&this.mapObject.setStyle(t)},setSmoothFactor:function(t,e){t!=e&&t&&this.mapObject.setStyle({smoothFactor:t})},setNoClip:function(t,e){t!=e&&t&&this.mapObject.setStyle({noClip:t})},setStroke:function(t,e){t!=e&&this.mapObject.setStyle({stroke:t})},setColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({color:t})},setWeight:function(t,e){t!=e&&t&&this.mapObject.setStyle({weight:t})},setOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({opacity:t})},setLineCap:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineCap:t})},setLineJoin:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineJoin:t})},setDashArray:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashArray:t})},setDashOffset:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashOffset:t})},setFill:function(t,e){t!=e&&this.mapObject.setStyle({fill:t})},setFillColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillColor:t})},setFillOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillOpacity:t})},setFillRule:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillRule:t})},setClassName:function(t,e){t!=e&&t&&this.mapObject.setStyle({className:t})},addLatLng:function(t){this.mapObject.addLatLng(t)}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(81),i=n(82),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={content:{default:""},options:{type:Object,default:function(){return{}}}};e.a={props:s,mounted:function(){this.mapObject=L.popup(this.options),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.parent.getPopup()&&this.parent.unbindPopup()},methods:{deferredMountedTo:function(t){this.parent=t,this.mapObject.setContent(this.content||this.$el),t.bindPopup(this.mapObject)}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(84),i=n(85),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["click","dblclick","mousedown","mouseover","mouseout","contextmenu","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={bounds:{type:Array,default:function(){return[]}},lStyle:{type:Object,custom:!0},visible:{type:Boolean,custom:!0,default:!0},stroke:{type:Boolean,custom:!0,default:!0},color:{type:String,custom:!0,default:"#3388ff"},weight:{type:Number,custom:!0,default:3},opacity:{type:Number,custom:!0,default:1},lineCap:{type:String,custom:!0,default:"round"},lineJoin:{type:String,custom:!0,default:"round"},dashArray:{type:String,custom:!0,default:null},dashOffset:{type:String,custom:!0,default:null},fill:{type:Boolean,custom:!0,default:!0},fillColor:{type:String,custom:!0,default:"#3388ff"},fillOpacity:{type:Number,custom:!0,default:.2},fillRule:{type:String,custom:!0,default:"evenodd"},className:{type:String,custom:!0,default:null}};e.a={props:s,mounted:function(){var t={};if(this.color&&(t.color=this.color),this.lStyle)for(var e in this.lStyle)t[e]=this.lStyle[e];for(var n=["smoothFactor","noClip","stroke","color","weight","opacity","lineCap","lineJoin","dashArray","dashOffset","fill","fillColor","fillOpacity","fillRule","className"],a=0;a<n.length;a++){var u=n[a];this[u]&&(t[u]=this[u])}this.mapObject=L.rectangle(this.bounds,t),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.setVisible(!1)},methods:{deferredMountedTo:function(t){this.parent=t;for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject);this.visible&&this.mapObject.addTo(t)},setVisible:function(t,e){t!=e&&(t?this.mapObject.addTo(this.parent):this.parent.removeLayer(this.mapObject))},setLStyle:function(t,e){t!=e&&this.mapObject.setStyle(t)},setStroke:function(t,e){t!=e&&this.mapObject.setStyle({stroke:t})},setColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({color:t})},setWeight:function(t,e){t!=e&&t&&this.mapObject.setStyle({weight:t})},setOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({opacity:t})},setLineCap:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineCap:t})},setLineJoin:function(t,e){t!=e&&t&&this.mapObject.setStyle({lineJoin:t})},setDashArray:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashArray:t})},setDashOffset:function(t,e){t!=e&&t&&this.mapObject.setStyle({dashOffset:t})},setFill:function(t,e){t!=e&&this.mapObject.setStyle({fill:t})},setFillColor:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillColor:t})},setFillOpacity:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillOpacity:t})},setFillRule:function(t,e){t!=e&&t&&this.mapObject.setStyle({fillRule:t})},setClassName:function(t,e){t!=e&&t&&this.mapObject.setStyle({className:t})}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(87),i=n(88),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(1),i=n(2),r=["loading","tileunload","tileloadstart","tileerror","tileload","load","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={url:String,attribution:{type:String,custom:!0},detectRetina:{type:Boolean,custom:!1,default:!1},token:{type:String,custom:!0},opacity:{type:Number,custom:!1,default:1},zIndex:{type:Number,default:1},options:{type:Object,default:function(){return{}}}};e.a={props:s,mounted:function(){for(var t=this.options,e=["attribution","token","detectRetina","opacity","zIndex"],n=0;n<e.length;n++){var a=e[n];this[a]&&(t[a]=this[a])}this.mapObject=L.tileLayer(this.url,t),Object(i.a)(this,this.mapObject,r),Object(o.a)(this,this.mapObject,s)},methods:{deferredMountedTo:function(t){this.mapObject.addTo(t),this.attributionControl=t.attributionControl;for(var e=0;e<this.$children.length;e++)"function"==typeof this.$children[e].deferredMountedTo&&this.$children[e].deferredMountedTo(this.mapObject)},setAttribution:function(t,e){this.attributionControl.removeAttribution(e),this.attributionControl.addAttribution(t)},setToken:function(t){this.options.token=t}},beforeDestroy:function(){this.$parent.mapObject.removeLayer(this.mapObject)}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div")},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(90),i=n(91),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={content:{default:""},options:{type:Object,default:function(){return{}}}};e.a={props:s,mounted:function(){this.mapObject=L.tooltip(this.options),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},beforeDestroy:function(){this.parent.getTooltip()&&this.parent.unbindTooltip()},methods:{deferredMountedTo:function(t){this.parent=t,this.mapObject.setContent(this.content||this.$el),t.bindTooltip(this.mapObject)}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div",[t._t("default")],2)},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(93),i=n(94),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(21),i=n.n(o);e.a={props:["baseurl","format","transparent","ids","crs"],mounted:function(){this.$tileLayer=i.a.tileLayer.wms(this.baseurl,{format:this.format,transparent:this.transparent,layers:this.ids,crs:this.crs})},methods:{deferredMountedTo:function(t){this.$tileLayer.addTo(t)}}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div")},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(96),i=n(115),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(97),i=n.n(o),r=n(21),s=n.n(r);e.a={props:["baseurl","format","transparent","layers","crs"],mounted:function(){this.$basemaps={};var t=!0,e=!1,n=void 0;try{for(var o,r=i()(this.layers);!(t=(o=r.next()).done);t=!0){var a=o.value;this.$basemaps[a.name]=s.a.tileLayer.wms(this.baseurl,{format:this.format,transparent:this.transparent,layers:a.id,crs:this.crs})}}catch(t){e=!0,n=t}finally{try{!t&&r.return&&r.return()}finally{if(e)throw n}}},methods:{deferredMountedTo:function(t){s.a.control.layers(this.$basemaps).addTo(t)}}}},function(t,e,n){t.exports={default:n(98),__esModule:!0}},function(t,e,n){n(99),n(110),t.exports=n(112)},function(t,e,n){n(100);for(var o=n(3),i=n(6),r=n(11),s=n(5)("toStringTag"),a="CSSRuleList,CSSStyleDeclaration,CSSValueList,ClientRectList,DOMRectList,DOMStringList,DOMTokenList,DataTransferItemList,FileList,HTMLAllCollection,HTMLCollection,HTMLFormElement,HTMLSelectElement,MediaList,MimeTypeArray,NamedNodeMap,NodeList,PaintRequestList,Plugin,PluginArray,SVGLengthList,SVGNumberList,SVGPathSegList,SVGPointList,SVGStringList,SVGTransformList,SourceBufferList,StyleSheetList,TextTrackCueList,TextTrackList,TouchList".split(","),u=0;u<a.length;u++){var c=a[u],l=o[c],f=l&&l.prototype;f&&!f[s]&&i(f,s,c),r[c]=r.Array}},function(t,e,n){"use strict";var o=n(101),i=n(102),r=n(11),s=n(15);t.exports=n(30)(Array,"Array",function(t,e){this._t=s(t),this._i=0,this._k=e},function(){var t=this._t,e=this._k,n=this._i++;return!t||n>=t.length?(this._t=void 0,i(1)):"keys"==e?i(0,n):"values"==e?i(0,t[n]):i(0,[n,t[n]])},"values"),r.Arguments=r.Array,o("keys"),o("values"),o("entries")},function(t,e){t.exports=function(){}},function(t,e){t.exports=function(t,e){return{value:e,done:!!t}}},function(t,e){t.exports=!0},function(t,e,n){t.exports=n(6)},function(t,e,n){"use strict";var o=n(106),i=n(28),r=n(31),s={};n(6)(s,n(5)("iterator"),function(){return this}),t.exports=function(t,e,n){t.prototype=o(s,{next:i(1,n)}),r(t,e+" Iterator")}},function(t,e,n){var o=n(8),i=n(107),r=n(26),s=n(17)("IE_PROTO"),a=function(){},u=function(){var t,e=n(27)("iframe"),o=r.length;for(e.style.display="none",n(108).appendChild(e),e.src="javascript:",t=e.contentWindow.document,t.open(),t.write("<script>document.F=Object<\/script>"),t.close(),u=t.F;o--;)delete u.prototype[r[o]];return u()};t.exports=Object.create||function(t,e){var n;return null!==t?(a.prototype=o(t),n=new a,a.prototype=null,n[s]=t):n=u(),void 0===e?n:i(n,e)}},function(t,e,n){var o=n(19),i=n(8),r=n(14);t.exports=n(9)?Object.defineProperties:function(t,e){i(t);for(var n,s=r(e),a=s.length,u=0;a>u;)o.f(t,n=s[u++],e[n]);return t}},function(t,e,n){var o=n(3).document;t.exports=o&&o.documentElement},function(t,e,n){var o=n(7),i=n(12),r=n(17)("IE_PROTO"),s=Object.prototype;t.exports=Object.getPrototypeOf||function(t){return t=i(t),o(t,r)?t[r]:"function"==typeof t.constructor&&t instanceof t.constructor?t.constructor.prototype:t instanceof Object?s:null}},function(t,e,n){"use strict";var o=n(111)(!0);n(30)(String,"String",function(t){this._t=String(t),this._i=0},function(){var t,e=this._t,n=this._i;return n>=e.length?{value:void 0,done:!0}:(t=o(e,n),this._i+=t.length,{value:t,done:!1})})},function(t,e,n){var o=n(16),i=n(13);t.exports=function(t){return function(e,n){var r,s,a=String(i(e)),u=o(n),c=a.length;return u<0||u>=c?t?"":void 0:(r=a.charCodeAt(u),r<55296||r>56319||u+1===c||(s=a.charCodeAt(u+1))<56320||s>57343?t?a.charAt(u):r:t?a.slice(u,u+2):s-56320+(r-55296<<10)+65536)}}},function(t,e,n){var o=n(8),i=n(113);t.exports=n(4).getIterator=function(t){var e=i(t);if("function"!=typeof e)throw TypeError(t+" is not iterable!");return o(e.call(t))}},function(t,e,n){var o=n(114),i=n(5)("iterator"),r=n(11);t.exports=n(4).getIteratorMethod=function(t){if(void 0!=t)return t[i]||t["@@iterator"]||r[o(t)]}},function(t,e,n){var o=n(23),i=n(5)("toStringTag"),r="Arguments"==o(function(){return arguments}()),s=function(t,e){try{return t[e]}catch(t){}};t.exports=function(t){var e,n,a;return void 0===t?"Undefined":null===t?"Null":"string"==typeof(n=s(e=Object(t),i))?n:r?o(e):"Object"==(a=o(e))&&"function"==typeof e.callee?"Arguments":a}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div")},i=[],r={render:o,staticRenderFns:i};e.a=r},function(t,e,n){"use strict";Object.defineProperty(e,"__esModule",{value:!0});var o=n(117),i=n(118),r=n(0),s=r(o.a,i.a,!1,null,null,null);e.default=s.exports},function(t,e,n){"use strict";var o=n(2),i=n(1),r=["click","dblclick","mousedown","mouseover","mouseout","contextmenu","add","remove","popupopen","popupclose","tooltipopen","tooltipclose"],s={url:{type:String},bounds:{},opacity:{type:Number,default:1},alt:{type:String,default:""},interactive:{type:Boolean,default:!1},crossOrigin:{type:Boolean,default:!1}};e.a={props:s,mounted:function(){var t={opacity:this.opacity,alt:this.alt,interactive:this.interactive,crossOrigin:this.crossOrigin};this.mapObject=L.imageOverlay(this.url,this.bounds,t),Object(o.a)(this,this.mapObject,r),Object(i.a)(this,this.mapObject,s),this.$parent._isMounted&&this.deferredMountedTo(this.$parent.mapObject)},methods:{deferredMountedTo:function(t){this.mapObject.addTo(t)},getBounds:function(){return this.mapObject.getBounds()}},beforeDestroy:function(){this.$parent.mapObject.removeLayer(this.mapObject)}}},function(t,e,n){"use strict";var o=function(){var t=this,e=t.$createElement;return(t._self._c||e)("div")},i=[],r={render:o,staticRenderFns:i};e.a=r}])});
 //# sourceMappingURL=vue2-leaflet.min.js.map
 
 /***/ }),
@@ -74766,7 +74766,7 @@ function toArray (list) {
 "use strict";
 
 
-var _require = __webpack_require__(57),
+var _require = __webpack_require__(58),
     iconText = _require.iconText,
     iconAudio = _require.iconAudio,
     iconVideo = _require.iconVideo,
@@ -79727,7 +79727,7 @@ var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// drag
   if ( true ) {
     // AMD
     !(__WEBPACK_AMD_DEFINE_ARRAY__ = [
-      __webpack_require__(55),
+      __webpack_require__(56),
       __webpack_require__(588),
       __webpack_require__(43)
     ], __WEBPACK_AMD_DEFINE_RESULT__ = (function( Flickity, Unidragger, utils ) {
@@ -80398,7 +80398,7 @@ var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// prev/next but
   if ( true ) {
     // AMD
     !(__WEBPACK_AMD_DEFINE_ARRAY__ = [
-      __webpack_require__(55),
+      __webpack_require__(56),
       __webpack_require__(191),
       __webpack_require__(43)
     ], __WEBPACK_AMD_DEFINE_RESULT__ = (function( Flickity, TapListener, utils ) {
@@ -80625,7 +80625,7 @@ var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// page dots
   if ( true ) {
     // AMD
     !(__WEBPACK_AMD_DEFINE_ARRAY__ = [
-      __webpack_require__(55),
+      __webpack_require__(56),
       __webpack_require__(191),
       __webpack_require__(43)
     ], __WEBPACK_AMD_DEFINE_RESULT__ = (function( Flickity, TapListener, utils ) {
@@ -80812,7 +80812,7 @@ var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// player & auto
     !(__WEBPACK_AMD_DEFINE_ARRAY__ = [
       __webpack_require__(126),
       __webpack_require__(43),
-      __webpack_require__(55)
+      __webpack_require__(56)
     ], __WEBPACK_AMD_DEFINE_RESULT__ = (function( EvEmitter, utils, Flickity ) {
       return factory( EvEmitter, utils, Flickity );
     }).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
@@ -81030,7 +81030,7 @@ var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// add, remove c
   if ( true ) {
     // AMD
     !(__WEBPACK_AMD_DEFINE_ARRAY__ = [
-      __webpack_require__(55),
+      __webpack_require__(56),
       __webpack_require__(43)
     ], __WEBPACK_AMD_DEFINE_RESULT__ = (function( Flickity, utils ) {
       return factory( window, Flickity, utils );
@@ -81219,7 +81219,7 @@ var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// lazyload
   if ( true ) {
     // AMD
     !(__WEBPACK_AMD_DEFINE_ARRAY__ = [
-      __webpack_require__(55),
+      __webpack_require__(56),
       __webpack_require__(43)
     ], __WEBPACK_AMD_DEFINE_RESULT__ = (function( Flickity, utils ) {
       return factory( window, Flickity, utils );
@@ -87054,11 +87054,11 @@ __webpack_require__(91);
 __webpack_require__(704);
 __webpack_require__(706);
 __webpack_require__(186);
-__webpack_require__(62);
+__webpack_require__(55);
 __webpack_require__(185);
 __webpack_require__(326);
 __webpack_require__(184);
-__webpack_require__(56);
+__webpack_require__(57);
 __webpack_require__(187);
 __webpack_require__(182);
 __webpack_require__(124);
@@ -96693,7 +96693,7 @@ var _require = __webpack_require__(15),
 
 var prettyBytes = __webpack_require__(73);
 
-var _require2 = __webpack_require__(57),
+var _require2 = __webpack_require__(58),
     defaultTabIcon = _require2.defaultTabIcon;
 
 // Some code for managing focus was adopted from https://github.com/ghosh/micromodal
@@ -97370,7 +97370,7 @@ var classNames = __webpack_require__(134);
 var _require = __webpack_require__(15),
     isTouchDevice = _require.isTouchDevice;
 
-var _require2 = __webpack_require__(57),
+var _require2 = __webpack_require__(58),
     closeIcon = _require2.closeIcon;
 
 var _require3 = __webpack_require__(2),
@@ -97474,7 +97474,7 @@ module.exports = function Dashboard(props) {
 var FileItem = __webpack_require__(719);
 var ActionBrowseTagline = __webpack_require__(331);
 
-var _require = __webpack_require__(57),
+var _require = __webpack_require__(58),
     dashboardBgIcon = _require.dashboardBgIcon;
 
 var classNames = __webpack_require__(134);
@@ -97548,7 +97548,7 @@ var prettyBytes = __webpack_require__(73);
 var FileItemProgress = __webpack_require__(720);
 var getFileTypeIcon = __webpack_require__(330);
 
-var _require2 = __webpack_require__(57),
+var _require2 = __webpack_require__(58),
     iconEdit = _require2.iconEdit,
     iconCopy = _require2.iconCopy,
     iconRetry = _require2.iconRetry;
@@ -97797,7 +97797,7 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 var ActionBrowseTagline = __webpack_require__(331);
 
-var _require = __webpack_require__(57),
+var _require = __webpack_require__(58),
     localIcon = _require.localIcon;
 
 var _require2 = __webpack_require__(2),
@@ -97929,7 +97929,7 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 var getFileTypeIcon = __webpack_require__(330);
 
-var _require = __webpack_require__(57),
+var _require = __webpack_require__(58),
     checkIcon = _require.checkIcon;
 
 var _require2 = __webpack_require__(2),
